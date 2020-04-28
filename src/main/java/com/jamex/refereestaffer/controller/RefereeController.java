@@ -14,13 +14,13 @@ public class RefereeController {
 
     private final RefereeRepository refereeRepository;
 
-    @GetMapping("/users")
-    public List<Referee> getUsers() {
+    @GetMapping("/referees")
+    public List<Referee> getReferees() {
         return (List<Referee>) refereeRepository.findAll();
     }
 
     @PostMapping("/referees")
-    void addReferee(@RequestBody Referee user) {
-        refereeRepository.save(user);
+    void addReferee(@RequestBody Referee referee) {
+        refereeRepository.save(referee);
     }
 }
