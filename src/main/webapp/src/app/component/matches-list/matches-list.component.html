@@ -1,0 +1,25 @@
+<div class="card my-5">
+  <div class="card-body">
+    <table class="table table-bordered table-striped">
+      <thead class="thead-dark">
+      <tr>
+        <th scope="col">Home team</th>
+        <th scope="col">Away name</th>
+        <th scope="col">Referee</th>
+        <th scope="col">Score</th>
+        <th scope="col">Referee grade</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let match of matches">
+        <td>{{ match.home.name }} {{match.home.city}}</td>
+        <td>{{ match.away.name }} {{match.away.city}}</td>
+        <td>{{ match.referee.firstName }} {{match.referee.lastName}}</td>
+        <td>{{ match.homeScore }} - {{match.awayScore}}</td>
+        <td>{{ match.grade.value }}</td>
+      </tr>
+      </tbody>
+    </table>
+    <a routerLink="/addReferee" class="btn btn-info">Add new match</a>
+  </div>
+</div>

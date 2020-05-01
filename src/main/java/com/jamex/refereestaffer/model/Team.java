@@ -22,11 +22,8 @@ public class Team {
     @Column(nullable = false)
     private String city;
 
-    private int points;
-
-    public Team(String name, String city, int points) {
+    public Team(String name, String city) {
         this.name = name;
         this.city = city;
-        this.points = points;
     }
 }

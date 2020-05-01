@@ -1,7 +1,6 @@
 export class Referee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  experience: number;
+  firstName: string
+  lastName: string
+  email: string
+  experience: number
 }

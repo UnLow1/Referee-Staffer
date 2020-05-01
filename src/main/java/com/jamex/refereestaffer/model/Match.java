@@ -25,9 +25,18 @@ public class Match {
     @ManyToOne(targetEntity = Referee.class)
     private Referee referee;
 
-    public Match(Team home, Team away, Referee referee) {
+    @OneToOne(mappedBy = "match", targetEntity = Grade.class)
+    private Grade grade;
+
+    private int homeScore;
+
+    private int awayScore;
+
+    public Match(Team home, Team away, Referee referee, int homeScore, int awayScore) {
         this.home = home;
         this.away = away;
         this.referee = referee;
+        this.homeScore = homeScore;
+        this.awayScore = awayScore;
     }
 }

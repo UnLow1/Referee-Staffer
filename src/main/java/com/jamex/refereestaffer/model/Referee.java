@@ -12,7 +12,7 @@ import java.util.List;
 @Entity
 @NoArgsConstructor
 @Getter
-@ToString(exclude = "grades")
+@ToString(exclude = "matches")
 public class Referee {
 
     @Id
@@ -28,8 +28,8 @@ public class Referee {
     private String email;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "referee", targetEntity = Grade.class)
-    private List<Grade> grades;
+    @OneToMany(mappedBy = "referee", targetEntity = Match.class)
+    private List<Match> matches;
 
     @Column(nullable = false)
     private int experience;

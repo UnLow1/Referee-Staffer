@@ -9,12 +9,14 @@ import {RefereeService} from "./service/referee.service";
 import {AppRoutingModule} from "./app.routes";
 import {FormsModule} from "@angular/forms";
 import {HttpClientModule} from "@angular/common/http";
+import { MatchesListComponent } from './component/matches-list/matches-list.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     RefereeListComponent,
-    RefereeFormComponent
+    RefereeFormComponent,
+    MatchesListComponent
   ],
   imports: [
     BrowserModule,

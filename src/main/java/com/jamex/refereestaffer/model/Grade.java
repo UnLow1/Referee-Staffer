@@ -1,5 +1,6 @@
 package com.jamex.refereestaffer.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -9,7 +10,7 @@ import javax.persistence.*;
 @Entity
 @Getter
 @NoArgsConstructor
-@ToString
+@ToString(exclude = "match")
 public class Grade {
 
     @Id
@@ -18,11 +19,12 @@ public class Grade {
 
     private double value;
 
-    @ManyToOne(targetEntity = Referee.class)
-    private Referee referee;
+    @JsonIgnore
+    @OneToOne(targetEntity = Match.class)
+    private Match match;
 
-    public Grade(double value, Referee referee) {
+    public Grade(Match match, double value) {
+        this.match = match;
         this.value = value;
-        this.referee = referee;
     }
 }
