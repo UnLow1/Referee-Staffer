@@ -11,11 +11,11 @@ export class RefereeListComponent implements OnInit {
 
   referees: Referee[];
 
-  constructor(private refereService: RefereeService) {
+  constructor(private refereeService: RefereeService) {
   }
 
   ngOnInit() {
-    this.refereService.findAll().subscribe(data => {
+    this.refereeService.findAll().subscribe(data => {
       this.referees = data;
     });
   }

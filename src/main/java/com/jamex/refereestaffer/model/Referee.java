@@ -1,26 +1,43 @@
 package com.jamex.refereestaffer.model;
 
 
-import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
+import java.util.List;
 
 @Entity
-@Data
 @NoArgsConstructor
+@Getter
+@ToString(exclude = "grades")
 public class Referee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
-    private String name;
+
+    @Column(nullable = false)
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
     private String email;
 
-    public Referee(String name, String email) {
-        this.name = name;
+    @JsonIgnore
+    @OneToMany(mappedBy = "referee", targetEntity = Grade.class)
+    private List<Grade> grades;
+
+    @Column(nullable = false)
+    private int experience;
+
+    public Referee(String firstName, String lastName, String email, int experience) {
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
+        this.experience = experience;
     }
 }
