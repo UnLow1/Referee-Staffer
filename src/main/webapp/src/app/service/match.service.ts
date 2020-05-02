@@ -8,13 +8,17 @@ import {Match} from "../model/match";
 })
 export class MatchService {
 
-  private matchesUrl: string;
+  private matchesUrl: string
 
   constructor(private http: HttpClient) {
-    this.matchesUrl = 'http://localhost:8080/matches';
+    this.matchesUrl = 'http://localhost:8080/matches'
   }
 
   public findAll(): Observable<Match[]> {
-    return this.http.get<Match[]>(this.matchesUrl);
+    return this.http.get<Match[]>(this.matchesUrl)
+  }
+
+  public save(match: Match) {
+    return this.http.post<Match>(this.matchesUrl, match)
   }
 }

@@ -10,23 +10,23 @@ import {RefereeService} from "../../service/referee.service";
 })
 export class RefereeFormComponent implements OnInit {
 
-  referee: Referee;
-
-  ngOnInit() {
-  }
+  referee: Referee
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private refereeService: RefereeService) {
-    this.referee = new Referee();
+    this.referee = new Referee()
+  }
+
+  ngOnInit() {
   }
 
   onSubmit() {
-    this.refereeService.save(this.referee).subscribe(result => this.gotoRefereesList());
+    this.refereeService.save(this.referee).subscribe(result => this.gotoRefereesList())
   }
 
   gotoRefereesList() {
-    this.router.navigate(['/referees']);
+    this.router.navigate(['/referees'])
   }
 }

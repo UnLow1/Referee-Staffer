@@ -1,6 +1,6 @@
 package com.jamex.refereestaffer.controller;
 
-import com.jamex.refereestaffer.model.Referee;
+import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

@@ -1,9 +1,9 @@
 package com.jamex.refereestaffer;
 
-import com.jamex.refereestaffer.model.Grade;
-import com.jamex.refereestaffer.model.Match;
-import com.jamex.refereestaffer.model.Referee;
-import com.jamex.refereestaffer.model.Team;
+import com.jamex.refereestaffer.model.entity.Grade;
+import com.jamex.refereestaffer.model.entity.Match;
+import com.jamex.refereestaffer.model.entity.Referee;
+import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;

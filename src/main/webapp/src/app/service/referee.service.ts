@@ -8,17 +8,17 @@ import {Referee} from "../model/referee";
 })
 export class RefereeService {
 
-  private refereesUrl: string;
+  private refereesUrl: string
 
   constructor(private http: HttpClient) {
-    this.refereesUrl = 'http://localhost:8080/referees';
+    this.refereesUrl = 'http://localhost:8080/referees'
   }
 
   public findAll(): Observable<Referee[]> {
-    return this.http.get<Referee[]>(this.refereesUrl);
+    return this.http.get<Referee[]>(this.refereesUrl)
   }
 
   public save(referee: Referee) {
-    return this.http.post<Referee>(this.refereesUrl, referee);
+    return this.http.post<Referee>(this.refereesUrl, referee)
   }
 }

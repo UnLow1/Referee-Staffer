@@ -1,4 +1,4 @@
-package com.jamex.refereestaffer.model;
+package com.jamex.refereestaffer.model.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;

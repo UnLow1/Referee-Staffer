@@ -1,0 +1,48 @@
+<div class="card my-5">
+  <div class="card-body">
+    <form (ngSubmit)="onSubmit()" #matchForm="ngForm">
+      <div class="form-group">
+        <label for="homeTeam">Home team</label>
+        <select class="custom-select" id="homeTeam">
+          <option value="" disabled>Choose home team</option>
+          <option *ngFor="let team of teams" [ngValue]="team">{{team.name}} {{team.city}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="awayTeam">Away team</label>
+        <select class="custom-select" id="awayTeam">
+          <option value="" disabled>Choose away team</option>
+          <option *ngFor="let team of teams" [ngValue]="team">{{team.name}} {{team.city}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="referee">Referee</label>
+        <select class="custom-select" id="referee">
+          <option value="" disabled>Choose referee</option>
+          <option *ngFor="let referee of referees" [ngValue]="referee">{{referee.firstName}} {{referee.lastName}}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="homeScore">Home team score</label>
+        <input type="number" [(ngModel)]="match.homeScore"
+               min="0"
+               class="form-control"
+               id="homeScore"
+               name="homeScore"
+               placeholder="Enter home team score">
+      </div>
+      <div class="form-group">
+        <label for="awayScore">Away team score</label>
+        <input type="number" [(ngModel)]="match.awayScore"
+               min="0"
+               class="form-control"
+               id="awayScore"
+               name="awayScore"
+               placeholder="Enter away team score">
+      </div>
+      <button type="submit" [disabled]="!matchForm.form.valid"
+              class="btn btn-info">Submit
+      </button>
+    </form>
+  </div>
+</div>

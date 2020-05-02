@@ -1,6 +1,6 @@
 package com.jamex.refereestaffer.repository;
 
-import com.jamex.refereestaffer.model.Team;
+import com.jamex.refereestaffer.model.entity.Team;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

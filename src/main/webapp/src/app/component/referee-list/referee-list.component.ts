@@ -9,14 +9,14 @@ import {Referee} from "../../model/referee";
 })
 export class RefereeListComponent implements OnInit {
 
-  referees: Referee[];
-
   constructor(private refereeService: RefereeService) {
   }
 
+  referees: Referee[]
+
   ngOnInit() {
     this.refereeService.findAll().subscribe(data => {
-      this.referees = data;
-    });
+      this.referees = data
+    })
   }
 }

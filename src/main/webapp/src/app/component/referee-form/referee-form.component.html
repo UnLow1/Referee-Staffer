@@ -10,7 +10,7 @@
                placeholder="Enter your first name"
                required #firstName="ngModel">
       </div>
-      <div [hidden]="!firstName.pristine" class="alert alert-danger">First name is required</div>
+      <div [hidden]="firstName.valid" class="alert alert-danger">First name is required</div>
       <div class="form-group">
         <label for="lastName">Last name</label>
         <input type="text" [(ngModel)]="referee.lastName"
@@ -20,29 +20,31 @@
                placeholder="Enter your last name"
                required #lastName="ngModel">
       </div>
-      <div [hidden]="!lastName.pristine" class="alert alert-danger">Last name is required</div>
+      <div [hidden]="lastName.valid" class="alert alert-danger">Last name is required</div>
       <div class="form-group">
         <label for="email">Email</label>
-        <input type="text" [(ngModel)]="referee.email"
+        <input type="email" [(ngModel)]="referee.email" email
                class="form-control"
                id="email"
                name="email"
                placeholder="Enter your email address"
                required #email="ngModel">
-        <div [hidden]="!email.pristine" class="alert alert-danger">Email is required</div>
       </div>
+      <div [hidden]="email.valid" class="alert alert-danger">Email is required</div>
       <div class="form-group">
-        <label for="lastName">Experience</label>
-        <input type="text" [(ngModel)]="referee.experience"
+        <label for="experience">Experience</label>
+        <input type="number" [(ngModel)]="referee.experience"
+               min="0"
                class="form-control"
                id="experience"
                name="experience"
                placeholder="Enter your experience (number of matches)"
                required #experience="ngModel">
       </div>
-      <div [hidden]="!experience.pristine" class="alert alert-danger">Experience is required</div>
+      <div [hidden]="experience.valid" class="alert alert-danger">Experience is required</div>
       <button type="submit" [disabled]="!refereeForm.form.valid"
-              class="btn btn-info">Submit</button>
+              class="btn btn-info">Submit
+      </button>
     </form>
   </div>
 </div>

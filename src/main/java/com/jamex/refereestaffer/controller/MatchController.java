@@ -1,11 +1,9 @@
 package com.jamex.refereestaffer.controller;
 
-import com.jamex.refereestaffer.model.Match;
+import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -19,5 +17,10 @@ public class MatchController {
     @GetMapping("/matches")
     public List<Match> getMatches() {
         return (List<Match>) matchRepository.findAll();
+    }
+
+    @PostMapping("/matches")
+    void addMatch(@RequestBody Match match) {
+        matchRepository.save(match);
     }
 }
