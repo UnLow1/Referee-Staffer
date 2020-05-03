@@ -16,6 +16,8 @@ public class Match {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
 
+    private short queue;
+
     @ManyToOne(targetEntity = Team.class)
     private Team home;
 
@@ -32,7 +34,8 @@ public class Match {
 
     private int awayScore;
 
-    public Match(Team home, Team away, Referee referee, int homeScore, int awayScore) {
+    public Match(short queue, Team home, Team away, Referee referee, int homeScore, int awayScore) {
+        this.queue = queue;
         this.home = home;
         this.away = away;
         this.referee = referee;
