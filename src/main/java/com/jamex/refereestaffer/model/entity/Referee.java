@@ -2,16 +2,16 @@ package com.jamex.refereestaffer.model.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 import java.util.List;
 
 @Entity
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
+@Builder
 @ToString(exclude = "matches")
 public class Referee {
 
@@ -27,7 +27,7 @@ public class Referee {
 
     private String email;
 
-    @JsonIgnore
+    @JsonIgnore // TODO not needed when using converters
     @OneToMany(mappedBy = "referee", targetEntity = Match.class)
     private List<Match> matches;
 
