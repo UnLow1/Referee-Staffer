@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {Referee} from "../../model/referee";
 import {ActivatedRoute, Router} from "@angular/router";
 import {RefereeService} from "../../service/referee.service";
@@ -12,10 +12,7 @@ export class RefereeFormComponent implements OnInit {
 
   referee: Referee
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private refereeService: RefereeService) {
+  constructor(private route: ActivatedRoute, private router: Router, private refereeService: RefereeService) {
     this.referee = new Referee()
   }
 

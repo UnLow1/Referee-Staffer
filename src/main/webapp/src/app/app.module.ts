@@ -12,6 +12,8 @@ import {HttpClientModule} from "@angular/common/http";
 import { MatchListComponent } from './component/match-list/match-list.component';
 import { MatchFormComponent } from './component/match-form/match-form.component';
 import { GradeListComponent } from './component/grade-list/grade-list.component';
+import { TeamListComponent } from './component/team-list/team-list.component';
+import { TeamFormComponent } from './component/team-form/team-form.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +22,9 @@ import { GradeListComponent } from './component/grade-list/grade-list.component'
     RefereeFormComponent,
     MatchListComponent,
     MatchFormComponent,
-    GradeListComponent
+    GradeListComponent,
+    TeamListComponent,
+    TeamFormComponent
   ],
   imports: [
     BrowserModule,

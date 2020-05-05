@@ -1,0 +1,19 @@
+<div class="card my-5">
+  <div class="card-body">
+    <table class="table table-bordered table-striped">
+      <thead class="thead-dark">
+      <tr>
+        <th scope="col">Team name</th>
+        <th scope="col">City</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let team of teams">
+        <td>{{ team.name }}</td>
+        <td>{{ team.city }}</td>
+      </tr>
+      </tbody>
+    </table>
+    <a routerLink="/addTeam" class="btn btn-info">Add new team</a>
+  </div>
+</div>

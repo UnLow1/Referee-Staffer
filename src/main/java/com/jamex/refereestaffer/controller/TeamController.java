@@ -23,6 +23,12 @@ public class TeamController {
         return teamConverter.convertFromEntities(teams);
     }
 
+    @PostMapping("/teams")
+    void addTeam(@RequestBody TeamDto teamDto) {
+        var team = teamConverter.convertFromDto(teamDto);
+        teamRepository.save(team);
+    }
+
     @PostMapping("/teams/byIds")
     public Collection<TeamDto> getTeamsByIds(@RequestBody IDRequest request) {
         var teams = teamRepository.findAllById(request.getIds());

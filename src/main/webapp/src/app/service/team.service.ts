@@ -26,4 +26,8 @@ export class TeamService {
   public findByIds(ids: number[]): Observable<Team[]> {
     return this.http.post<Team[]>(this.teamsUrl + "/byIds", {ids}, this.httpOptions);
   }
+
+  public save(team: Team) {
+    return this.http.post<Team>(this.teamsUrl, team)
+  }
 }
