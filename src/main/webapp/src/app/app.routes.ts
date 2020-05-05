@@ -4,12 +4,14 @@ import {RefereeListComponent} from './component/referee-list/referee-list.compon
 import {RefereeFormComponent} from './component/referee-form/referee-form.component';
 import {MatchListComponent} from "./component/match-list/match-list.component";
 import {MatchFormComponent} from "./component/match-form/match-form.component";
+import {GradeListComponent} from "./component/grade-list/grade-list.component";
 
 const routes: Routes = [
   {path: 'referees', component: RefereeListComponent},
   {path: 'addReferee', component: RefereeFormComponent},
   {path: 'matches', component: MatchListComponent},
-  {path: 'addMatch', component: MatchFormComponent}
+  {path: 'addMatch', component: MatchFormComponent},
+  {path: 'grades', component: GradeListComponent}
 ];
 
 @NgModule({

@@ -1,0 +1,21 @@
+<div class="card my-5">
+  <div class="card-body">
+    <table class="table table-bordered table-striped">
+      <thead class="thead-dark">
+      <tr>
+        <th scope="col">Referee</th>
+        <th scope="col">Grades</th>
+        <th scope="col">Average grade</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let referee of referees">
+        <td>{{ referee.firstName }} {{ referee.lastName }}</td>
+        <td>{{ getGradesForReferee(referee)?.join(", ") }}</td>
+        <td>{{ countAverageForReferee(referee) || "" }}</td>
+      </tr>
+      </tbody>
+    </table>
+    <a routerLink="/addGrade" class="btn btn-info">Add new grade</a>
+  </div>
+</div>

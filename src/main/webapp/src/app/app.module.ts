@@ -11,6 +11,7 @@ import {FormsModule} from "@angular/forms";
 import {HttpClientModule} from "@angular/common/http";
 import { MatchListComponent } from './component/match-list/match-list.component';
 import { MatchFormComponent } from './component/match-form/match-form.component';
+import { GradeListComponent } from './component/grade-list/grade-list.component';
 
 @NgModule({
   declarations: [
@@ -18,7 +19,8 @@ import { MatchFormComponent } from './component/match-form/match-form.component'
     RefereeListComponent,
     RefereeFormComponent,
     MatchListComponent,
-    MatchFormComponent
+    MatchFormComponent,
+    GradeListComponent
   ],
   imports: [
     BrowserModule,

@@ -5,10 +5,7 @@ import com.jamex.refereestaffer.model.dto.GradeDto;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 
@@ -19,6 +16,12 @@ public class GradeController {
 
     private final GradeRepository gradeRepository;
     private final GradeConverter gradeConverter;
+
+    @GetMapping("/grades")
+    public Collection<GradeDto> getGrades() {
+        var grades = gradeRepository.findAll();
+        return gradeConverter.convertFromEntities(grades);
+    }
 
     @PostMapping("/grades/byIds")
     public Collection<GradeDto> getGradesByIds(@RequestBody IDRequest request) {
