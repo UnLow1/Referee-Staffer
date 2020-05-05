@@ -1,22 +1,23 @@
 package com.jamex.refereestaffer.model.entity;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @ToString
 public class Match {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
-    private short queue;
+    @Column(nullable = false)
+    private Short queue;
 
     @ManyToOne(targetEntity = Team.class)
     private Team home;
@@ -30,11 +31,11 @@ public class Match {
     @OneToOne(mappedBy = "match", targetEntity = Grade.class)
     private Grade grade;
 
-    private int homeScore;
+    private Short homeScore;
 
-    private int awayScore;
+    private Short awayScore;
 
-    public Match(short queue, Team home, Team away, Referee referee, int homeScore, int awayScore) {
+    public Match(short queue, Team home, Team away, Referee referee, Short homeScore, Short awayScore) {
         this.queue = queue;
         this.home = home;
         this.away = away;

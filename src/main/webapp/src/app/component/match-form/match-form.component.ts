@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {Referee} from "../../model/referee";
 import {ActivatedRoute, Router} from "@angular/router";
 import {RefereeService} from "../../service/referee.service";
@@ -18,12 +18,8 @@ export class MatchFormComponent implements OnInit {
   teams: Team[]
   referees: Referee[]
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private matchService: MatchService,
-    private teamService: TeamService,
-    private refereeService: RefereeService) {
+  constructor(private route: ActivatedRoute, private router: Router, private matchService: MatchService,
+              private teamService: TeamService, private refereeService: RefereeService) {
     this.match = new Match()
   }
 

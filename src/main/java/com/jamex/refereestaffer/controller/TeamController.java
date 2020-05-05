@@ -1,13 +1,13 @@
 package com.jamex.refereestaffer.controller;
 
-import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.converter.TeamConverter;
+import com.jamex.refereestaffer.model.dto.TeamDto;
+import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Collection;
 
 @RestController
 @RequiredArgsConstructor
@@ -15,9 +15,17 @@ import java.util.List;
 public class TeamController {
 
     private final TeamRepository teamRepository;
+    private final TeamConverter teamConverter;
 
     @GetMapping("/teams")
-    public List<Team> getTeams() {
-        return (List<Team>) teamRepository.findAll();
+    public Collection<TeamDto> getTeams() {
+        var teams = teamRepository.findAll();
+        return teamConverter.convertFromEntities(teams);
+    }
+
+    @PostMapping("/teams/byIds")
+    public Collection<TeamDto> getTeamsByIds(@RequestBody IDRequest request) {
+        var teams = teamRepository.findAllById(request.getIds());
+        return teamConverter.convertFromEntities(teams);
     }
 }

@@ -1,23 +1,24 @@
 package com.jamex.refereestaffer.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @ToString(exclude = "match")
 public class Grade {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
-    private double value;
+    @Column(nullable = false)
+    private Double value;
 
     @JsonIgnore
     @OneToOne(targetEntity = Match.class)

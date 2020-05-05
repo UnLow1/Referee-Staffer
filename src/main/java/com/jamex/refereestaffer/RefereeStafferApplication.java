@@ -39,15 +39,15 @@ public class RefereeStafferApplication {
             var team5 = new Team("Lech", "Poznań");
             var team6 = new Team("Łks", "Łódź");
 
-            var match1 = new Match((short) 1, team1, team5, ref1, 1, 0);
-            var match2 = new Match((short) 1, team2, team6, ref2, 0, 0);
-            var match3 = new Match((short) 1, team4, team3, ref3, 0, 2);
-            var match4 = new Match((short) 2, team4, team6, ref1, 1, 2);
-            var match5 = new Match((short) 2, team3, team5, ref2, 3, 3);
-            var match6 = new Match((short) 2, team2, team1, ref3, 2, 2);
-            var match7 = new Match((short) 3, team4, team2, ref1, 0, 0);
-            var match8 = new Match((short) 3, team1, team3, ref2, 1, 3);
-            var match9 = new Match((short) 3, team5, team6, ref3, 2, 2);
+            var match1 = new Match((short) 1, team1, team5, ref1, (short) 1, (short) 0);
+            var match2 = new Match((short) 1, team2, team6, ref2, (short) 0, (short) 0);
+            var match3 = new Match((short) 1, team4, team3, ref3, (short) 0, (short) 2);
+            var match4 = new Match((short) 2, team4, team6, ref1, (short) 1, (short) 2);
+            var match5 = new Match((short) 2, team3, team5, ref2, (short) 3, (short) 3);
+            var match6 = new Match((short) 2, team2, team1, ref3, (short) 2, (short) 2);
+            var match7 = new Match((short) 3, team4, team2, ref1, (short) 0, (short) 0);
+            var match8 = new Match((short) 3, team1, team3, ref2, (short) 1, (short) 3);
+            var match9 = new Match((short) 3, team5, team6, ref3, (short) 2, (short) 2);
 
             var grade1 = new Grade(match1, 8.3);
             var grade2 = new Grade(match2, 8.2);

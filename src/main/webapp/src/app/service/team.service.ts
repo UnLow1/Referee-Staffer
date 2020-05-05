@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {HttpClient} from "@angular/common/http";
+import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Team} from "../model/team";
 
@@ -8,7 +8,12 @@ import {Team} from "../model/team";
 })
 export class TeamService {
 
-  private teamsUrl: string
+  private readonly teamsUrl: string
+  private httpOptions = {
+    headers: new HttpHeaders({
+      'Content-Type': 'application/json'
+    })
+  };
 
   constructor(private http: HttpClient) {
     this.teamsUrl = 'http://localhost:8080/teams'
@@ -16,5 +21,9 @@ export class TeamService {
 
   public findAll(): Observable<Team[]> {
     return this.http.get<Team[]>(this.teamsUrl)
+  }
+
+  public findByIds(ids: number[]): Observable<Team[]> {
+    return this.http.post<Team[]>(this.teamsUrl + "/byIds", {ids}, this.httpOptions);
   }
 }

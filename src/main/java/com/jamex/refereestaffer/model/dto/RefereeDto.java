@@ -2,21 +2,25 @@ package com.jamex.refereestaffer.model.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NonNull;
+
+import javax.validation.constraints.NotNull;
 
 @Getter
 @Builder
 public class RefereeDto {
 
-    @NonNull
+    @NotNull
+    private final Long id;
+
+    @NotNull
     private final String firstName;
 
-    @NonNull
+    @NotNull
     private final String lastName;
 
-    @NonNull
+    @NotNull
     private final String email;
 
-    @NonNull
-    private final int experience;
+    @NotNull
+    private final Integer experience;
 }

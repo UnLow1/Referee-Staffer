@@ -1,7 +1,6 @@
 package com.jamex.refereestaffer.model.entity;
 
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import javax.persistence.*;
@@ -17,7 +16,7 @@ public class Referee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private long id;
+    private Long id;
 
     @Column(nullable = false)
     private String firstName;
@@ -25,9 +24,9 @@ public class Referee {
     @Column(nullable = false)
     private String lastName;
 
+    @Column(nullable = false)
     private String email;
 
-    @JsonIgnore // TODO not needed when using converters
     @OneToMany(mappedBy = "referee", targetEntity = Match.class)
     private List<Match> matches;
 

@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import {HttpClient} from "@angular/common/http";
+import {Injectable} from '@angular/core';
+import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Referee} from "../model/referee";
 
@@ -8,7 +8,12 @@ import {Referee} from "../model/referee";
 })
 export class RefereeService {
 
-  private refereesUrl: string
+  private readonly refereesUrl: string
+  private httpOptions = {
+    headers: new HttpHeaders({
+      'Content-Type': 'application/json'
+    })
+  };
 
   constructor(private http: HttpClient) {
     this.refereesUrl = 'http://localhost:8080/referees'
@@ -20,5 +25,9 @@ export class RefereeService {
 
   public save(referee: Referee) {
     return this.http.post<Referee>(this.refereesUrl, referee)
+  }
+
+  public findByIds(ids: number[]): Observable<Referee[]> {
+    return this.http.post<Referee[]>(this.refereesUrl + "/byIds", {ids}, this.httpOptions);
   }
 }
