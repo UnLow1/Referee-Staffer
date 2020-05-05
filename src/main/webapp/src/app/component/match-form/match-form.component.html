@@ -2,7 +2,7 @@
   <div class="card-body">
     <form (ngSubmit)="onSubmit()" #matchForm="ngForm">
       <div class="form-group">
-        <label for="queue">Queue</label>
+        <label for="queue">Queue(*)</label>
         <input type="number" [(ngModel)]="match.queue"
                min="0"
                class="form-control"
@@ -11,26 +11,31 @@
                placeholder="Enter queue"
                required #queue="ngModel">
       </div>
-      <div [hidden]="queue.valid" class="alert alert-danger">Queue is required</div>
+      <div [hidden]="queue.valid || queue.untouched" class="alert alert-danger">Queue is required</div>
       <div class="form-group">
-        <label for="homeTeam">Home team</label>
-        <select class="custom-select" id="homeTeam" name="homeTeam" [(ngModel)]="match.homeTeamId">
-          <option value="" disabled>Choose home team</option>
+        <label for="homeTeam">Home team(*)</label>
+        <select class="custom-select" id="homeTeam" name="homeTeam" [(ngModel)]="match.homeTeamId" required
+                #homeTeam="ngModel">
+          <option hidden value="undefined" selected>Choose home team</option>
           <option *ngFor="let team of teams" [ngValue]="team.id">{{team.name}} {{team.city}}</option>
         </select>
       </div>
+      <div [hidden]="homeTeam.valid || homeTeam.untouched" class="alert alert-danger">Home team is required</div>
       <div class="form-group">
-        <label for="awayTeam">Away team</label>
-        <select class="custom-select" id="awayTeam" name="awayTeam" [(ngModel)]="match.awayTeamId">
-          <option value="" disabled>Choose away team</option>
+        <label for="awayTeam">Away team(*)</label>
+        <select class="custom-select" id="awayTeam" name="awayTeam" [(ngModel)]="match.awayTeamId" required
+                #awayTeam="ngModel">
+          <option hidden value="undefined" selected>Choose away team</option>
           <option *ngFor="let team of teams" [ngValue]="team.id">{{team.name}} {{team.city}}</option>
         </select>
       </div>
+      <div [hidden]="awayTeam.valid || awayTeam.untouched" class="alert alert-danger">Away team is required</div>
       <div class="form-group">
         <label for="referee">Referee</label>
         <select class="custom-select" id="referee" name="referee" [(ngModel)]="match.refereeId">
-          <option value="" disabled>Choose referee</option>
-          <option *ngFor="let referee of referees" [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
+          <option hidden value="undefined" selected>Choose referee</option>
+          <option *ngFor="let referee of referees"
+                  [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
         </select>
       </div>
       <div class="form-group">
@@ -51,9 +56,7 @@
                name="awayScore"
                placeholder="Enter away team score">
       </div>
-      <button type="submit" [disabled]="!matchForm.form.valid"
-              class="btn btn-info">Submit
-      </button>
+      <button type="submit" [disabled]="!matchForm.form.valid" class="btn btn-info">Submit</button>
     </form>
   </div>
 </div>
