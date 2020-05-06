@@ -2,6 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders} from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Grade} from "../model/grade";
+import {Match} from "../model/match";
 
 @Injectable({
   providedIn: 'root'
@@ -25,5 +26,9 @@ export class GradeService {
 
   public findByIds(ids: number[]): Observable<Grade[]> {
     return this.http.post<Grade[]>(this.gradesUrls + "/byIds", {ids}, this.httpOptions);
+  }
+
+  public save(match: Match, grade: Grade) {
+    return this.http.post<Grade>(this.gradesUrls + `/${match.id}`, grade)
   }
 }

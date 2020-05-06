@@ -28,6 +28,7 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
                 .map(Grade::getId);
 
         return MatchDto.builder()
+                .id(entity.getId())
                 .queue(entity.getQueue())
                 .homeTeamId(entity.getHome().getId())
                 .awayTeamId(entity.getAway().getId())
@@ -48,6 +49,7 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
                 .flatMap(gradeRepository::findById);
 
         return Match.builder()
+                .id(dto.getId())
                 .queue(dto.getQueue())
                 .home(homeTeam.orElse(null))
                 .away(awayTeam.orElse(null))

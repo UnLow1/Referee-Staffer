@@ -12,24 +12,25 @@ import java.util.Collection;
 @RestController
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:4200")
+@RequestMapping("/teams")
 public class TeamController {
 
     private final TeamRepository teamRepository;
     private final TeamConverter teamConverter;
 
-    @GetMapping("/teams")
+    @GetMapping
     public Collection<TeamDto> getTeams() {
         var teams = teamRepository.findAll();
         return teamConverter.convertFromEntities(teams);
     }
 
-    @PostMapping("/teams")
+    @PostMapping
     void addTeam(@RequestBody TeamDto teamDto) {
         var team = teamConverter.convertFromDto(teamDto);
         teamRepository.save(team);
     }
 
-    @PostMapping("/teams/byIds")
+    @PostMapping("/byIds")
     public Collection<TeamDto> getTeamsByIds(@RequestBody IDRequest request) {
         var teams = teamRepository.findAllById(request.getIds());
         return teamConverter.convertFromEntities(teams);

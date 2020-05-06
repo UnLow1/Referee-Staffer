@@ -1,4 +1,5 @@
 export class Match {
+  id: number
   queue: number
   homeTeamId: number
   awayTeamId: number

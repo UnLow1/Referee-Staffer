@@ -12,24 +12,25 @@ import java.util.Collection;
 @RestController
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:4200")
+@RequestMapping("/referees")
 public class RefereeController {
 
     private final RefereeRepository refereeRepository;
     private final RefereeConverter refereeConverter;
 
-    @GetMapping("/referees")
+    @GetMapping
     public Collection<RefereeDto> getReferees() {
         var referees = refereeRepository.findAll();
         return refereeConverter.convertFromEntities(referees);
     }
 
-    @PostMapping("/referees")
+    @PostMapping
     void addReferee(@RequestBody RefereeDto refereeDto) {
         var referee = refereeConverter.convertFromDto(refereeDto);
         refereeRepository.save(referee);
     }
 
-    @PostMapping("/referees/byIds")
+    @PostMapping("/byIds")
     public Collection<RefereeDto> getRefereesByIds(@RequestBody IDRequest request) {
         var referees = refereeRepository.findAllById(request.getIds());
         return refereeConverter.convertFromEntities(referees);

@@ -6,6 +6,8 @@ import {Match} from "../../model/match";
 import {MatchService} from "../../service/match.service";
 import {TeamService} from "../../service/team.service";
 import {Team} from "../../model/team";
+import {Grade} from "../../model/grade";
+import {GradeService} from "../../service/grade.service";
 
 @Component({
   selector: 'app-match-form',
@@ -15,12 +17,15 @@ import {Team} from "../../model/team";
 export class MatchFormComponent implements OnInit {
 
   match: Match
+  grade: Grade
   teams: Team[]
   referees: Referee[]
 
   constructor(private route: ActivatedRoute, private router: Router, private matchService: MatchService,
-              private teamService: TeamService, private refereeService: RefereeService) {
+              private teamService: TeamService, private refereeService: RefereeService,
+              private gradeService: GradeService) {
     this.match = new Match()
+    this.grade = new Grade()
   }
 
   ngOnInit() {
@@ -33,7 +38,9 @@ export class MatchFormComponent implements OnInit {
   }
 
   onSubmit() {
-    this.matchService.save(this.match).subscribe(result => this.gotoMatchesList())
+    this.matchService.save(this.match).subscribe(match => {
+      this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
+    })
   }
 
   gotoMatchesList() {

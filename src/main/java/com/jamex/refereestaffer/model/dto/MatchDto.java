@@ -10,6 +10,9 @@ import javax.validation.constraints.NotNull;
 public class MatchDto {
 
     @NotNull
+    private final Long id;
+
+    @NotNull
     private final Short queue;
 
     @NotNull

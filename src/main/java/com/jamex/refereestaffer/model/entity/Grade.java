@@ -22,6 +22,7 @@ public class Grade {
 
     @JsonIgnore
     @OneToOne(targetEntity = Match.class)
+    @Setter
     private Match match;
 
     public Grade(Match match, double value) {

@@ -20,7 +20,7 @@ export class TeamFormComponent implements OnInit {
   }
 
   onSubmit() {
-    this.teamService.save(this.team).subscribe(result => this.gotoTeamsList())
+    this.teamService.save(this.team).subscribe(() => this.gotoTeamsList())
   }
 
   gotoTeamsList() {

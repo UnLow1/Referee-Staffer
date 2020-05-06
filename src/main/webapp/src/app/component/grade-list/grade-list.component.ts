@@ -33,8 +33,6 @@ export class GradeListComponent implements OnInit {
 
   getGradesForReferee(referee: Referee): number[] {
     let gradeIds = this.matches.filter(match => match.refereeId === referee.id).map(match => match.gradeId)
-    console.log(referee.firstName)
-    console.log(gradeIds)
     return this.grades?.filter(grade => gradeIds.includes(grade.id)).map(grade => grade.value)
   }
 

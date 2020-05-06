@@ -16,5 +16,4 @@ export class TeamListComponent implements OnInit {
   ngOnInit(): void {
     this.teamService.findAll().subscribe(teams => this.teams = teams)
   }
-
 }

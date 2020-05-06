@@ -20,7 +20,7 @@ export class RefereeFormComponent implements OnInit {
   }
 
   onSubmit() {
-    this.refereeService.save(this.referee).subscribe(result => this.gotoRefereesList())
+    this.refereeService.save(this.referee).subscribe(() => this.gotoRefereesList())
   }
 
   gotoRefereesList() {
