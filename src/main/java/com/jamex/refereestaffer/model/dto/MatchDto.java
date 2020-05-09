@@ -1,7 +1,9 @@
 package com.jamex.refereestaffer.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 import javax.validation.constraints.NotNull;
 
@@ -21,11 +23,16 @@ public class MatchDto {
     @NotNull
     private final Long awayTeamId;
 
-    private final Long refereeId;
+    @Setter
+    private Long refereeId;
 
     private final Short homeScore;
 
     private final Short awayScore;
 
     private final Long gradeId;
+
+    @JsonIgnore
+    @Setter
+    private double hardnessLvl;
 }

@@ -1,0 +1,18 @@
+<div class="card my-5">
+  <div class="card-body">
+    <form (ngSubmit)="onSubmit()" #stafferForm="ngForm">
+      <div class="form-group">
+        <label for="queueInput">Queue(*)</label>
+        <input type="number" [(ngModel)]="queue"
+               class="form-control"
+               min="0"
+               id="queueInput"
+               name="queueInput"
+               placeholder="Enter queue"
+               required #queueInput="ngModel">
+      </div>
+      <div [hidden]="queueInput.valid || queueInput.untouched" class="alert alert-danger">Queue is required</div>
+      <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-info">Submit</button>
+    </form>
+  </div>
+</div>

@@ -14,6 +14,7 @@ import { MatchFormComponent } from './component/match-form/match-form.component'
 import { GradeListComponent } from './component/grade-list/grade-list.component';
 import { TeamListComponent } from './component/team-list/team-list.component';
 import { TeamFormComponent } from './component/team-form/team-form.component';
+import { StafferComponent } from './component/staffer/staffer.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +25,8 @@ import { TeamFormComponent } from './component/team-form/team-form.component';
     MatchFormComponent,
     GradeListComponent,
     TeamListComponent,
-    TeamFormComponent
+    TeamFormComponent,
+    StafferComponent
   ],
   imports: [
     BrowserModule,
