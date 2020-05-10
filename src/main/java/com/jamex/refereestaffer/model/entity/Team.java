@@ -19,8 +19,12 @@ public class Team {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column
     private String city;
+
+    public Team(String name) {
+        this.name = name;
+    }
 
     public Team(String name, String city) {
         this.name = name;

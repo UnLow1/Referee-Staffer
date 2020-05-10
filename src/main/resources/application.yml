@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:h2:file:./db/RefereeStaffer
+    url: jdbc:h2:file:./data/db/RefereeStaffer
   jpa:
     hibernate:
       ddl-auto: update

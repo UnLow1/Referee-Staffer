@@ -8,6 +8,7 @@ import {GradeListComponent} from "./component/grade-list/grade-list.component";
 import {TeamListComponent} from "./component/team-list/team-list.component";
 import {TeamFormComponent} from "./component/team-form/team-form.component";
 import {StafferComponent} from "./component/staffer/staffer.component";
+import {ImporterComponent} from "./component/importer/importer.component";
 
 const routes: Routes = [
   {path: 'referees', component: RefereeListComponent},
@@ -17,7 +18,8 @@ const routes: Routes = [
   {path: 'grades', component: GradeListComponent},
   {path: 'teams', component: TeamListComponent},
   {path: 'addTeam', component: TeamFormComponent},
-  {path: 'staffer', component: StafferComponent}
+  {path: 'staffer', component: StafferComponent},
+  {path: 'importer', component: ImporterComponent}
 ];
 
 @NgModule({

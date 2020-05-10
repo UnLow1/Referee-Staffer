@@ -24,14 +24,19 @@ public class Referee {
     @Column(nullable = false)
     private String lastName;
 
-    @Column(nullable = false)
+    @Column
     private String email;
 
     @OneToMany(mappedBy = "referee", targetEntity = Match.class)
     private List<Match> matches;
 
-    @Column(nullable = false)
+    @Column
     private int experience;
+
+    public Referee(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
 
     public Referee(String firstName, String lastName, String email, int experience) {
         this.firstName = firstName;
