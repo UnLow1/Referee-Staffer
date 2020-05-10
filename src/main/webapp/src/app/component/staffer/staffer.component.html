@@ -1,5 +1,24 @@
 <div class="card my-5">
   <div class="card-body">
+    <table *ngIf="matches" class="table table-bordered table-striped">
+      <thead class="thead-dark">
+      <tr>
+        <th [colSpan]="3" class="tableHeader">Queue {{queue}}</th>
+      </tr>
+      <tr>
+        <th scope="col">Home team</th>
+        <th scope="col">Away name</th>
+        <th scope="col">Referee</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let match of matches">
+        <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
+        <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
+        <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
+      </tr>
+      </tbody>
+    </table>
     <form (ngSubmit)="onSubmit()" #stafferForm="ngForm">
       <div class="form-group">
         <label for="queueInput">Queue(*)</label>
@@ -12,7 +31,8 @@
                required #queueInput="ngModel">
       </div>
       <div [hidden]="queueInput.valid || queueInput.untouched" class="alert alert-danger">Queue is required</div>
-      <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-info">Submit</button>
+      <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-info">Generate cast</button>
+      <button (click)="updateMatches()" [hidden]="!matches" class="btn btn-info float-right">Save cast</button>
     </form>
   </div>
 </div>

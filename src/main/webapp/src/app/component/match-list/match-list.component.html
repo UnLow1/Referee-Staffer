@@ -12,6 +12,7 @@
       </tr>
       </thead>
       <tbody>
+      <!-- TODO create Queue as separate object to better visualization -->
       <tr *ngFor="let match of matches">
         <td>{{ match.queue }}</td>
         <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>

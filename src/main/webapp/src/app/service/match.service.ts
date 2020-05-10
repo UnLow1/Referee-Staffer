@@ -21,4 +21,8 @@ export class MatchService {
   public save(match: Match) {
     return this.http.post<Match>(this.matchesUrl, match)
   }
+
+  public update(matches: Match[]) {
+    return this.http.put<Match[]>(this.matchesUrl, matches)
+  }
 }

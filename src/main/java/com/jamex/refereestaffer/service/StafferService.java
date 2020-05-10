@@ -39,14 +39,8 @@ public class StafferService {
 
         matchesInQueue.sort(Comparator.comparingDouble(MatchDto::getHardnessLvl).reversed());
         assignRefereesToMatches(referees, matchesInQueue);
-        saveMatchesToDb(matchesInQueue);
 
         return matchesInQueue;
-    }
-
-    private void saveMatchesToDb(List<MatchDto> matchesInQueue) {
-        var matchesEntities = matchConverter.convertFromDtos(matchesInQueue);
-        matchRepository.saveAll(matchesEntities);
     }
 
     private List<MatchDto> getMatches(Short queue) {
@@ -90,7 +84,6 @@ public class StafferService {
                     .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
-            // TODO add a little bit random, not only first
             var chosenReferee = sortedRefereesPotentialLvlMap.keySet().stream()
                     .findFirst()
                     .orElseThrow(); // TODO custom exception - not enough referees

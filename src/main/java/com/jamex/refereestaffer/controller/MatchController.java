@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,5 +30,11 @@ public class MatchController {
         var match = matchConverter.convertFromDto(matchDto);
         var savedMatch = matchRepository.save(match);
         return matchConverter.convertFromEntity(savedMatch);
+    }
+
+    @PutMapping
+    void updateMatches(@RequestBody List<MatchDto> matchesDtos) {
+        var matches = matchConverter.convertFromDtos(matchesDtos);
+        matchRepository.saveAll(matches);
     }
 }
