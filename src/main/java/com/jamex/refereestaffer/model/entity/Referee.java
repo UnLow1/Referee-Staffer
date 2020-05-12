@@ -5,6 +5,7 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @NoArgsConstructor
@@ -32,6 +33,22 @@ public class Referee {
 
     @Column
     private int experience;
+
+    @Transient
+    @Setter
+    private double averageGrade;
+
+    @Transient
+    @Setter
+    private short numberOfMatchesInRound;
+
+    @Transient
+    @Setter
+    private Map<Team, Short> teamsRefereed;
+
+    @Transient
+    @Setter
+    private boolean busy;
 
     public Referee(String firstName, String lastName) {
         this.firstName = firstName;

@@ -1,16 +1,13 @@
 package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
-import com.jamex.refereestaffer.model.converter.RefereeConverter;
 import com.jamex.refereestaffer.model.dto.MatchDto;
-import com.jamex.refereestaffer.model.dto.RefereeDto;
 import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
-import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -25,59 +22,71 @@ public class StafferService {
     private static final double NUMBER_OF_MATCHES_MULTIPLIER = 3;
     private static final double HOME_TEAM_REFEREED_MATCHES_MULTIPLIER = 1.3;
     private static final double AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER = 1.3;
+    public static final double MATCH_HARDNESS_LEVEL_MULTIPLIER = 12;
+    private static final int POINTS_FOR_WIN_MATCH = 3;
+    private static final int POINTS_FOR_DRAW_MATCH = 1;
+    public static final int INCREMENT_HARDNESS_WHEN_SAME_CITY = 3;
 
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
-    private final TeamRepository teamRepository;
 
-    private final RefereeConverter refereeConverter;
     private final MatchConverter matchConverter;
 
     public Collection<MatchDto> staffReferees(Short queue) {
         var referees = getReferees();
-        var matchesInQueue = getMatches(queue);
+        var sortedMatchesInQueue = getMatches(queue);
 
-        matchesInQueue.sort(Comparator.comparingDouble(MatchDto::getHardnessLvl).reversed());
-        assignRefereesToMatches(referees, matchesInQueue);
+        assignRefereesToMatches(referees, sortedMatchesInQueue);
 
-        return matchesInQueue;
+        return matchConverter.convertFromEntities(sortedMatchesInQueue);
     }
 
-    private List<MatchDto> getMatches(Short queue) {
-        var result = new ArrayList<MatchDto>();
-        var matchesInQueue = matchRepository.findAllByQueue(queue);
-        for (var match : matchesInQueue) {
-            var hardnessLvl = countHardnessLvl(match);
+    private List<Match> getMatches(Short queue) {
+        var allMatches = matchRepository.findAll();
+        calculatePointsForTeams(allMatches);
 
-            var matchDto = createMatchDto(match, hardnessLvl);
-            result.add(matchDto);
+        return allMatches.stream()
+                .filter(match -> match.getQueue().equals(queue))
+                .sorted(Comparator.comparingDouble(this::countHardnessLvl).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private void calculatePointsForTeams(List<Match> matches) {
+        for (var match : matches) {
+            if (match.getHomeScore() > match.getAwayScore())
+                match.getHome().addPoints(POINTS_FOR_WIN_MATCH);
+            else if (match.getHomeScore() < match.getAwayScore())
+                match.getAway().addPoints(POINTS_FOR_WIN_MATCH);
+            else {
+                match.getHome().addPoints(POINTS_FOR_DRAW_MATCH);
+                match.getAway().addPoints(POINTS_FOR_DRAW_MATCH);
+            }
         }
-
-        return result;
-    }
-
-    private MatchDto createMatchDto(Match match, double hardnessLvl) {
-        var matchDto = matchConverter.convertFromEntity(match);
-        matchDto.setHardnessLvl(hardnessLvl);
-        return matchDto;
     }
 
     private double countHardnessLvl(Match match) {
-        // TODO
-        var random = new Random();
-        return random.nextDouble() * 100;
+        var hardnessLvl = 0.0;
+
+        double pointDifference = Math.abs(match.getHome().getPoints() - match.getAway().getPoints());
+        if (pointDifference == 0) pointDifference += 0.5;
+        hardnessLvl += 1 / pointDifference;
+
+        if (match.getHome().getCity() != null && match.getHome().getCity().equals(match.getAway().getCity()))
+            hardnessLvl += INCREMENT_HARDNESS_WHEN_SAME_CITY;
+
+        return MATCH_HARDNESS_LEVEL_MULTIPLIER * hardnessLvl;
     }
 
-    private void assignRefereesToMatches(LinkedList<RefereeDto> referees, List<MatchDto> matches) {
+    private void assignRefereesToMatches(LinkedList<Referee> referees, List<Match> matches) {
         for (var match : matches) {
-            var refereesPotentialLvlMap = new HashMap<RefereeDto, Double>();
+            var refereesPotentialLvlMap = new HashMap<Referee, Double>();
 
             var availableReferees = referees.stream()
                     .filter(ref -> !ref.isBusy())
                     .collect(Collectors.toList());
 
             for (var referee : availableReferees) {
-                var potentialLvl = countRefereePotentialLvl(referee, match.getHomeTeamId(), match.getAwayTeamId());
+                var potentialLvl = countRefereePotentialLvl(referee, match.getHome(), match.getAway());
                 refereesPotentialLvlMap.put(referee, potentialLvl);
             }
             var sortedRefereesPotentialLvlMap = refereesPotentialLvlMap.entrySet().stream()
@@ -89,14 +98,11 @@ public class StafferService {
                     .orElseThrow(); // TODO custom exception - not enough referees
             chosenReferee.setBusy(true);
 
-            match.setRefereeId(chosenReferee.getId());
+            match.setReferee(chosenReferee);
         }
     }
 
-    private double countRefereePotentialLvl(RefereeDto referee, Long homeTeamId, Long awayTeamId) {
-        var homeTeam = teamRepository.findById(homeTeamId).orElseThrow(); // TODO add custom exception when team not found in db
-        var awayTeam = teamRepository.findById(awayTeamId).orElseThrow();
-
+    private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam) {
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 
@@ -106,8 +112,7 @@ public class StafferService {
                 AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER * numberOfAwayTeamRefereedMatches;
     }
 
-    private LinkedList<RefereeDto> getReferees() {
-        var result = new LinkedList<RefereeDto>();
+    private LinkedList<Referee> getReferees() {
         var referees = refereeRepository.findAll();
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
@@ -115,10 +120,11 @@ public class StafferService {
             var averageGrade = countAverageGrade(matchesForReferee);
             var teamsRefereedMap = createTeamsRefereedMap(matchesForReferee);
 
-            var refereeDto = createRefereeDto(referee, matchesForReferee.size(), averageGrade, teamsRefereedMap);
-            result.add(refereeDto);
+            referee.setAverageGrade(averageGrade);
+            referee.setTeamsRefereed(teamsRefereedMap);
+            referee.setNumberOfMatchesInRound((short) matchesForReferee.size());
         }
-        return result;
+        return referees;
     }
 
     private Map<Team, Short> createTeamsRefereedMap(List<Match> matchesForReferee) {
@@ -132,17 +138,10 @@ public class StafferService {
         return result;
     }
 
-    private RefereeDto createRefereeDto(Referee referee, int numberOfMatchesInRound, double averageGrade, Map<Team, Short> teamsRefereedMap) {
-        var refereeDto = refereeConverter.convertFromEntity(referee);
-        refereeDto.setAverageGrade(averageGrade);
-        refereeDto.setTeamsRefereed(teamsRefereedMap);
-        refereeDto.setNumberOfMatchesInRound((short) numberOfMatchesInRound);
-        return refereeDto;
-    }
-
     private double countAverageGrade(List<Match> matchesForReferee) {
         var refereeGrades = matchesForReferee.stream()
                 .map(Match::getGrade)
+                .filter(Objects::nonNull)
                 .map(Grade::getValue)
                 .reduce(0.0, Double::sum);
         return refereeGrades / matchesForReferee.size();

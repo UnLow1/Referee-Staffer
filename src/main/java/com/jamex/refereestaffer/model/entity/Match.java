@@ -26,6 +26,7 @@ public class Match {
     private Team away;
 
     @ManyToOne(targetEntity = Referee.class)
+    @Setter
     private Referee referee;
 
     @OneToOne(mappedBy = "match", targetEntity = Grade.class)

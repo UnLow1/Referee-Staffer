@@ -1,6 +1,5 @@
 package com.jamex.refereestaffer.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,8 +30,4 @@ public class MatchDto {
     private final Short awayScore;
 
     private final Long gradeId;
-
-    @JsonIgnore
-    @Setter
-    private double hardnessLvl;
 }

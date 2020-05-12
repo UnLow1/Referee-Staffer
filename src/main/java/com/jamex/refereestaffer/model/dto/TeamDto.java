@@ -17,5 +17,4 @@ public class TeamDto {
 
     @NotNull
     private final String city;
-
 }

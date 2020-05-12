@@ -22,6 +22,9 @@ public class Team {
     @Column
     private String city;
 
+    @Transient
+    private int points;
+
     public Team(String name) {
         this.name = name;
     }
@@ -29,5 +32,9 @@ public class Team {
     public Team(String name, String city) {
         this.name = name;
         this.city = city;
+    }
+
+    public void addPoints(int points) {
+        this.points += points;
     }
 }
