@@ -23,14 +23,12 @@ public class StafferService {
     private static final double HOME_TEAM_REFEREED_MATCHES_MULTIPLIER = 1.3;
     private static final double AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER = 1.3;
     public static final double MATCH_HARDNESS_LEVEL_MULTIPLIER = 12;
-    private static final int POINTS_FOR_WIN_MATCH = 3;
-    private static final int POINTS_FOR_DRAW_MATCH = 1;
     public static final int INCREMENT_HARDNESS_WHEN_SAME_CITY = 3;
 
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
-
     private final MatchConverter matchConverter;
+    private final MatchService matchService;
 
     public Collection<MatchDto> staffReferees(Short queue) {
         var referees = getReferees();
@@ -43,25 +41,12 @@ public class StafferService {
 
     private List<Match> getMatches(Short queue) {
         var allMatches = matchRepository.findAll();
-        calculatePointsForTeams(allMatches);
+        matchService.calculatePointsForTeams(allMatches);
 
         return allMatches.stream()
                 .filter(match -> match.getQueue().equals(queue))
                 .sorted(Comparator.comparingDouble(this::countHardnessLvl).reversed())
                 .collect(Collectors.toList());
-    }
-
-    private void calculatePointsForTeams(List<Match> matches) {
-        for (var match : matches) {
-            if (match.getHomeScore() > match.getAwayScore())
-                match.getHome().addPoints(POINTS_FOR_WIN_MATCH);
-            else if (match.getHomeScore() < match.getAwayScore())
-                match.getAway().addPoints(POINTS_FOR_WIN_MATCH);
-            else {
-                match.getHome().addPoints(POINTS_FOR_DRAW_MATCH);
-                match.getAway().addPoints(POINTS_FOR_DRAW_MATCH);
-            }
-        }
     }
 
     private double countHardnessLvl(Match match) {

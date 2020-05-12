@@ -16,6 +16,7 @@ import { TeamListComponent } from './component/team-list/team-list.component';
 import { TeamFormComponent } from './component/team-form/team-form.component';
 import { StafferComponent } from './component/staffer/staffer.component';
 import { ImporterComponent } from './component/importer/importer.component';
+import { StandingsComponent } from './component/standings/standings.component';
 
 @NgModule({
   declarations: [
@@ -28,7 +29,8 @@ import { ImporterComponent } from './component/importer/importer.component';
     TeamListComponent,
     TeamFormComponent,
     StafferComponent,
-    ImporterComponent
+    ImporterComponent,
+    StandingsComponent
   ],
   imports: [
     BrowserModule,

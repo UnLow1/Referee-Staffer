@@ -17,4 +17,6 @@ public class TeamDto {
 
     @NotNull
     private final String city;
+
+    private final Integer points;
 }

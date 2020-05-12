@@ -13,6 +13,7 @@ public class TeamConverter implements BaseConverter<Team, TeamDto> {
                 .id(entity.getId())
                 .name(entity.getName())
                 .city(entity.getCity())
+                .points(entity.getPoints())
                 .build();
     }
 
