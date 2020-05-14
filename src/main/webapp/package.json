@@ -1,26 +1,19 @@
 {
   "name": "webapp",
   "version": "0.0.0",
-  "engines": {
-    "node": "v14.1.0",
-    "npm": "6.14.4"
-  },
   "scripts": {
     "ng": "ng",
     "start": "node server.js",
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e",
-    "postinstall": "ng build --output-path angularapp --aot --prod"
+    "e2e": "ng e2e"
   },
   "private": true,
   "dependencies": {
     "@angular/animations": "^9.1.4",
-    "@angular/cli": "^9.1.4",
     "@angular/common": "^9.1.4",
     "@angular/compiler": "^9.1.4",
-    "@angular/compiler-cli": "^9.1.4",
     "@angular/core": "^9.1.4",
     "@angular/forms": "^9.1.4",
     "@angular/platform-browser": "^9.1.4",
@@ -28,14 +21,13 @@
     "@angular/router": "^9.1.4",
     "chokidar": "^3.4.0",
     "core-js": "^2.5.4",
-    "express": "^4.17.1",
-    "path": "^0.12.7",
     "rxjs": "~6.5.5",
     "tslib": "^1.10.0",
-    "typescript": "~3.8.3",
     "zone.js": "~0.10.2"
   },
   "devDependencies": {
+    "@angular/cli": "^9.1.4",
+    "@angular/compiler-cli": "^9.1.4",
     "@angular-devkit/build-angular": "^0.901.4",
     "@angular/language-service": "^9.1.4",
     "@types/jasmine": "~2.8.8",
@@ -51,6 +43,7 @@
     "karma-jasmine-html-reporter": "^0.2.2",
     "protractor": "~5.4.0",
     "ts-node": "~7.0.0",
-    "tslint": "~5.11.0"
+    "tslint": "~5.11.0",
+    "typescript": "~3.8.3"
   }
 }
