@@ -17,7 +17,7 @@ export class GradeService {
   };
 
   constructor(private http: HttpClient) {
-    this.gradesUrls = 'http://localhost:8080/grades'
+    this.gradesUrls = '/grades'
   }
 
   public findAll(): Observable<Grade[]> {
@@ -25,10 +25,10 @@ export class GradeService {
   }
 
   public findByIds(ids: number[]): Observable<Grade[]> {
-    return this.http.post<Grade[]>(this.gradesUrls + "/byIds", {ids}, this.httpOptions);
+    return this.http.post<Grade[]>(`${this.gradesUrls}/byIds`, {ids}, this.httpOptions);
   }
 
   public save(match: Match, grade: Grade) {
-    return this.http.post<Grade>(this.gradesUrls + `/${match.id}`, grade)
+    return this.http.post<Grade>(`${this.gradesUrls}/${match.id}`, grade)
   }
 }

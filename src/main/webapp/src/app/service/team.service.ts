@@ -16,7 +16,7 @@ export class TeamService {
   };
 
   constructor(private http: HttpClient) {
-    this.teamsUrl = 'http://localhost:8080/teams'
+    this.teamsUrl = '/teams'
   }
 
   public findAll(): Observable<Team[]> {

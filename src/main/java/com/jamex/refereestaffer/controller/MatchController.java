@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "https://referee-staffer.herokuapp.com")
 @RequestMapping("/matches")
 public class MatchController {
 

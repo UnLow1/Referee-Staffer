@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "https://referee-staffer.herokuapp.com")
 @RequestMapping("/importer")
 public class ImporterController {
 

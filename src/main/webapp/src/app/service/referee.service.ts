@@ -16,7 +16,7 @@ export class RefereeService {
   };
 
   constructor(private http: HttpClient) {
-    this.refereesUrl = 'http://localhost:8080/referees'
+    this.refereesUrl = '/referees'
   }
 
   public findAll(): Observable<Referee[]> {
@@ -28,6 +28,6 @@ export class RefereeService {
   }
 
   public findByIds(ids: number[]): Observable<Referee[]> {
-    return this.http.post<Referee[]>(this.refereesUrl + "/byIds", {ids}, this.httpOptions);
+    return this.http.post<Referee[]>(`${this.refereesUrl}/byIds`, {ids}, this.httpOptions);
   }
 }

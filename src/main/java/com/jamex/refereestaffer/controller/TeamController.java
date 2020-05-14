@@ -12,7 +12,7 @@ import java.util.Collection;
 
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "https://referee-staffer.herokuapp.com")
 @RequestMapping("/teams")
 public class TeamController {
 
