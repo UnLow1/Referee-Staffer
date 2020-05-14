@@ -12,7 +12,7 @@ import {GradeService} from "../../service/grade.service";
 @Component({
   selector: 'app-match-form',
   templateUrl: './match-form.component.html',
-  styleUrls: ['./match-form.component.css']
+  styleUrls: ['./match-form.component.scss']
 })
 export class MatchFormComponent implements OnInit {
 

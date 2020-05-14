@@ -5,7 +5,7 @@ import {Referee} from "../../model/referee";
 @Component({
   selector: 'app-referee-list',
   templateUrl: './referee-list.component.html',
-  styleUrls: ['./referee-list.component.css']
+  styleUrls: ['./referee-list.component.scss']
 })
 export class RefereeListComponent implements OnInit {
 

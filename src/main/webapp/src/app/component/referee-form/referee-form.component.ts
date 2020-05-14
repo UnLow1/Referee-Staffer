@@ -6,7 +6,7 @@ import {RefereeService} from "../../service/referee.service";
 @Component({
   selector: 'app-referee-form',
   templateUrl: './referee-form.component.html',
-  styleUrls: ['./referee-form.component.css']
+  styleUrls: ['./referee-form.component.scss']
 })
 export class RefereeFormComponent implements OnInit {
 

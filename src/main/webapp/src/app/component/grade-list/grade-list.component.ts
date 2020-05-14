@@ -10,7 +10,7 @@ import {Match} from "../../model/match";
 @Component({
   selector: 'app-grade-list',
   templateUrl: './grade-list.component.html',
-  styleUrls: ['./grade-list.component.css']
+  styleUrls: ['./grade-list.component.scss']
 })
 export class GradeListComponent implements OnInit {
 

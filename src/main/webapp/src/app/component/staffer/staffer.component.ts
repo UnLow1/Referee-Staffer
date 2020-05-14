@@ -11,7 +11,7 @@ import {MatchService} from "../../service/match.service";
 @Component({
   selector: 'app-staffer',
   templateUrl: './staffer.component.html',
-  styleUrls: ['./staffer.component.css']
+  styleUrls: ['./staffer.component.scss']
 })
 export class StafferComponent implements OnInit {
 

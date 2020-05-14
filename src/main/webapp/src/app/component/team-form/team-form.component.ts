@@ -6,7 +6,7 @@ import {TeamService} from "../../service/team.service";
 @Component({
   selector: 'app-team-form',
   templateUrl: './team-form.component.html',
-  styleUrls: ['./team-form.component.css']
+  styleUrls: ['./team-form.component.scss']
 })
 export class TeamFormComponent implements OnInit {
 

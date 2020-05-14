@@ -4,7 +4,7 @@ import {ImporterService} from "../../service/importer.service";
 @Component({
   selector: 'app-importer',
   templateUrl: './importer.component.html',
-  styleUrls: ['./importer.component.css']
+  styleUrls: ['./importer.component.scss']
 })
 export class ImporterComponent implements OnInit {
 

@@ -11,7 +11,7 @@ import {Grade} from "../../model/grade";
 @Component({
   selector: 'app-match-list',
   templateUrl: './match-list.component.html',
-  styleUrls: ['./match-list.component.css']
+  styleUrls: ['./match-list.component.scss']
 })
 export class MatchListComponent implements OnInit {
 
