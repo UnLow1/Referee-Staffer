@@ -93,6 +93,7 @@
                             you can remove this whole <configuration> section.
                             -->
                             <arguments>install</arguments>
+                            <workingDirectory>src/main/webapp</workingDirectory>
                         </configuration>
                     </execution>
                 </executions>
