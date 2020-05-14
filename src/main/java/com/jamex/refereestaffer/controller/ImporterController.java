@@ -9,7 +9,11 @@ import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -20,9 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "https://referee-staffer.herokuapp.com")
 @RequestMapping("/importer")
 public class ImporterController {
 
@@ -33,6 +37,7 @@ public class ImporterController {
 
     @PostMapping
     public void importData(@RequestParam("file") MultipartFile file) {
+        log.info(String.format("Importing data from file \"%s\"", file.getOriginalFilename()));
         BufferedReader br;
         List<String> result = new ArrayList<>();
         try {

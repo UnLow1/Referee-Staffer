@@ -6,13 +6,14 @@ import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = "https://referee-staffer.herokuapp.com")
 @RequestMapping("/grades")
 public class GradeController {
 
@@ -22,12 +23,14 @@ public class GradeController {
 
     @GetMapping
     public Collection<GradeDto> getGrades() {
+        log.info("Getting all grades");
         var grades = gradeRepository.findAll();
         return gradeConverter.convertFromEntities(grades);
     }
 
     @PostMapping("/{matchId}")
     public void addGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
+        log.info("Adding new grade");
         var grade = gradeConverter.convertFromDto(gradeDto);
         var match = matchRepository.findById(matchId).orElseThrow(); // TODO add custom exception and move logic to GradeService
         grade.setMatch(match);
@@ -36,6 +39,7 @@ public class GradeController {
 
     @PostMapping("/byIds")
     public Collection<GradeDto> getGradesByIds(@RequestBody IDRequest request) {
+        log.info("Getting grades with ids: " + request.getIds());
         var grades = gradeRepository.findAllById(request.getIds());
         return gradeConverter.convertFromEntities(grades);
     }
