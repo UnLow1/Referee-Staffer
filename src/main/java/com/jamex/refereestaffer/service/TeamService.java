@@ -6,7 +6,7 @@ import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-@Component
+@Service
 public class TeamService {
 
     private final TeamRepository teamRepository;

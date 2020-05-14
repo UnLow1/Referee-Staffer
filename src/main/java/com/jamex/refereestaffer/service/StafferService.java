@@ -9,13 +9,13 @@ import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-@Component
+@Service
 public class StafferService {
 
     private static final double AVERAGE_GRADE_MULTIPLIER = 4;

@@ -1,11 +1,11 @@
 package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.entity.Match;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Component
+@Service
 public class MatchService {
     private static final int POINTS_FOR_WIN_MATCH = 3;
     private static final int POINTS_FOR_DRAW_MATCH = 1;
