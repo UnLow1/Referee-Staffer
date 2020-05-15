@@ -6,6 +6,7 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import lombok.RequiredArgsConstructor;
@@ -80,7 +81,7 @@ public class StafferService {
 
             var chosenReferee = sortedRefereesPotentialLvlMap.keySet().stream()
                     .findFirst()
-                    .orElseThrow(); // TODO custom exception - not enough referees
+                    .orElseThrow(StafferException::new);
             chosenReferee.setBusy(true);
 
             match.setReferee(chosenReferee);

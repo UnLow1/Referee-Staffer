@@ -4,13 +4,14 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
+import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -64,16 +65,23 @@ public class ImporterService {
                 .collect(Collectors.toList());
 
         for (var line : splittedLines) {
-            var homeTeam = teamRepository.findByName(line[1]).orElseThrow(); // TODO add custom exception
-            var awayTeam = teamRepository.findByName(line[2]).orElseThrow(); // TODO add custom exception
+            var homeTeamName = line[1];
+            var homeTeam = teamRepository.findByName(homeTeamName).orElseThrow(() -> new TeamNotFoundException(homeTeamName));
+            var awayTeamName = line[2];
+            var awayTeam = teamRepository.findByName(awayTeamName).orElseThrow(() -> new TeamNotFoundException(awayTeamName));
             var refereeFirstName = line[3].split(" ")[0];
             var refereeLastName = line[3].split(" ")[1];
-            var referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName).orElseThrow(); // TODO add custom exception
-            var match = new Match(Short.parseShort(line[0]), homeTeam, awayTeam, referee, Short.valueOf(line[4]), Short.valueOf(line[5]));
+            var referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName)
+                    .orElseThrow(() -> new RefereeNotFoundException(refereeFirstName, refereeLastName));
+            var queue = Short.parseShort(line[0]);
+            var homeTeamScore = Short.valueOf(line[4]);
+            var awayTeamScore = Short.valueOf(line[5]);
+            var match = new Match(queue, homeTeam, awayTeam, referee, homeTeamScore, awayTeamScore);
             matchRepository.save(match);
 
             if (line.length == 7) {
-                var grade = new Grade(match, Double.parseDouble(line[6]));
+                var value = Double.parseDouble(line[6]);
+                var grade = new Grade(match, value);
                 gradeRepository.save(grade);
             }
         }

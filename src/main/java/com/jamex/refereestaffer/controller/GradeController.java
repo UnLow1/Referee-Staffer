@@ -4,7 +4,7 @@ import com.jamex.refereestaffer.model.converter.GradeConverter;
 import com.jamex.refereestaffer.model.dto.GradeDto;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.GradeRepository;
-import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.service.GradeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +19,7 @@ public class GradeController {
 
     private final GradeRepository gradeRepository;
     private final GradeConverter gradeConverter;
-    private final MatchRepository matchRepository;
+    private final GradeService gradeService;
 
     @GetMapping
     public Collection<GradeDto> getGrades() {
@@ -31,10 +31,7 @@ public class GradeController {
     @PostMapping("/{matchId}")
     public void addGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
         log.info("Adding new grade");
-        var grade = gradeConverter.convertFromDto(gradeDto);
-        var match = matchRepository.findById(matchId).orElseThrow(); // TODO add custom exception and move logic to GradeService
-        grade.setMatch(match);
-        gradeRepository.save(grade);
+        gradeService.addGrade(gradeDto, matchId);
     }
 
     @PostMapping("/byIds")
