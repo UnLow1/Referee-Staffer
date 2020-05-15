@@ -17,7 +17,7 @@ export class GradeService {
   };
 
   constructor(private http: HttpClient) {
-    this.gradesUrls = '/grades'
+    this.gradesUrls = 'api/grades'
   }
 
   public findAll(): Observable<Grade[]> {

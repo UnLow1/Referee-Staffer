@@ -16,7 +16,7 @@ export class RefereeService {
   };
 
   constructor(private http: HttpClient) {
-    this.refereesUrl = '/referees'
+    this.refereesUrl = 'api/referees'
   }
 
   public findAll(): Observable<Referee[]> {

@@ -12,7 +12,7 @@ export class StafferService {
   private readonly stafferUrl: string
 
   constructor(private http: HttpClient) {
-    this.stafferUrl = '/staffer'
+    this.stafferUrl = 'api/staffer'
   }
 
   public staffReferees(queue: number): Observable<Match[]> {

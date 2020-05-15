@@ -14,7 +14,7 @@ import java.util.Collection;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/grades")
+@RequestMapping("/api/grades")
 public class GradeController {
 
     private final GradeRepository gradeRepository;

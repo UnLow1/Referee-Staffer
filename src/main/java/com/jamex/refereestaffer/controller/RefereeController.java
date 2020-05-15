@@ -13,7 +13,7 @@ import java.util.Collection;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/referees")
+@RequestMapping("/api/referees")
 public class RefereeController {
 
     private final RefereeRepository refereeRepository;

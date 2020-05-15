@@ -9,7 +9,7 @@ export class ImporterService {
   private readonly importerUrl: string
 
   constructor(private http: HttpClient) {
-    this.importerUrl = '/importer'
+    this.importerUrl = 'api/importer'
   }
 
   public postFile(fileToUpload: File) {

@@ -11,7 +11,7 @@ export class MatchService {
   private matchesUrl: string
 
   constructor(private http: HttpClient) {
-    this.matchesUrl = '/matches'
+    this.matchesUrl = 'api/matches'
   }
 
   public findAll(): Observable<Match[]> {

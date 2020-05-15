@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/importer")
+@RequestMapping("/api/importer")
 public class ImporterController {
 
     private final ImporterService importerService;

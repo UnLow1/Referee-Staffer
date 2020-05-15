@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/matches")
+@RequestMapping("/api/matches")
 public class MatchController {
 
     private final MatchRepository matchRepository;

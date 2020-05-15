@@ -11,7 +11,7 @@ import java.util.Collection;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/staffer")
+@RequestMapping("/api/staffer")
 public class StafferController {
 
     private final StafferService stafferService;

@@ -14,7 +14,7 @@ import java.util.Collection;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/teams")
+@RequestMapping("/api/teams")
 public class TeamController {
 
     private final TeamService teamService;

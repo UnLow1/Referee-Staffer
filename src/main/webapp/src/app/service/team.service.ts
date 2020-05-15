@@ -16,7 +16,7 @@ export class TeamService {
   };
 
   constructor(private http: HttpClient) {
-    this.teamsUrl = '/teams'
+    this.teamsUrl = 'api/teams'
   }
 
   public findAll(): Observable<Team[]> {
