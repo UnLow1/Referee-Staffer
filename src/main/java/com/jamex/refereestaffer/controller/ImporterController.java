@@ -1,5 +1,6 @@
 package com.jamex.refereestaffer.controller;
 
+import com.jamex.refereestaffer.model.request.ImportResponse;
 import com.jamex.refereestaffer.service.ImporterService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +19,8 @@ public class ImporterController {
     private final ImporterService importerService;
 
     @PostMapping
-    public void importData(@RequestParam("file") MultipartFile file) {
+    public ImportResponse importData(@RequestParam("file") MultipartFile file) {
         log.info(String.format("Importing data from file \"%s\"", file.getOriginalFilename()));
-        importerService.importData(file);
+        return importerService.importData(file);
     }
 }

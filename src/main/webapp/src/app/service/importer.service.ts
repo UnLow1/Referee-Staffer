@@ -1,5 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpClient} from "@angular/common/http";
+import {ImportResponse} from "../request/importResonse";
+import {Observable} from "rxjs";
 
 @Injectable({
   providedIn: 'root'
@@ -12,9 +14,9 @@ export class ImporterService {
     this.importerUrl = 'api/importer'
   }
 
-  public postFile(fileToUpload: File) {
-    const formData: FormData = new FormData();
-    formData.append('file', fileToUpload, fileToUpload.name);
-    return this.http.post(this.importerUrl, formData);
+  public postFile(fileToUpload: File): Observable<ImportResponse> {
+    const formData: FormData = new FormData()
+    formData.append('file', fileToUpload, fileToUpload.name)
+    return this.http.post<ImportResponse>(this.importerUrl, formData)
   }
 }

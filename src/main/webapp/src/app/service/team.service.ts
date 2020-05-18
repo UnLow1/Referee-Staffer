@@ -28,7 +28,7 @@ export class TeamService {
   }
 
   public save(team: Team) {
-    return this.http.post<Team>(this.teamsUrl, team)
+    return this.http.post(this.teamsUrl, team)
   }
 
   public getStandings(): Observable<Team[]> {

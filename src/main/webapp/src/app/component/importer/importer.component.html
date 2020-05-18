@@ -8,5 +8,14 @@
              (change)="handleFileInput($event)">
       <button (click)="uploadFileToActivity()" class="btn-large btn-submit">Save</button>
     </div>
+    <div *ngIf="importResult">
+      <h4>Imported data:</h4>
+      <div>
+        Referees: {{importResult.referees}}<br>
+        Grades: {{importResult.grades}}<br>
+        Teams: {{importResult.teams}}<br>
+        Matches: {{importResult.matches}}
+      </div>
+    </div>
   </div>
 </div>

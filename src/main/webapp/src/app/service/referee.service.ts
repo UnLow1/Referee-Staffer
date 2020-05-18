@@ -24,7 +24,7 @@ export class RefereeService {
   }
 
   public save(referee: Referee) {
-    return this.http.post<Referee>(this.refereesUrl, referee)
+    return this.http.post(this.refereesUrl, referee)
   }
 
   public findByIds(ids: number[]): Observable<Referee[]> {

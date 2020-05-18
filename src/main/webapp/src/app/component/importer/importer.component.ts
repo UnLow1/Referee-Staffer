@@ -1,5 +1,6 @@
 import {Component, OnInit} from '@angular/core';
 import {ImporterService} from "../../service/importer.service";
+import {ImportResponse} from "../../request/importResonse";
 
 @Component({
   selector: 'app-importer',
@@ -9,6 +10,7 @@ import {ImporterService} from "../../service/importer.service";
 export class ImporterComponent implements OnInit {
 
   fileToUpload: File = null
+  importResult: ImportResponse
 
   constructor(private importerService: ImporterService) {
   }
@@ -22,6 +24,6 @@ export class ImporterComponent implements OnInit {
   }
 
   uploadFileToActivity() {
-    this.importerService.postFile(this.fileToUpload).subscribe()
+    this.importerService.postFile(this.fileToUpload).subscribe(result => this.importResult = result)
   }
 }

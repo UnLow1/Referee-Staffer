@@ -6,6 +6,7 @@ import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
+import com.jamex.refereestaffer.model.request.ImportResponse;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
@@ -31,7 +32,7 @@ public class ImporterService {
     private final MatchRepository matchRepository;
     private final GradeRepository gradeRepository;
 
-    public void importData(MultipartFile file) {
+    public ImportResponse importData(MultipartFile file) {
         BufferedReader br;
         List<String> result = new ArrayList<>();
         try {
@@ -48,14 +49,14 @@ public class ImporterService {
             createReferees(result);
             createMatchesAndGrades(result);
 
-            System.out.println("Imported: ");
-            System.out.println("referees = " + refereeRepository.findAll().size());
-            System.out.println("grades = " + gradeRepository.findAll().size());
-            System.out.println("teams = " + teamRepository.findAll().size());
-            System.out.println("matches = " + matchRepository.findAll().size());
+            var noOfMatches = matchRepository.findAll().size();
+            var noOfReferees = refereeRepository.findAll().size();
+            var noOfGrades = gradeRepository.findAll().size();
+            var noOfTeams = teamRepository.findAll().size();
 
+            return new ImportResponse(noOfMatches, noOfReferees, noOfGrades, noOfTeams);
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            throw new RuntimeException(); // Add custom exception for import
         }
     }
 

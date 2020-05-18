@@ -18,12 +18,12 @@ export class MatchService {
     return this.http.get<Match[]>(this.matchesUrl)
   }
 
-  public save(match: Match) {
+  public save(match: Match): Observable<Match> {
     return this.http.post<Match>(this.matchesUrl, match)
   }
 
   public update(matches: Match[]) {
-    return this.http.put<Match[]>(this.matchesUrl, matches)
+    return this.http.put(this.matchesUrl, matches)
   }
 
   public delete(id: number) {
