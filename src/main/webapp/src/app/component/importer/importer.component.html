@@ -1,7 +1,12 @@
-<div class="form-group">
-  <label for="file">Choose File</label>
-  <input type="file"
-         id="file"
-         (change)="handleFileInput($event)">
-  <button (click)="uploadFileToActivity()" class="btn-large btn-submit">Save</button>
+<div class="card my-5">
+  <h2 class="text-center my-3">Import file with data</h2>
+  <div class="card-body">
+    <div class="form-group">
+      <label for="file">Choose File</label>
+      <input type="file"
+             id="file"
+             (change)="handleFileInput($event)">
+      <button (click)="uploadFileToActivity()" class="btn-large btn-submit">Save</button>
+    </div>
+  </div>
 </div>
