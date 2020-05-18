@@ -42,10 +42,19 @@ export class MatchListComponent implements OnInit {
   }
 
   getReferee(refereeId: number): Referee {
-    return this.referees?.find(referee => referee.id ===refereeId)
+    return this.referees?.find(referee => referee.id === refereeId)
   }
 
   getGrade(gradeId: number): Grade {
     return this.grades?.find(grade => grade.id === gradeId)
+  }
+
+  editMatch(match: Match) {
+    console.log("Editing match: " + match.homeTeamId + " - " + match.awayTeamId)
+  }
+
+  deleteMatch(matchToDelete: Match) {
+    this.matchService.delete(matchToDelete.id).subscribe(() =>
+      this.matches = this.matches.filter((match: Match) => match.id !== matchToDelete.id))
   }
 }

@@ -6,12 +6,17 @@
       <tr>
         <th scope="col">Team name</th>
         <th scope="col">City</th>
+        <th scope="col">Actions</th>
       </tr>
       </thead>
       <tbody>
       <tr *ngFor="let team of teams">
         <td>{{ team.name }}</td>
         <td>{{ team.city }}</td>
+        <td>
+          <button class="btn btn-info mx-3" (click)="editTeam(team)">Edit</button>
+          <button class="btn btn-info" (click)="deleteTeam(team)">Delete</button>
+        </td>
       </tr>
       </tbody>
     </table>

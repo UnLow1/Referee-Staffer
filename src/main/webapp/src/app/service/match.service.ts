@@ -8,7 +8,7 @@ import {Match} from "../model/match";
 })
 export class MatchService {
 
-  private matchesUrl: string
+  private readonly matchesUrl: string
 
   constructor(private http: HttpClient) {
     this.matchesUrl = 'api/matches'
@@ -24,5 +24,9 @@ export class MatchService {
 
   public update(matches: Match[]) {
     return this.http.put<Match[]>(this.matchesUrl, matches)
+  }
+
+  public delete(id: number) {
+    return this.http.delete(`${this.matchesUrl}/${id}`)
   }
 }

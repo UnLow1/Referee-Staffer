@@ -8,7 +8,7 @@ import {ImporterService} from "../../service/importer.service";
 })
 export class ImporterComponent implements OnInit {
 
-  fileToUpload: File = null;
+  fileToUpload: File = null
 
   constructor(private importerService: ImporterService) {
   }
@@ -17,11 +17,11 @@ export class ImporterComponent implements OnInit {
   }
 
   handleFileInput(event) {
-    let files = event.target.files;
-    this.fileToUpload = files.item(0);
+    let files = event.target.files
+    this.fileToUpload = files.item(0)
   }
 
   uploadFileToActivity() {
-    this.importerService.postFile(this.fileToUpload).subscribe();
+    this.importerService.postFile(this.fileToUpload).subscribe()
   }
 }

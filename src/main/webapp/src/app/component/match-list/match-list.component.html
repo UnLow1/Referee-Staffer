@@ -10,6 +10,7 @@
         <th scope="col">Referee</th>
         <th scope="col">Score</th>
         <th scope="col">Referee grade</th>
+        <th scope="col">Actions</th>
       </tr>
       </thead>
       <tbody>
@@ -21,6 +22,10 @@
         <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
         <td>{{ match.homeScore }} - {{match.awayScore}}</td>
         <td>{{ getGrade(match.gradeId)?.value }}</td>
+        <td>
+          <button class="btn btn-info mx-3" (click)="editMatch(match)">Edit</button>
+          <button class="btn btn-info" (click)="deleteMatch(match)">Delete</button>
+        </td>
       </tr>
       </tbody>
     </table>

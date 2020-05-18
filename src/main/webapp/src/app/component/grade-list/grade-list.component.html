@@ -13,7 +13,7 @@
       <tr *ngFor="let referee of referees">
         <td>{{ referee.firstName }} {{ referee.lastName }}</td>
         <td>{{ getGradesForReferee(referee)?.join(", ") }}</td>
-        <td>{{ countAverageForReferee(referee) || "" }}</td>
+        <td>{{ countAverageForReferee(referee).toFixed(3) || ""}}</td>
       </tr>
       </tbody>
     </table>

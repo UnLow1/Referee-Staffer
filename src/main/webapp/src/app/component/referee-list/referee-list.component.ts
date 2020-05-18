@@ -17,4 +17,13 @@ export class RefereeListComponent implements OnInit {
   ngOnInit() {
     this.refereeService.findAll().subscribe(referees => this.referees = referees)
   }
+
+  editReferee(referee: Referee) {
+    console.log("Editing referee = " + referee.firstName + " " + referee.lastName)
+  }
+
+  deleteReferee(refereeToDelete: Referee) {
+    this.refereeService.delete(refereeToDelete.id).subscribe(() =>
+      this.referees = this.referees.filter((referee: Referee) => referee.id !== refereeToDelete.id))
+  }
 }

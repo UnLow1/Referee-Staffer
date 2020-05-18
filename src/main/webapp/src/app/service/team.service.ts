@@ -34,4 +34,8 @@ export class TeamService {
   public getStandings(): Observable<Team[]> {
     return this.http.get<Team[]>(`${this.teamsUrl}/standings`)
   }
+
+  public delete(id: number) {
+    return this.http.delete(`${this.teamsUrl}/${id}`)
+  }
 }

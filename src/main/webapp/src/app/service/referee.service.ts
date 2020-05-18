@@ -30,4 +30,8 @@ export class RefereeService {
   public findByIds(ids: number[]): Observable<Referee[]> {
     return this.http.post<Referee[]>(`${this.refereesUrl}/byIds`, {ids}, this.httpOptions);
   }
+
+  public delete(id: number) {
+    return this.http.delete(`${this.refereesUrl}/${id}`)
+  }
 }

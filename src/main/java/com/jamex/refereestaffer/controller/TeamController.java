@@ -47,4 +47,10 @@ public class TeamController {
         log.info("Calculating standings");
         return teamService.getStandings();
     }
+
+    @DeleteMapping("/{id}")
+    public void deleteTeam(@PathVariable Long id) {
+        log.info("Deleting team with id = " + id);
+        teamRepository.deleteById(id);
+    }
 }

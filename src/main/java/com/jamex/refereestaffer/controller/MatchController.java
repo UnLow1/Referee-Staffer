@@ -2,8 +2,8 @@ package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.MatchDto;
-import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.service.MatchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +20,7 @@ public class MatchController {
 
     private final MatchRepository matchRepository;
     private final MatchConverter matchConverter;
+    private final MatchService matchService;
 
     @GetMapping
     public Collection<MatchDto> getMatches() {
@@ -29,7 +30,7 @@ public class MatchController {
     }
 
     @PostMapping
-    MatchDto addMatch(@RequestBody MatchDto matchDto) {
+    public MatchDto addMatch(@RequestBody MatchDto matchDto) {
         log.info("Adding new match");
         var match = matchConverter.convertFromDto(matchDto);
         var savedMatch = matchRepository.save(match);
@@ -37,12 +38,18 @@ public class MatchController {
     }
 
     @PutMapping
-    void updateMatches(@RequestBody List<MatchDto> matchesDtos) {
+    public void updateMatches(@RequestBody List<MatchDto> matchesDtos) {
         var matchIds = matchesDtos.stream()
                 .map(MatchDto::getId)
                 .collect(Collectors.toList());
         log.info("Updating matches with ids: " + matchIds);
         var matches = matchConverter.convertFromDtos(matchesDtos);
         matchRepository.saveAll(matches);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteMatch(@PathVariable Long id) {
+        log.info("Deleting match with id = " + id);
+        matchService.deleteMatch(id);
     }
 }

@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import {Observable} from "rxjs";
-import {Referee} from "../model/referee";
 import {HttpClient} from "@angular/common/http";
 import {Match} from "../model/match";
 
