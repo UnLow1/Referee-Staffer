@@ -36,6 +36,10 @@ public class Match {
 
     private Short awayScore;
 
+    @Transient
+    @Setter
+    private double hardnessLvl;
+
     public Match(short queue, Team home, Team away, Referee referee, Short homeScore, Short awayScore) {
         this.queue = queue;
         this.home = home;

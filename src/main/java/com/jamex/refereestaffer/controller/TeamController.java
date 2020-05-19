@@ -45,7 +45,8 @@ public class TeamController {
     @GetMapping("/standings")
     public Collection<TeamDto> getStandings() {
         log.info("Calculating standings");
-        return teamService.getStandings();
+        var teams = teamService.getStandings();
+        return teamConverter.convertFromEntities(teams);
     }
 
     @DeleteMapping("/{id}")

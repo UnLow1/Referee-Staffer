@@ -20,9 +20,8 @@ public class TeamService {
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
     private final MatchService matchService;
-    private final TeamConverter teamConverter;
 
-    public Collection<TeamDto> getStandings() {
+    public Collection<Team> getStandings() {
         var matches = matchRepository.findAll();
         matchService.calculatePointsForTeams(matches);
 
@@ -39,6 +38,6 @@ public class TeamService {
         var teamsWithoutMatches = teamRepository.findAllByIdNotIn(teamIds);
         teams.addAll(teamsWithoutMatches);
 
-        return teamConverter.convertFromEntities(teams);
+        return teams;
     }
 }

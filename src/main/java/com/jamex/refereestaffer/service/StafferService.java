@@ -19,17 +19,22 @@ import java.util.stream.Collectors;
 @Service
 public class StafferService {
 
-    private static final double AVERAGE_GRADE_MULTIPLIER = 4;
+    private static final double AVERAGE_GRADE_MULTIPLIER = 50;
+    private static final double EXPERIENCE_MULTIPLIER = 0.01;
     private static final double NUMBER_OF_MATCHES_MULTIPLIER = 3;
     private static final double HOME_TEAM_REFEREED_MATCHES_MULTIPLIER = 1.3;
     private static final double AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER = 1.3;
     public static final double MATCH_HARDNESS_LEVEL_MULTIPLIER = 12;
-    public static final int INCREMENT_HARDNESS_WHEN_SAME_CITY = 3;
+    public static final double INCREMENT_HARDNESS_WHEN_SAME_CITY = 3;
+    public static final double INCREMENT_HARDNESS_WHEN_MATCH_AT_TOP = 3;
+    public static final double INCREMENT_HARDNESS_WHEN_MATCH_AT_BOTTOM = 2;
+    public static final int NUMBER_OF_TEAMS_ON_EDGE = 3;
 
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
+    private final TeamService teamService;
 
     public Collection<MatchDto> staffReferees(Short queue) {
         var referees = getReferees();
@@ -46,21 +51,48 @@ public class StafferService {
 
         return allMatches.stream()
                 .filter(match -> match.getQueue().equals(queue))
-                .sorted(Comparator.comparingDouble(this::countHardnessLvl).reversed())
+                .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
+                .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .collect(Collectors.toList());
     }
 
     private double countHardnessLvl(Match match) {
-        var hardnessLvl = 0.0;
+        var homeTeam = match.getHome();
+        var awayTeam = match.getAway();
 
-        double pointDifference = Math.abs(match.getHome().getPoints() - match.getAway().getPoints());
-        if (pointDifference == 0) pointDifference += 0.5;
-        hardnessLvl += 1 / pointDifference;
+        var pointDifference = Math.abs(homeTeam.getPoints() - awayTeam.getPoints());
 
-        if (match.getHome().getCity() != null && match.getHome().getCity().equals(match.getAway().getCity()))
-            hardnessLvl += INCREMENT_HARDNESS_WHEN_SAME_CITY;
+        var hardnessLvl = Math.pow(2 / Math.exp(1), pointDifference);
+        hardnessLvl *= MATCH_HARDNESS_LEVEL_MULTIPLIER;
 
-        return MATCH_HARDNESS_LEVEL_MULTIPLIER * hardnessLvl;
+        hardnessLvl += calculateHardnessLvlForDerby(homeTeam, awayTeam);
+        hardnessLvl += calculateHardnessLvlForEdgeMatch(homeTeam, awayTeam);
+
+        return hardnessLvl;
+    }
+
+    private double calculateHardnessLvlForDerby(Team homeTeam, Team awayTeam) {
+        if (homeTeam.getCity() != null && homeTeam.getCity().equals(awayTeam.getCity()))
+            return INCREMENT_HARDNESS_WHEN_SAME_CITY;
+        return 0;
+    }
+
+    private double calculateHardnessLvlForEdgeMatch(Team homeTeam, Team awayTeam) {
+        var standings = teamService.getStandings();
+        var teams = List.of(homeTeam, awayTeam);
+        var topTeams = standings.stream()
+                .limit(NUMBER_OF_TEAMS_ON_EDGE)
+                .collect(Collectors.toList());
+        if (topTeams.containsAll(teams))
+            return INCREMENT_HARDNESS_WHEN_MATCH_AT_TOP;
+        else {
+            var bottomTeams = standings.stream()
+                    .skip(standings.size() - NUMBER_OF_TEAMS_ON_EDGE)
+                    .collect(Collectors.toList());
+            if (bottomTeams.containsAll(teams))
+                return INCREMENT_HARDNESS_WHEN_MATCH_AT_BOTTOM;
+        }
+        return 0;
     }
 
     private void assignRefereesToMatches(LinkedList<Referee> referees, List<Match> matches) {
@@ -92,7 +124,8 @@ public class StafferService {
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 
-        return AVERAGE_GRADE_MULTIPLIER * referee.getAverageGrade() -
+        return AVERAGE_GRADE_MULTIPLIER * referee.getAverageGrade() +
+                EXPERIENCE_MULTIPLIER * referee.getExperience() -
                 NUMBER_OF_MATCHES_MULTIPLIER * referee.getNumberOfMatchesInRound() -
                 HOME_TEAM_REFEREED_MATCHES_MULTIPLIER * numberOfHomeTeamRefereedMatches -
                 AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER * numberOfAwayTeamRefereedMatches;
