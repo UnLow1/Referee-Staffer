@@ -18,7 +18,7 @@
         <select class="custom-select" id="homeTeam" name="homeTeam" [(ngModel)]="match.homeTeamId" required
                 #homeTeam="ngModel">
           <option hidden value="undefined" selected>Choose home team</option>
-          <option *ngFor="let team of teams" [ngValue]="team.id">{{team.name}} {{team.city}}</option>
+          <option *ngFor="let team of teams | excludeValue: match.awayTeamId" [ngValue]="team.id">{{team.name}} {{team.city}}</option>
         </select>
       </div>
       <div [hidden]="homeTeam.valid || homeTeam.untouched" class="alert alert-danger">Home team is required</div>
@@ -27,7 +27,7 @@
         <select class="custom-select" id="awayTeam" name="awayTeam" [(ngModel)]="match.awayTeamId" required
                 #awayTeam="ngModel">
           <option hidden value="undefined" selected>Choose away team</option>
-          <option *ngFor="let team of teams" [ngValue]="team.id">{{team.name}} {{team.city}}</option>
+          <option *ngFor="let team of teams | excludeValue: match.homeTeamId" [ngValue]="team.id">{{team.name}} {{team.city}}</option>
         </select>
       </div>
       <div [hidden]="awayTeam.valid || awayTeam.untouched" class="alert alert-danger">Away team is required</div>
@@ -58,7 +58,7 @@
                placeholder="Enter away team score">
       </div>
       <div class="form-group">
-        <label for="grade">Referee grade (TBD)</label>
+        <label for="grade">Referee grade</label>
         <input type="number" [(ngModel)]="grade.value"
                min="0"
                class="form-control"

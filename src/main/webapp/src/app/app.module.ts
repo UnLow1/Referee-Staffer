@@ -17,6 +17,7 @@ import { TeamFormComponent } from './component/team-form/team-form.component';
 import { StafferComponent } from './component/staffer/staffer.component';
 import { ImporterComponent } from './component/importer/importer.component';
 import { StandingsComponent } from './component/standings/standings.component';
+import { ExcludeValuePipe } from './pipe/exclude-value.pipe';
 
 @NgModule({
   declarations: [
@@ -30,7 +31,8 @@ import { StandingsComponent } from './component/standings/standings.component';
     TeamFormComponent,
     StafferComponent,
     ImporterComponent,
-    StandingsComponent
+    StandingsComponent,
+    ExcludeValuePipe
   ],
   imports: [
     BrowserModule,
