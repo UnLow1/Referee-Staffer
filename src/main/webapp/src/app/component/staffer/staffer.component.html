@@ -33,7 +33,7 @@
       </div>
       <div [hidden]="queueInput.valid || queueInput.untouched" class="alert alert-danger">Queue is required</div>
       <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-info">Generate cast</button>
-      <button (click)="updateMatches()" [hidden]="!matches" class="btn btn-info float-right">Save cast</button>
+      <button type="button" (click)="updateMatches()" [hidden]="!matches" class="btn btn-info float-right">Save cast</button>
     </form>
   </div>
 </div>

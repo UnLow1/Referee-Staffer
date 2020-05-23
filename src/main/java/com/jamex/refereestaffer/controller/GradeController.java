@@ -54,4 +54,10 @@ public class GradeController {
         var grades = gradeRepository.findAllById(request.getIds());
         return gradeConverter.convertFromEntities(grades);
     }
+
+    @DeleteMapping("{id}")
+    public void deleteGrade(@PathVariable Long id) {
+        log.info("Deleting grade with id = " + id);
+        gradeRepository.deleteById(id);
+    }
 }

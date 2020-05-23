@@ -39,4 +39,8 @@ export class GradeService {
   public save(match: Match, grade: Grade) {
     return this.http.post(`${this.gradesUrls}/${match.id}`, grade)
   }
+
+  public delete(grade: Grade) {
+    return this.http.delete(`${this.gradesUrls}/${grade.id}`)
+  }
 }

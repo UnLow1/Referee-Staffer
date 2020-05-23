@@ -22,7 +22,7 @@ public class TeamService {
     private final MatchService matchService;
 
     public Collection<Team> getStandings() {
-        var matches = matchRepository.findAll();
+        var matches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         matchService.calculatePointsForTeams(matches);
 
         var comparatorByPoints = Comparator.comparingInt(Team::getPoints).reversed();

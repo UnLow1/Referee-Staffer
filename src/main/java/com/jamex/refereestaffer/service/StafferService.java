@@ -37,7 +37,7 @@ public class StafferService {
     private final TeamService teamService;
 
     public Collection<MatchDto> staffReferees(Short queue) {
-        var referees = getReferees();
+        var referees = getReferees(queue);
         var sortedMatchesInQueue = getMatches(queue);
 
         assignRefereesToMatches(referees, sortedMatchesInQueue);
@@ -46,11 +46,12 @@ public class StafferService {
     }
 
     private List<Match> getMatches(Short queue) {
-        var allMatches = matchRepository.findAll();
-        matchService.calculatePointsForTeams(allMatches);
+        var matchesToCountPoints = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
+        matchService.calculatePointsForTeams(matchesToCountPoints);
 
-        return allMatches.stream()
-                .filter(match -> match.getQueue().equals(queue))
+        var matchesToAssign = matchRepository.findAllByQueueAndRefereeNull(queue);
+
+        return matchesToAssign.stream()
                 .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .collect(Collectors.toList());
@@ -131,8 +132,8 @@ public class StafferService {
                 AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER * numberOfAwayTeamRefereedMatches;
     }
 
-    private List<Referee> getReferees() {
-        var referees = refereeRepository.findAll();
+    private List<Referee> getReferees(Short queue) {
+        var referees = refereeRepository.findAllWithNoMatchInQueue(queue);
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
 

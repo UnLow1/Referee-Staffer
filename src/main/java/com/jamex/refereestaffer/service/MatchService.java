@@ -36,8 +36,10 @@ public class MatchService {
 
     public void deleteMatch(Long matchId) {
         var match = matchRepository.findById(matchId).orElseThrow(() -> new MatchNotFoundException(matchId));
-        log.info("Deleting grade with id = " + match.getGrade().getId());
-        gradeRepository.delete(match.getGrade());
+        if (match.getGrade() != null) {
+            log.info("Deleting grade with id = " + match.getGrade().getId());
+            gradeRepository.delete(match.getGrade());
+        }
         matchRepository.delete(match);
     }
 }

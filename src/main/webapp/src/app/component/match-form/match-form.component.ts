@@ -39,7 +39,7 @@ export class MatchFormComponent implements OnInit {
         let id = Number(params.get('id'))
         if (id) {
           this.editMode = true
-          this.matchService.findById(id).subscribe(match =>  {
+          this.matchService.findById(id).subscribe(match => {
             this.match = match
             this.gradeService.findById(match.gradeId).subscribe(grade => this.grade = grade)
           })
@@ -50,12 +50,24 @@ export class MatchFormComponent implements OnInit {
 
   onSubmit() {
     if (this.editMode)
-      this.matchService.update(this.match).subscribe(match =>
-        this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
+      this.matchService.update(this.match).subscribe(match => {
+        if (this.grade.value && this.grade.id)
+          this.gradeService.update(this.grade).subscribe(() => this.gotoMatchesList())
+        else if (this.grade.value)
+          this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
+        else if (this.grade.id)
+          this.gradeService.delete(this.grade).subscribe(() => this.gotoMatchesList())
+        else
+          this.gotoMatchesList()
+      })
+    else
+      this.matchService.save(this.match).subscribe(match => {
+          if (this.grade.value)
+            this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
+          else
+            this.gotoMatchesList()
+        }
       )
-    this.matchService.save(this.match).subscribe(match =>
-      this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
-    )
   }
 
   gotoMatchesList() {
