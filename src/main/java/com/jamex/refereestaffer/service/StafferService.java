@@ -95,7 +95,7 @@ public class StafferService {
         return 0;
     }
 
-    private void assignRefereesToMatches(LinkedList<Referee> referees, List<Match> matches) {
+    private void assignRefereesToMatches(List<Referee> referees, List<Match> matches) {
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
 
@@ -131,7 +131,7 @@ public class StafferService {
                 AWAY_TEAM_REFEREED_MATCHES_MULTIPLIER * numberOfAwayTeamRefereedMatches;
     }
 
-    private LinkedList<Referee> getReferees() {
+    private List<Referee> getReferees() {
         var referees = refereeRepository.findAll();
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
