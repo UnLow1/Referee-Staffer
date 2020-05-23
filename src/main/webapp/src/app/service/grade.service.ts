@@ -20,6 +20,14 @@ export class GradeService {
     this.gradesUrls = 'api/grades'
   }
 
+  public update(grade: Grade) {
+    return this.http.put(this.gradesUrls, grade, this.httpOptions)
+  }
+
+  public findById(id: number): Observable<Grade> {
+    return this.http.get<Grade>(`${this.gradesUrls}/${id}`)
+  }
+
   public findAll(): Observable<Grade[]> {
     return this.http.get<Grade[]>(this.gradesUrls)
   }

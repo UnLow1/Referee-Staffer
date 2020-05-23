@@ -1,6 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {TeamService} from "../../service/team.service";
 import {Team} from "../../model/team";
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-team-list',
@@ -11,7 +12,7 @@ export class TeamListComponent implements OnInit {
 
   teams: Team[]
 
-  constructor(private teamService: TeamService) {
+  constructor(private router: Router, private teamService: TeamService) {
   }
 
   ngOnInit(): void {
@@ -19,7 +20,7 @@ export class TeamListComponent implements OnInit {
   }
 
   editTeam(team: Team) {
-    console.log("Editing item with id = " + team.name + " " + team.city)
+    this.router.navigate(['/addTeam/', team.id])
   }
 
   deleteTeam(teamToDelete: Team) {

@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.TeamConverter;
 import com.jamex.refereestaffer.model.dto.TeamDto;
+import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import com.jamex.refereestaffer.service.TeamService;
@@ -28,9 +29,23 @@ public class TeamController {
         return teamConverter.convertFromEntities(teams);
     }
 
+    @GetMapping("/{id}")
+    public TeamDto getTeam(@PathVariable Long id) {
+        log.info("Getting team with id " + id);
+        var team = teamRepository.findById(id).orElseThrow(() -> new TeamNotFoundException(id));
+        return teamConverter.convertFromEntity(team);
+    }
+
     @PostMapping
-    void addTeam(@RequestBody TeamDto teamDto) {
+    public void addTeam(@RequestBody TeamDto teamDto) {
         log.info("Adding new team");
+        var team = teamConverter.convertFromDto(teamDto);
+        teamRepository.save(team);
+    }
+
+    @PutMapping
+    public void updateTeam(@RequestBody TeamDto teamDto) {
+        log.info("Updating team with id " + teamDto.getId());
         var team = teamConverter.convertFromDto(teamDto);
         teamRepository.save(team);
     }

@@ -1,5 +1,6 @@
 <div class="card my-5">
-  <h2 class="text-center my-3">Add new referee</h2>
+  <h2 *ngIf="!editMode" class="text-center my-3">Add new referee</h2>
+  <h2 *ngIf="editMode" class="text-center my-3">Edit referee</h2>
   <div class="card-body">
     <form (ngSubmit)="onSubmit()" #refereeForm="ngForm">
       <div class="form-group">

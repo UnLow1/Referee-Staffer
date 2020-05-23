@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.RefereeConverter;
 import com.jamex.refereestaffer.model.dto.RefereeDto;
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,21 @@ public class RefereeController {
         log.info("Getting all referees");
         var referees = refereeRepository.findAll();
         return refereeConverter.convertFromEntities(referees);
+    }
+
+    @GetMapping("/{id}")
+    public RefereeDto getReferee(@PathVariable Long id) {
+        log.info("Getting referee with id " + id);
+        var referee = refereeRepository.findById(id)
+                .orElseThrow(() -> new RefereeNotFoundException(id));
+        return refereeConverter.convertFromEntity(referee);
+    }
+
+    @PutMapping
+    public void updateReferee(@RequestBody RefereeDto refereeDto) {
+        log.info("Updating referee with id " + refereeDto.getId());
+        var referee = refereeConverter.convertFromDto(refereeDto);
+        refereeRepository.save(referee);
     }
 
     @PostMapping

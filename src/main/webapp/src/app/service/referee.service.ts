@@ -23,6 +23,14 @@ export class RefereeService {
     return this.http.get<Referee[]>(this.refereesUrl)
   }
 
+  public findById(id: number): Observable<Referee> {
+    return this.http.get<Referee>(`${this.refereesUrl}/${id}`)
+  }
+
+  public update(referee: Referee) {
+    return this.http.put(this.refereesUrl, referee)
+  }
+
   public save(referee: Referee) {
     return this.http.post(this.refereesUrl, referee)
   }

@@ -22,4 +22,8 @@ public class GradeService {
         grade.setMatch(match);
         gradeRepository.save(grade);
     }
+    public void updateGrade(GradeDto gradeDto) {
+        var grade = gradeConverter.convertFromDto(gradeDto);
+        gradeRepository.save(grade);
+    }
 }

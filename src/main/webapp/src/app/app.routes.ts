@@ -13,11 +13,14 @@ import {StandingsComponent} from "./component/standings/standings.component";
 
 const routes: Routes = [
   {path: 'referees', component: RefereeListComponent},
+  {path: 'addReferee/:id', component: RefereeFormComponent},
   {path: 'addReferee', component: RefereeFormComponent},
   {path: 'matches', component: MatchListComponent},
+  {path: 'addMatch/:id', component: MatchFormComponent},
   {path: 'addMatch', component: MatchFormComponent},
   {path: 'grades', component: GradeListComponent},
   {path: 'teams', component: TeamListComponent},
+  {path: 'addTeam/:id', component: TeamFormComponent},
   {path: 'addTeam', component: TeamFormComponent},
   {path: 'staffer', component: StafferComponent},
   {path: 'importer', component: ImporterComponent},

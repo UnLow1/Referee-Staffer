@@ -1,6 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {RefereeService} from "../../service/referee.service";
 import {Referee} from "../../model/referee";
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-referee-list',
@@ -11,7 +12,7 @@ export class RefereeListComponent implements OnInit {
 
   referees: Referee[]
 
-  constructor(private refereeService: RefereeService) {
+  constructor(private router: Router, private refereeService: RefereeService) {
   }
 
   ngOnInit() {
@@ -19,7 +20,7 @@ export class RefereeListComponent implements OnInit {
   }
 
   editReferee(referee: Referee) {
-    console.log("Editing referee = " + referee.firstName + " " + referee.lastName)
+    this.router.navigate(['/addReferee/', referee.id])
   }
 
   deleteReferee(refereeToDelete: Referee) {

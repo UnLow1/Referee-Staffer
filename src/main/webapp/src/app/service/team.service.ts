@@ -23,12 +23,20 @@ export class TeamService {
     return this.http.get<Team[]>(this.teamsUrl)
   }
 
+  public findById(id: number): Observable<Team> {
+    return this.http.get<Team>(`${this.teamsUrl}/${id}`, this.httpOptions);
+  }
+
   public findByIds(ids: number[]): Observable<Team[]> {
     return this.http.post<Team[]>(`${this.teamsUrl}/byIds`, {ids}, this.httpOptions);
   }
 
   public save(team: Team) {
     return this.http.post(this.teamsUrl, team)
+  }
+
+  public update(team: Team) {
+    return this.http.put(this.teamsUrl, team)
   }
 
   public getStandings(): Observable<Team[]> {

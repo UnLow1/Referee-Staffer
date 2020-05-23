@@ -1,5 +1,6 @@
 <div class="card my-5">
-  <h2 class="text-center my-3">Add new match</h2>
+  <h2 *ngIf="!editMode" class="text-center my-3">Add new match</h2>
+  <h2 *ngIf="editMode" class="text-center my-3">Edit match</h2>
   <div class="card-body">
     <form (ngSubmit)="onSubmit()" #matchForm="ngForm">
       <div class="form-group">

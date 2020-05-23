@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.MatchDto;
+import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.service.MatchService;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +30,27 @@ public class MatchController {
         return matchConverter.convertFromEntities(matches);
     }
 
+    @GetMapping("/{id}")
+    public MatchDto getMatch(@PathVariable Long id) {
+        log.info("Getting match with id " + id);
+        var match = matchRepository.findById(id).orElseThrow(() -> new MatchNotFoundException(id));
+        return matchConverter.convertFromEntity(match);
+    }
+
     @PostMapping
     public MatchDto addMatch(@RequestBody MatchDto matchDto) {
         log.info("Adding new match");
         var match = matchConverter.convertFromDto(matchDto);
         var savedMatch = matchRepository.save(match);
         return matchConverter.convertFromEntity(savedMatch);
+    }
+
+    @PutMapping("/{id}")
+    public MatchDto updateMatch(@RequestBody MatchDto matchDto, @PathVariable Long id) {
+        log.info("Updating match with id " + matchDto.getId());
+        var match = matchConverter.convertFromDto(matchDto);
+        var updatedMatch = matchRepository.save(match);
+        return matchConverter.convertFromEntity(updatedMatch);
     }
 
     @PutMapping

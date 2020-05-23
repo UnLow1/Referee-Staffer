@@ -7,6 +7,7 @@ import {Team} from "../../model/team";
 import {Referee} from "../../model/referee";
 import {GradeService} from "../../service/grade.service";
 import {Grade} from "../../model/grade";
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-match-list',
@@ -15,7 +16,7 @@ import {Grade} from "../../model/grade";
 })
 export class MatchListComponent implements OnInit {
 
-  constructor(private matchService: MatchService, private teamService: TeamService,
+  constructor(private router: Router, private matchService: MatchService, private teamService: TeamService,
               private refereeService: RefereeService, private gradeService: GradeService) {
   }
 
@@ -50,7 +51,7 @@ export class MatchListComponent implements OnInit {
   }
 
   editMatch(match: Match) {
-    console.log("Editing match: " + match.homeTeamId + " - " + match.awayTeamId)
+    this.router.navigate(['/addMatch/', match.id])
   }
 
   deleteMatch(matchToDelete: Match) {

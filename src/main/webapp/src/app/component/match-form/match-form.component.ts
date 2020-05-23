@@ -1,6 +1,6 @@
 import {Component, OnInit} from '@angular/core';
 import {Referee} from "../../model/referee";
-import {ActivatedRoute, Router} from "@angular/router";
+import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {RefereeService} from "../../service/referee.service";
 import {Match} from "../../model/match";
 import {MatchService} from "../../service/match.service";
@@ -16,16 +16,15 @@ import {GradeService} from "../../service/grade.service";
 })
 export class MatchFormComponent implements OnInit {
 
-  match: Match
-  grade: Grade
+  match: Match = new Match()
+  grade: Grade = new Grade()
   teams: Team[]
   referees: Referee[]
+  editMode: boolean
 
   constructor(private route: ActivatedRoute, private router: Router, private matchService: MatchService,
               private teamService: TeamService, private refereeService: RefereeService,
               private gradeService: GradeService) {
-    this.match = new Match()
-    this.grade = new Grade()
   }
 
   ngOnInit() {
@@ -35,12 +34,28 @@ export class MatchFormComponent implements OnInit {
     this.refereeService.findAll().subscribe(data => {
       this.referees = data
     })
+    this.route.paramMap.subscribe(
+      (params: ParamMap) => {
+        let id = Number(params.get('id'))
+        if (id) {
+          this.editMode = true
+          this.matchService.findById(id).subscribe(match =>  {
+            this.match = match
+            this.gradeService.findById(match.gradeId).subscribe(grade => this.grade = grade)
+          })
+        }
+      }
+    )
   }
 
   onSubmit() {
-    this.matchService.save(this.match).subscribe(match => {
+    if (this.editMode)
+      this.matchService.update(this.match).subscribe(match =>
+        this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
+      )
+    this.matchService.save(this.match).subscribe(match =>
       this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
-    })
+    )
   }
 
   gotoMatchesList() {

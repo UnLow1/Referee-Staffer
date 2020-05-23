@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.GradeConverter;
 import com.jamex.refereestaffer.model.dto.GradeDto;
+import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.service.GradeService;
@@ -28,10 +29,23 @@ public class GradeController {
         return gradeConverter.convertFromEntities(grades);
     }
 
+    @GetMapping("/{id}")
+    public GradeDto getGrade(@PathVariable Long id) {
+        log.info("Getting grade with id " + id);
+        var grade = gradeRepository.findById(id).orElseThrow(() -> new GradeNotFoundException(id));
+        return gradeConverter.convertFromEntity(grade);
+    }
+
     @PostMapping("/{matchId}")
     public void addGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
-        log.info("Adding new grade");
+        log.info("Adding new grade for match with id " + matchId);
         gradeService.addGrade(gradeDto, matchId);
+    }
+
+    @PutMapping
+    public void updateGrade(@RequestBody GradeDto gradeDto) {
+        log.info("Updating grade with id " + gradeDto.getId());
+        gradeService.updateGrade(gradeDto);
     }
 
     @PostMapping("/byIds")

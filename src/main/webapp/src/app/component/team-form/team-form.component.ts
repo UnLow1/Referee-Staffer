@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {Team} from "../../model/team";
-import {ActivatedRoute, Router} from "@angular/router";
+import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {TeamService} from "../../service/team.service";
 
 @Component({
@@ -10,17 +10,29 @@ import {TeamService} from "../../service/team.service";
 })
 export class TeamFormComponent implements OnInit {
 
-  team: Team
+  team: Team = new Team()
+  editMode: boolean
 
   constructor(private route: ActivatedRoute, private router: Router, private teamService: TeamService) {
-    this.team = new Team()
   }
 
   ngOnInit(): void {
+    this.route.paramMap.subscribe(
+      (params: ParamMap) => {
+        let id = Number(params.get('id'))
+        if (id) {
+          this.editMode = true
+          this.teamService.findById(id).subscribe(team => this.team = team)
+        }
+      }
+    )
   }
 
   onSubmit() {
-    this.teamService.save(this.team).subscribe(() => this.gotoTeamsList())
+    if (this.editMode)
+      this.teamService.update(this.team).subscribe(() => this.gotoTeamsList())
+    else
+      this.teamService.save(this.team).subscribe(() => this.gotoTeamsList())
   }
 
   gotoTeamsList() {

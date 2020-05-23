@@ -49,7 +49,7 @@ export class StafferComponent implements OnInit {
   }
 
   updateMatches() {
-    this.matchService.update(this.matches).subscribe(() => this.gotoMatchesList())
+    this.matchService.updateList(this.matches).subscribe(() => this.gotoMatchesList())
   }
 
   gotoMatchesList() {

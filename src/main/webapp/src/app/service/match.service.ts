@@ -14,6 +14,10 @@ export class MatchService {
     this.matchesUrl = 'api/matches'
   }
 
+  public findById(id: number): Observable<Match> {
+    return this.http.get<Match>(`${this.matchesUrl}/${id}`)
+  }
+
   public findAll(): Observable<Match[]> {
     return this.http.get<Match[]>(this.matchesUrl)
   }
@@ -22,7 +26,11 @@ export class MatchService {
     return this.http.post<Match>(this.matchesUrl, match)
   }
 
-  public update(matches: Match[]) {
+  public update(match: Match): Observable<Match> {
+    return this.http.put<Match>(`${this.matchesUrl}/${match.id}`, match)
+  }
+
+  public updateList(matches: Match[]) {
     return this.http.put(this.matchesUrl, matches)
   }
 
