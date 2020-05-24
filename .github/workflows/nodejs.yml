@@ -20,17 +20,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - run: cd src/main/webapp
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
-    - run: |
+    - name: npm ci
+      run: |
         cd src/main/webapp
         npm ci
-    - run: |
+    - name: cpm run build --if-present
+      run: |
         cd src/main/webapp
         npm run build --if-present
-    - run: |
+    - name: npm test
+      run: |
         cd src/main/webapp
         npm test
