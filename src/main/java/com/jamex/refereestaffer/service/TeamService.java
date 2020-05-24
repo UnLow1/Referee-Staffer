@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,7 +36,11 @@ public class TeamService {
         var teamIds = teams.stream()
                 .map(Team::getId)
                 .collect(Collectors.toList());
-        var teamsWithoutMatches = teamRepository.findAllByIdNotIn(teamIds);
+        List<Team> teamsWithoutMatches;
+        if (teamIds.isEmpty())
+            teamsWithoutMatches = teamRepository.findAll();
+        else
+            teamsWithoutMatches = teamRepository.findAllByIdNotIn(teamIds);
         teams.addAll(teamsWithoutMatches);
 
         return teams;
