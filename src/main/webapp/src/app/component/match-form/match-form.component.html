@@ -35,7 +35,8 @@
       <div class="form-group">
         <label for="referee">Referee</label>
         <select class="custom-select" id="referee" name="referee" [(ngModel)]="match.refereeId">
-          <option value="" selected>Choose referee</option>
+          <option hidden [ngValue]="null" selected>Choose referee</option>
+          <option [ngValue]="undefined" selected>Choose referee</option>
           <option *ngFor="let referee of referees"
                   [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
         </select>

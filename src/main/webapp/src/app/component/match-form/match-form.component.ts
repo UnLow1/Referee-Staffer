@@ -41,7 +41,8 @@ export class MatchFormComponent implements OnInit {
           this.editMode = true
           this.matchService.findById(id).subscribe(match => {
             this.match = match
-            this.gradeService.findById(match.gradeId).subscribe(grade => this.grade = grade)
+            if (match.gradeId)
+              this.gradeService.findById(match.gradeId).subscribe(grade => this.grade = grade)
           })
         }
       }

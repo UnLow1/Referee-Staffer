@@ -10,11 +10,13 @@ import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class StafferService {
@@ -112,6 +114,9 @@ public class StafferService {
                     .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
+            log.info(String.format("Match: %s - %s; hardnessLvl = %f", match.getHome(), match.getAway(), match.getHardnessLvl()));
+            log.info("Referees with their potential:");
+            log.info(sortedRefereesPotentialLvlMap.toString());
             var chosenReferee = sortedRefereesPotentialLvlMap.keySet().stream()
                     .findFirst()
                     .orElseThrow(StafferException::new);

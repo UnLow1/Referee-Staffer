@@ -27,10 +27,14 @@ export class MatchListComponent implements OnInit {
 
   ngOnInit() {
     this.matchService.findAll().subscribe(matches => {
+      function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
+        return value !== null && value !== undefined;
+      }
+
       this.matches = matches.sort((a, b) => a.queue - b.queue)
       let teamIds = matches.map(match => match.homeTeamId).concat(matches.map(match => match.awayTeamId)).filter((item, i, ar) => ar.indexOf(item) === i)
-      let refereeIds = matches.map(match => match.refereeId).filter((item, i, ar) => ar.indexOf(item) === i)
-      let gradeIds = matches.map(match => match.gradeId).filter((item, i, ar) => ar.indexOf(item) === i)
+      let refereeIds = matches.map(match => match.refereeId).filter(notEmpty).filter((item, i, ar) => ar.indexOf(item) === i)
+      let gradeIds = matches.map(match => match.gradeId).filter(notEmpty).filter((item, i, ar) => ar.indexOf(item) === i)
 
       this.teamService.findByIds(teamIds).subscribe(teams => this.teams = teams)
       this.refereeService.findByIds(refereeIds).subscribe(referees => this.referees = referees)

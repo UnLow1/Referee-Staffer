@@ -12,7 +12,7 @@ import java.util.Map;
 @AllArgsConstructor
 @Getter
 @Builder
-@ToString(exclude = "matches")
+@ToString(exclude = {"matches", "id", "experience", "email", "averageGrade", "numberOfMatchesInRound", "teamsRefereed", "busy"})
 public class Referee {
 
     @Id
