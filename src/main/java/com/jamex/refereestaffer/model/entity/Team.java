@@ -9,7 +9,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"id", "points"})
+@ToString(exclude = {"id"})
 public class Team {
 
     @Id

@@ -10,6 +10,7 @@ import {TeamFormComponent} from "./component/team-form/team-form.component";
 import {StafferComponent} from "./component/staffer/staffer.component";
 import {ImporterComponent} from "./component/importer/importer.component";
 import {StandingsComponent} from "./component/standings/standings.component";
+import {ConfigurationComponent} from "./component/configuration/configuration.component";
 
 const routes: Routes = [
   {path: 'referees', component: RefereeListComponent},
@@ -24,7 +25,8 @@ const routes: Routes = [
   {path: 'addTeam', component: TeamFormComponent},
   {path: 'staffer', component: StafferComponent},
   {path: 'importer', component: ImporterComponent},
-  {path: "standings", component: StandingsComponent}
+  {path: "standings", component: StandingsComponent},
+  {path: "configuration", component: ConfigurationComponent}
 ];
 
 @NgModule({

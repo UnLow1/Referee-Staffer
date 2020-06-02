@@ -70,10 +70,13 @@ public class ImporterService {
             var homeTeam = teamRepository.findByName(homeTeamName).orElseThrow(() -> new TeamNotFoundException(homeTeamName));
             var awayTeamName = line[2];
             var awayTeam = teamRepository.findByName(awayTeamName).orElseThrow(() -> new TeamNotFoundException(awayTeamName));
-            var refereeFirstName = line[3].split(" ")[0];
-            var refereeLastName = line[3].split(" ")[1];
-            var referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName)
-                    .orElseThrow(() -> new RefereeNotFoundException(refereeFirstName, refereeLastName));
+            Referee referee = null;
+            if (!line[3].isBlank()) {
+                var refereeFirstName = line[3].split(" ")[0];
+                var refereeLastName = line[3].split(" ")[1];
+                referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName)
+                        .orElseThrow(() -> new RefereeNotFoundException(refereeFirstName, refereeLastName));
+            }
             var queue = Short.parseShort(line[0]);
             var homeTeamScore = Short.valueOf(line[4]);
             var awayTeamScore = Short.valueOf(line[5]);
@@ -93,6 +96,7 @@ public class ImporterService {
                 .map(line -> line.split(";"))
                 .map(line -> line[3])
                 .distinct()
+                .filter(referee -> !referee.isBlank())
                 .map(refereeName -> new Referee(refereeName.split(" ")[0], refereeName.split(" ")[1]))
                 .collect(Collectors.toList());
 

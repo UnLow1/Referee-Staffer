@@ -18,6 +18,7 @@ import { StafferComponent } from './component/staffer/staffer.component';
 import { ImporterComponent } from './component/importer/importer.component';
 import { StandingsComponent } from './component/standings/standings.component';
 import { ExcludeValuePipe } from './pipe/exclude-value.pipe';
+import { ConfigurationComponent } from './component/configuration/configuration.component';
 
 @NgModule({
   declarations: [
@@ -32,7 +33,8 @@ import { ExcludeValuePipe } from './pipe/exclude-value.pipe';
     StafferComponent,
     ImporterComponent,
     StandingsComponent,
-    ExcludeValuePipe
+    ExcludeValuePipe,
+    ConfigurationComponent
   ],
   imports: [
     BrowserModule,

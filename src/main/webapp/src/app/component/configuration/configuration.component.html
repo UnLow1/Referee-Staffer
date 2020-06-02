@@ -1,0 +1,20 @@
+<div class="card my-5">
+  <h2 class="text-center my-3">Configuration</h2>
+  <div class="card-body">
+    <form (ngSubmit)="onSubmit()" #configurationForm="ngForm">
+      <div *ngFor="let setting of config">
+        <div class="form-group">
+          <label for="settingInput">{{setting.name}}</label>
+          <input type="text" [(ngModel)]="setting.value"
+                 class="form-control"
+                 id="settingInput"
+                 placeholder="Enter {{setting.name}}"
+                 name="{{setting.name}}"
+                 required #settingInput="ngModel"/>
+        </div>
+        <div [hidden]="settingInput.valid" class="alert alert-danger">Setting {{setting.name}} is required</div>
+      </div>
+      <button type="submit" [disabled]="!configurationForm.form.valid" class="btn btn-info">Submit</button>
+    </form>
+  </div>
+</div>
