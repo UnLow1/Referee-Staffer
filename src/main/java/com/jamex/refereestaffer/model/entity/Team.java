@@ -23,7 +23,11 @@ public class Team {
     private String city;
 
     @Transient
-    private int points;
+    private short points;
+
+    @Transient
+    @Setter
+    private short place;
 
     public Team(String name) {
         this.name = name;

@@ -10,6 +10,7 @@ import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
+import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class StafferService {
     private final MatchConverter matchConverter;
     private final MatchService matchService;
     private final TeamService teamService;
+    private final TeamRepository teamRepository;
 
     public Collection<MatchDto> staffReferees(Short queue) {
         var referees = getReferees(queue);
@@ -39,12 +41,12 @@ public class StafferService {
     }
 
     private List<Match> getMatches(Short queue) {
-        var matchesToCountPoints = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
-        matchService.calculatePointsForTeams(matchesToCountPoints);
+        var allMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
+        matchService.calculatePointsForTeams(allMatches);
 
-        var matchesToAssign = matchRepository.findAllByQueueAndRefereeNull(queue);
-
-        return matchesToAssign.stream()
+        return allMatches.stream()
+                .filter(match -> match.getQueue().equals(queue))
+                .filter(match -> Objects.isNull(match.getReferee()))
                 .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .collect(Collectors.toList());
@@ -76,20 +78,11 @@ public class StafferService {
     private double calculateHardnessLvlForEdgeMatch(Team homeTeam, Team awayTeam) {
         var numberOfTeamsOnEdgeConfig = configurationRepository.findByName("number of teams on edge");
         var numberOfTeamsOnEdge = numberOfTeamsOnEdgeConfig.getValue().longValue();
-        var standings = teamService.getStandings();
-        var teams = List.of(homeTeam, awayTeam);
-        var topTeams = standings.stream()
-                .limit(numberOfTeamsOnEdge)
-                .collect(Collectors.toList());
-        if (topTeams.containsAll(teams))
+        var numberOfTeams = teamRepository.findAll().size();
+        if (homeTeam.getPlace() <= numberOfTeamsOnEdge && awayTeam.getPlace() <= numberOfTeamsOnEdge)
             return configurationRepository.findByName("increment hardness when match on top").getValue();
-        else {
-            var bottomTeams = standings.stream()
-                    .skip(standings.size() - numberOfTeamsOnEdge)
-                    .collect(Collectors.toList());
-            if (bottomTeams.containsAll(teams))
-                return configurationRepository.findByName("increment hardness when match on bottom").getValue();
-        }
+        else if (homeTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge && awayTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge)
+            return configurationRepository.findByName("increment hardness when match on bottom").getValue();
         return 0;
     }
 

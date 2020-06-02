@@ -10,8 +10,6 @@ import java.util.List;
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
-    List<Match> findAllByQueueAndRefereeNull(Short queue);
-
     List<Match> findAllByReferee(Referee referee);
 
     List<Match> findAllByHomeScoreNotNullAndAwayScoreNotNull();

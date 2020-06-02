@@ -1,6 +1,7 @@
 package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.entity.Match;
+import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
@@ -8,7 +9,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -32,6 +37,14 @@ public class MatchService {
                 match.getAway().addPoints(POINTS_FOR_DRAW_MATCH);
             }
         }
+        var teams = matches.stream()
+                .flatMap(match -> Stream.of(match.getHome(), match.getAway()))
+                .distinct()
+                .sorted(Comparator.comparingInt(Team::getPoints).reversed())
+                .collect(Collectors.toList());
+
+        IntStream.range(0, teams.size())
+                .forEach(i -> teams.get(i).setPlace((short) (i + 1)));
     }
 
     public void deleteMatch(Long matchId) {
