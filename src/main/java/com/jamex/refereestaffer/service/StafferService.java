@@ -28,7 +28,6 @@ public class StafferService {
     private final ConfigurationRepository configurationRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
-    private final TeamService teamService;
     private final TeamRepository teamRepository;
 
     public Collection<MatchDto> staffReferees(Short queue) {
