@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 @Service
 public class StafferService {
 
+    private static final double DEFAULT_AVERAGE_GRADE = 8.3;
+
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
     private final ConfigurationRepository configurationRepository;
@@ -43,9 +45,9 @@ public class StafferService {
         var allMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         matchService.calculatePointsForTeams(allMatches);
 
-        return allMatches.stream()
-                .filter(match -> match.getQueue().equals(queue))
-                .filter(match -> Objects.isNull(match.getReferee()))
+        var matchesToAssign = matchRepository.findAllByQueueAndRefereeIsNull(queue);
+
+        return matchesToAssign.stream()
                 .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .collect(Collectors.toList());
@@ -122,7 +124,9 @@ public class StafferService {
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 
-        return averageGradeMultiplier.getValue() * referee.getAverageGrade() +
+        var averageGrade = referee.getAverageGrade() != 0 ? referee.getAverageGrade() : DEFAULT_AVERAGE_GRADE;
+
+        return averageGradeMultiplier.getValue() * averageGrade +
                 experienceMultiplier.getValue() * referee.getExperience() -
                 numberOfMatchesMultiplier.getValue() * referee.getNumberOfMatchesInRound() -
                 homeTeamRefereedMatchesMultiplier.getValue() * numberOfHomeTeamRefereedMatches -
@@ -130,7 +134,11 @@ public class StafferService {
     }
 
     private List<Referee> getReferees(Short queue) {
-        var referees = refereeRepository.findAllWithNoMatchInQueue(queue);
+        // TODO improve filtering SC referees
+        var referees = refereeRepository.findAllWithNoMatchInQueue(queue).stream()
+                .filter(referee -> !referee.getFirstName().equals("S"))
+                .filter(referee -> !referee.getLastName().equals("C"))
+                .collect(Collectors.toList());
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
 

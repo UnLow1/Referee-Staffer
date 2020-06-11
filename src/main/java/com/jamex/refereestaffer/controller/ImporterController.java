@@ -19,8 +19,10 @@ public class ImporterController {
     private final ImporterService importerService;
 
     @PostMapping
-    public ImportResponse importData(@RequestParam("file") MultipartFile file) {
+    public ImportResponse importData(@RequestParam("file") MultipartFile file,
+                                     @RequestParam("numberOfQueuesToImport") Short numberOfQueuesToImport) {
         log.info(String.format("Importing data from file \"%s\"", file.getOriginalFilename()));
-        return importerService.importData(file);
+        // TODO numberOfQueuesToImport - only for testing purpose, should be remoced later
+        return importerService.importData(file, numberOfQueuesToImport);
     }
 }

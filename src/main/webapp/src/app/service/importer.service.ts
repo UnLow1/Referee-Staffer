@@ -14,9 +14,10 @@ export class ImporterService {
     this.importerUrl = 'api/importer'
   }
 
-  public postFile(fileToUpload: File): Observable<ImportResponse> {
+  public postFile(fileToUpload: File, numberOfQueuesToImport: number): Observable<ImportResponse> {
     const formData: FormData = new FormData()
     formData.append('file', fileToUpload, fileToUpload.name)
+    formData.append('numberOfQueuesToImport', numberOfQueuesToImport.toString())
     return this.http.post<ImportResponse>(this.importerUrl, formData)
   }
 }

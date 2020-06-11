@@ -6,6 +6,12 @@
       <input type="file"
              id="file"
              (change)="handleFileInput($event)">
+      <label for="numberOfQueuesToImportInput">Number of queues to import</label>
+      <input type="number" [(ngModel)]="numberOfQueuesToImport"
+             class="form-control"
+             id="numberOfQueuesToImportInput"
+             placeholder="Enter number of queues to import"
+             name="Number of queues to import"/>
       <button (click)="uploadFileToActivity()" class="btn-large btn-submit">Save</button>
     </div>
     <div *ngIf="importResult">

@@ -11,6 +11,7 @@ export class ImporterComponent implements OnInit {
 
   fileToUpload: File = null
   importResult: ImportResponse
+  numberOfQueuesToImport: number
 
   constructor(private importerService: ImporterService) {
   }
@@ -24,6 +25,6 @@ export class ImporterComponent implements OnInit {
   }
 
   uploadFileToActivity() {
-    this.importerService.postFile(this.fileToUpload).subscribe(result => this.importResult = result)
+    this.importerService.postFile(this.fileToUpload, this.numberOfQueuesToImport).subscribe(result => this.importResult = result)
   }
 }

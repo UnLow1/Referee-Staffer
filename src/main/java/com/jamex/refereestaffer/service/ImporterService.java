@@ -12,6 +12,7 @@ import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ImporterService {
@@ -32,7 +34,7 @@ public class ImporterService {
     private final MatchRepository matchRepository;
     private final GradeRepository gradeRepository;
 
-    public ImportResponse importData(MultipartFile file) {
+    public ImportResponse importData(MultipartFile file, Short numberOfQueuesToImport) {
         BufferedReader br;
         List<String> result = new ArrayList<>();
         try {
@@ -47,7 +49,7 @@ public class ImporterService {
 
             createTeams(result);
             createReferees(result);
-            createMatchesAndGrades(result);
+            createMatchesAndGrades(result, numberOfQueuesToImport);
 
             var noOfMatches = matchRepository.findAll().size();
             var noOfReferees = refereeRepository.findAll().size();
@@ -56,51 +58,59 @@ public class ImporterService {
 
             return new ImportResponse(noOfMatches, noOfReferees, noOfGrades, noOfTeams);
         } catch (IOException e) {
-            throw new RuntimeException(); // Add custom exception for import
+            throw new RuntimeException(); // TODO Add custom exception for import
         }
     }
 
-    private void createMatchesAndGrades(List<String> lines) {
+    private void createMatchesAndGrades(List<String> lines, Short numberOfQueuesToImport) {
         var splittedLines = lines.stream()
                 .map(line -> line.split(";"))
                 .collect(Collectors.toList());
 
         for (var line : splittedLines) {
+            var queue = Short.parseShort(line[0]);
             var homeTeamName = line[1];
             var homeTeam = teamRepository.findByName(homeTeamName).orElseThrow(() -> new TeamNotFoundException(homeTeamName));
             var awayTeamName = line[2];
             var awayTeam = teamRepository.findByName(awayTeamName).orElseThrow(() -> new TeamNotFoundException(awayTeamName));
             Referee referee = null;
-            if (!line[3].isBlank()) {
+            Short homeTeamScore = null;
+            Short awayTeamScore = null;
+            if (line.length > 3 && queue <= numberOfQueuesToImport) {
                 var refereeFirstName = line[3].split(" ")[0];
                 var refereeLastName = line[3].split(" ")[1];
                 referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName)
                         .orElseThrow(() -> new RefereeNotFoundException(refereeFirstName, refereeLastName));
+                homeTeamScore = Short.valueOf(line[4]);
+                awayTeamScore = Short.valueOf(line[5]);
             }
-            var queue = Short.parseShort(line[0]);
-            var homeTeamScore = Short.valueOf(line[4]);
-            var awayTeamScore = Short.valueOf(line[5]);
             var match = new Match(queue, homeTeam, awayTeam, referee, homeTeamScore, awayTeamScore);
             matchRepository.save(match);
 
-            if (line.length == 7) {
+            if (line.length == 7 && queue <= numberOfQueuesToImport) {
                 var value = Double.parseDouble(line[6]);
                 var grade = new Grade(match, value);
                 gradeRepository.save(grade);
             }
         }
+        var grades = gradeRepository.findAll();
+        var matches = matchRepository.findAll();
+        log.info("Created " + grades.size() + " grades");
+        log.info("Created " + matches.size() + " matches");
     }
 
     private void createReferees(List<String> lines) {
         var referees = lines.stream()
                 .map(line -> line.split(";"))
+                .filter(line -> line.length > 3)
                 .map(line -> line[3])
                 .distinct()
-                .filter(referee -> !referee.isBlank())
+//                .filter(referee -> !referee.isBlank())
                 .map(refereeName -> new Referee(refereeName.split(" ")[0], refereeName.split(" ")[1]))
                 .collect(Collectors.toList());
 
         refereeRepository.saveAll(referees);
+        log.info("Created " + referees.size() + " referees");
     }
 
     private void createTeams(List<String> lines) {
@@ -119,5 +129,6 @@ public class ImporterService {
                 .collect(Collectors.toList());
 
         teamRepository.saveAll(teams);
+        log.info("Created " + teams.size() + " teams");
     }
 }
