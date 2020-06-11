@@ -37,4 +37,8 @@ export class MatchService {
   public delete(id: number) {
     return this.http.delete(`${this.matchesUrl}/${id}`)
   }
+
+  public deleteAll() {
+    return this.http.delete(`${this.matchesUrl}`)
+  }
 }

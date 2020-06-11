@@ -56,6 +56,12 @@ public class RefereeController {
         return refereeConverter.convertFromEntities(referees);
     }
 
+    @DeleteMapping
+    public void deleteAll() {
+        log.info("Deleting all referees");
+        refereeRepository.deleteAll();
+    }
+
     @DeleteMapping("/{id}")
     public void deleteReferee(@PathVariable Long id) {
         log.info("Deleting referee with id = " + id);

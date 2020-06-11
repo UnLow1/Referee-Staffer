@@ -64,6 +64,12 @@ public class TeamController {
         return teamConverter.convertFromEntities(teams);
     }
 
+    @DeleteMapping
+    public void deleteAll() {
+        log.info("Deleting all teams");
+        teamRepository.deleteAll();
+    }
+
     @DeleteMapping("/{id}")
     public void deleteTeam(@PathVariable Long id) {
         log.info("Deleting team with id = " + id);

@@ -42,4 +42,8 @@ export class RefereeService {
   public delete(id: number) {
     return this.http.delete(`${this.refereesUrl}/${id}`)
   }
+
+  public deleteAll() {
+    return this.http.delete(`${this.refereesUrl}`)
+  }
 }

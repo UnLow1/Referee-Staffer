@@ -46,4 +46,8 @@ export class TeamService {
   public delete(id: number) {
     return this.http.delete(`${this.teamsUrl}/${id}`)
   }
+
+  public deleteAll() {
+    return this.http.delete(`${this.teamsUrl}`)
+  }
 }

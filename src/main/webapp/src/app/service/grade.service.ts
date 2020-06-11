@@ -43,4 +43,8 @@ export class GradeService {
   public delete(grade: Grade) {
     return this.http.delete(`${this.gradesUrls}/${grade.id}`)
   }
+
+  public deleteAll() {
+    return this.http.delete(`${this.gradesUrls}`)
+  }
 }
