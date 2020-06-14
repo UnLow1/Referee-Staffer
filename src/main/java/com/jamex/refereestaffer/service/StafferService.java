@@ -164,11 +164,13 @@ public class StafferService {
     }
 
     private double countAverageGrade(List<Match> matchesForReferee) {
-        var refereeGrades = matchesForReferee.stream()
+        var matchesWithGrade = matchesForReferee.stream()
                 .map(Match::getGrade)
                 .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        var refereeGrades = matchesWithGrade.stream()
                 .map(Grade::getValue)
                 .reduce(0.0, Double::sum);
-        return refereeGrades / matchesForReferee.size();
+        return refereeGrades / matchesWithGrade.size();
     }
 }
