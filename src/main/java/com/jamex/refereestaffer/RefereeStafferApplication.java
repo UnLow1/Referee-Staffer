@@ -8,6 +8,7 @@ import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Profile;
 import java.util.List;
 
 @SpringBootApplication
+@Slf4j
 public class RefereeStafferApplication {
 
     public static void main(String[] args) {
@@ -64,10 +66,10 @@ public class RefereeStafferApplication {
             matchRepository.saveAll(List.of(match1, match2, match3, match4, match5, match6, match7, match8, match9));
             gradeRepository.saveAll(List.of(grade1, grade2, grade3, grade4, grade5, grade6, grade7, grade8, grade9));
 
-            refereeRepository.findAll().forEach(System.out::println);
-            gradeRepository.findAll().forEach(System.out::println);
-            teamRepository.findAll().forEach(System.out::println);
-            matchRepository.findAll().forEach(System.out::println);
+            refereeRepository.findAll().forEach(referee -> log.info(referee.toString()));
+            gradeRepository.findAll().forEach(grade -> log.info(grade.toString()));
+            teamRepository.findAll().forEach(team -> log.info(team.toString()));
+            matchRepository.findAll().forEach(match -> log.info(match.toString()));
         };
     }
 }

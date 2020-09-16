@@ -1,7 +1,5 @@
 package com.jamex.refereestaffer.service;
 
-import com.jamex.refereestaffer.model.converter.TeamConverter;
-import com.jamex.refereestaffer.model.dto.TeamDto;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;

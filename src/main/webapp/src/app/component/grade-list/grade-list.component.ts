@@ -25,7 +25,7 @@ export class GradeListComponent implements OnInit {
   ngOnInit(): void {
     this.matchService.findAll().subscribe(matches => {
       this.matches = matches
-      let gradeIds = matches.map(matches => matches.gradeId).filter((item, i, ar) => ar.indexOf(item) === i)
+      let gradeIds = matches.map(match => match.gradeId).filter((item, i, ar) => ar.indexOf(item) === i)
       this.gradeService.findByIds(gradeIds).subscribe(grades => this.grades = grades)
     })
     this.refereeService.findAll().subscribe(referees => this.referees = referees)
