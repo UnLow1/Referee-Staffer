@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.exception.ImportException;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.ImportResponse;
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Service
 public class ImporterService {
+
+    private static final String CREATED = "Created ";
 
     private final TeamRepository teamRepository;
     private final RefereeRepository refereeRepository;
@@ -58,7 +61,7 @@ public class ImporterService {
 
             return new ImportResponse(noOfMatches, noOfReferees, noOfGrades, noOfTeams);
         } catch (IOException e) {
-            throw new RuntimeException(); // TODO Add custom exception for import
+            throw new ImportException(file.getOriginalFilename());
         }
     }
 
@@ -95,8 +98,8 @@ public class ImporterService {
         }
         var grades = gradeRepository.findAll();
         var matches = matchRepository.findAll();
-        log.info("Created " + grades.size() + " grades");
-        log.info("Created " + matches.size() + " matches");
+        log.info(CREATED + grades.size() + " grades");
+        log.info(CREATED + matches.size() + " matches");
     }
 
     private void createReferees(List<String> lines) {
@@ -110,7 +113,7 @@ public class ImporterService {
                 .collect(Collectors.toList());
 
         refereeRepository.saveAll(referees);
-        log.info("Created " + referees.size() + " referees");
+        log.info(CREATED + referees.size() + " referees");
     }
 
     private void createTeams(List<String> lines) {
@@ -129,6 +132,6 @@ public class ImporterService {
                 .collect(Collectors.toList());
 
         teamRepository.saveAll(teams);
-        log.info("Created " + teams.size() + " teams");
+        log.info(CREATED + teams.size() + " teams");
     }
 }

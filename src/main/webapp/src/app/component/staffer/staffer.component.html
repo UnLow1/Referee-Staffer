@@ -1,10 +1,10 @@
 <div class="card my-5">
-  <h2 class="text-center my-3">Create cast</h2>
+  <h2 id="header" class="text-center my-3">Create cast</h2>
   <div class="card-body">
-    <table *ngIf="matches" class="table table-bordered table-striped">
+    <table aria-describedby="header" *ngIf="matches" class="table table-bordered table-striped">
       <thead class="thead-dark">
       <tr>
-        <th [colSpan]="3" class="tableHeader">Queue {{queue}}</th>
+        <th id="queueHeader" [colSpan]="3" class="tableHeader">Queue {{queue}}</th>
       </tr>
       <tr>
         <th scope="col">Home team</th>
@@ -14,9 +14,9 @@
       </thead>
       <tbody>
       <tr *ngFor="let match of matches">
-        <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
-        <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
-        <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
+        <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
+        <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
+        <td headers="queueHeader">{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
       </tr>
       </tbody>
     </table>
