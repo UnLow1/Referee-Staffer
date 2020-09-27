@@ -32,7 +32,8 @@ public class TeamController {
     @GetMapping("/{id}")
     public TeamDto getTeam(@PathVariable Long id) {
         log.info("Getting team with id " + id);
-        var team = teamRepository.findById(id).orElseThrow(() -> new TeamNotFoundException(id));
+        var team = teamRepository.findById(id)
+                .orElseThrow(() -> new TeamNotFoundException(id));
         return teamConverter.convertFromEntity(team);
     }
 

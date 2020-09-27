@@ -17,11 +17,12 @@ public class GradeService {
     private final MatchRepository matchRepository;
 
     public void addGrade(GradeDto gradeDto, Long matchId) {
-        var grade = gradeConverter.convertFromDto(gradeDto);
         var match = matchRepository.findById(matchId).orElseThrow(() -> new MatchNotFoundException(matchId));
+        var grade = gradeConverter.convertFromDto(gradeDto);
         grade.setMatch(match);
         gradeRepository.save(grade);
     }
+
     public void updateGrade(GradeDto gradeDto) {
         var grade = gradeConverter.convertFromDto(gradeDto);
         gradeRepository.save(grade);

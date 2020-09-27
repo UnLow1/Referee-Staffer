@@ -33,7 +33,8 @@ public class MatchController {
     @GetMapping("/{id}")
     public MatchDto getMatch(@PathVariable Long id) {
         log.info("Getting match with id " + id);
-        var match = matchRepository.findById(id).orElseThrow(() -> new MatchNotFoundException(id));
+        var match = matchRepository.findById(id)
+                .orElseThrow(() -> new MatchNotFoundException(id));
         return matchConverter.convertFromEntity(match);
     }
 
@@ -45,6 +46,7 @@ public class MatchController {
         return matchConverter.convertFromEntity(savedMatch);
     }
 
+    // TODO is this id needed?
     @PutMapping("/{id}")
     public MatchDto updateMatch(@RequestBody MatchDto matchDto, @PathVariable Long id) {
         log.info("Updating match with id " + matchDto.getId());
