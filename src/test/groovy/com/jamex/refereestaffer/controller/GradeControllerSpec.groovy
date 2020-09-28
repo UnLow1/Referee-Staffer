@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.converter.GradeConverter
 import com.jamex.refereestaffer.model.dto.GradeDto
 import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.exception.GradeNotFoundException
+import com.jamex.refereestaffer.model.request.IDRequest
 import com.jamex.refereestaffer.repository.GradeRepository
 import com.jamex.refereestaffer.service.GradeService
 import spock.lang.Specification
@@ -85,6 +86,22 @@ class GradeControllerSpec extends Specification {
 
         then:
         1 * gradeService.updateGrade(gradeDto)
+    }
+
+    def "should return grades by IDs"() {
+        given:
+        def idsList = [123l, 555l]
+        def request = [getIds: { idsList }] as IDRequest
+        def grades = [[] as Grade, [] as Grade]
+        def gradesDtos = [GradeDto.builder().build(), GradeDto.builder().build()]
+
+        when:
+        def result = gradeController.getGradesByIds(request)
+
+        then:
+        1 * gradeRepository.findAllById(idsList) >> grades
+        1 * gradeConverter.convertFromEntities(grades) >> gradesDtos
+        result == gradesDtos
     }
 
     def "should delete all grades"() {

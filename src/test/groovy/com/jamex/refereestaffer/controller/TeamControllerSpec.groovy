@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.converter.TeamConverter
 import com.jamex.refereestaffer.model.dto.TeamDto
 import com.jamex.refereestaffer.model.entity.Team
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException
+import com.jamex.refereestaffer.model.request.IDRequest
 import com.jamex.refereestaffer.repository.TeamRepository
 import com.jamex.refereestaffer.service.TeamService
 import spock.lang.Specification
@@ -88,6 +89,22 @@ class TeamControllerSpec extends Specification {
         then:
         1 * teamConverter.convertFromDto(teamDto) >> team
         1 * teamRepository.save(team)
+    }
+
+    def "should return teams by ids"() {
+        given:
+        def idsList = [23l, 55l]
+        def request = [getIds: { idsList }] as IDRequest
+        def teams = [[] as Team, [] as Team]
+        def teamsDtos = [TeamDto.builder().build(), TeamDto.builder().build()]
+
+        when:
+        def result = teamController.getTeamsByIds(request)
+
+        then:
+        1 * teamRepository.findAllById(idsList) >> teams
+        1 * teamConverter.convertFromEntities(teams) >> teamsDtos
+        result == teamsDtos
     }
 
     def "should return standings"() {

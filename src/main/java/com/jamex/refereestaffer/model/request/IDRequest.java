@@ -5,6 +5,6 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public final class IDRequest {
+public class IDRequest {
     private List<Long> ids;
 }

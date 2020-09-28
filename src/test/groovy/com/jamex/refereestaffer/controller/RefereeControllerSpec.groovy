@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.converter.RefereeConverter
 import com.jamex.refereestaffer.model.dto.RefereeDto
 import com.jamex.refereestaffer.model.entity.Referee
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
+import com.jamex.refereestaffer.model.request.IDRequest
 import com.jamex.refereestaffer.repository.RefereeRepository
 import spock.lang.Specification
 import spock.lang.Subject
@@ -86,6 +87,22 @@ class RefereeControllerSpec extends Specification {
         then:
         1 * refereeConverter.convertFromDto(refereeDto) >> referee
         1 * refereeRepository.save(referee)
+    }
+
+    def "should return referees by ids"() {
+        given:
+        def idsList = [223l, 554l]
+        def request = [getIds: { idsList }] as IDRequest
+        def referees = [[] as Referee, [] as Referee]
+        def refereesDtos = [RefereeDto.builder().build(), RefereeDto.builder().build()]
+
+        when:
+        def result = refereeController.getRefereesByIds(request)
+
+        then:
+        1 * refereeRepository.findAllById(idsList) >> referees
+        1 * refereeConverter.convertFromEntities(referees) >> refereesDtos
+        result == refereesDtos
     }
 
     def "should delete all"() {
