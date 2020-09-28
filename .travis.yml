@@ -1,7 +1,2 @@
 language: java
 jdk: oraclejdk15
-
-before_install:
-  - pip install --user codecov
-after_success:
-  - bash <(curl -s https://codecov.io/bash) -t "b024e689-71b2-4617-8328-dfa1d5efb0b4"
