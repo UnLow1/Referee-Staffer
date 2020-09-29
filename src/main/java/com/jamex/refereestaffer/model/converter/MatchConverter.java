@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
+import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
@@ -41,8 +42,10 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
 
     @Override
     public Match convertFromDto(MatchDto dto) {
-        var homeTeam = teamRepository.findById(dto.getHomeTeamId());
-        var awayTeam = teamRepository.findById(dto.getAwayTeamId());
+        var homeTeam = teamRepository.findById(dto.getHomeTeamId())
+                .orElseThrow(() -> new TeamNotFoundException(dto.getHomeTeamId()));
+        var awayTeam = teamRepository.findById(dto.getAwayTeamId())
+                .orElseThrow(() -> new TeamNotFoundException(dto.getAwayTeamId()));
         var referee = Optional.ofNullable(dto.getRefereeId())
                 .flatMap(refereeRepository::findById);
         var grade = Optional.ofNullable(dto.getGradeId())
@@ -51,8 +54,8 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
         return Match.builder()
                 .id(dto.getId())
                 .queue(dto.getQueue())
-                .home(homeTeam.orElse(null))
-                .away(awayTeam.orElse(null))
+                .home(homeTeam)
+                .away(awayTeam)
                 .referee(referee.orElse(null))
                 .grade(grade.orElse(null))
                 .homeScore(dto.getHomeScore())
