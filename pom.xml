@@ -15,7 +15,10 @@
     <description>Application for assigning football referees to matches</description>
 
     <properties>
-        <java.version>15</java.version>
+        <java.version>13</java.version>
+        <lombok.version>1.18.16</lombok.version>
+        <gmaven.plus.version>1.8.0</gmaven.plus.version>
+        <surefire.plugin.version>2.21.0</surefire.plugin.version>
     </properties>
 
     <dependencies>
@@ -42,6 +45,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -79,6 +83,30 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+            <!-- The gmavenplus plugin is used to compile Groovy code -->
+            <!-- https://github.com/groovy/GMavenPlus/wiki -->
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <version>${gmaven.plus.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compileTests</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.plugin.version}</version>
+                <configuration>
+                    <includes>
+                        <include>**/*Spec.java</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
