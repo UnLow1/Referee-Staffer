@@ -20,8 +20,8 @@ import java.util.stream.Stream;
 @Service
 public class MatchService {
 
-    private static final int POINTS_FOR_WIN_MATCH = 3;
-    private static final int POINTS_FOR_DRAW_MATCH = 1;
+    private static final short POINTS_FOR_WIN_MATCH = 3;
+    private static final short POINTS_FOR_DRAW_MATCH = 1;
 
     private final MatchRepository matchRepository;
     private final GradeRepository gradeRepository;
@@ -37,6 +37,7 @@ public class MatchService {
                 match.getAway().addPoints(POINTS_FOR_DRAW_MATCH);
             }
         }
+        // TODO extract to separate method. Maybe refactor this place
         var teams = matches.stream()
                 .flatMap(match -> Stream.of(match.getHome(), match.getAway()))
                 .distinct()
