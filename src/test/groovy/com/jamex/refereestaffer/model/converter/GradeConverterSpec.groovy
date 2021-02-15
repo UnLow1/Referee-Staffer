@@ -64,4 +64,20 @@ class GradeConverterSpec extends Specification {
         result.value == gradeDto.value
         result.match == grade.match
     }
+
+    def "should convert from dto to Grade entity when id is null"() {
+        given:
+        def gradeDto = GradeDto.builder()
+                .value(8.1 as double)
+                .build()
+
+        when:
+        def result = gradeConverter.convertFromDto(gradeDto)
+
+        then:
+        0 * gradeRepository.findById(gradeDto.id)
+        result.value == gradeDto.value
+        result.id == null
+        result.match == null
+    }
 }

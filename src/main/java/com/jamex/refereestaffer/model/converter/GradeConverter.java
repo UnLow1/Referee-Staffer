@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.model.converter;
 
 import com.jamex.refereestaffer.model.dto.GradeDto;
 import com.jamex.refereestaffer.model.entity.Grade;
+import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,12 @@ public class GradeConverter implements BaseConverter<Grade, GradeDto> {
 
     @Override
     public Grade convertFromDto(GradeDto dto) {
-        var match = gradeRepository.findById(dto.getId())
-                .map(Grade::getMatch)
-                .orElseThrow(() -> new GradeNotFoundException(dto.getId()));
+        Match match = null;
+        if (dto.getId() != null) {
+            match = gradeRepository.findById(dto.getId())
+                    .map(Grade::getMatch)
+                    .orElseThrow(() -> new GradeNotFoundException(dto.getId()));
+        }
         return Grade.builder()
                 .id(dto.getId())
                 .value(dto.getValue())

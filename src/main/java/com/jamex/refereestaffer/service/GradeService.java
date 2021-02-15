@@ -18,7 +18,6 @@ public class GradeService {
 
     public void addGrade(GradeDto gradeDto, Long matchId) {
         var match = matchRepository.findById(matchId).orElseThrow(() -> new MatchNotFoundException(matchId));
-        // TODO exception while editing match (also give possibility to set decimal part)
         var grade = gradeConverter.convertFromDto(gradeDto);
         grade.setMatch(match);
         gradeRepository.save(grade);
