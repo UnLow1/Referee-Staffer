@@ -20,4 +20,8 @@ class ImporterServiceSpec extends Specification {
     def setup() {
         importerService = new ImporterService(teamRepository, refereeRepository, matchRepository, gradeRepository)
     }
+
+    def "should import data from file"() {
+
+    }
 }
