@@ -20,7 +20,6 @@
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
         <groovy.version>3.0.7</groovy.version>
         <spock.version>2.0-M3-groovy-3.0</spock.version>
-        <cobertuda.version>2.7</cobertuda.version>
     </properties>
 
     <dependencies>
@@ -113,19 +112,6 @@
                     <includes>
                         <include>**/*Spec.java</include>
                     </includes>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>${cobertuda.version}</version>
-                <configuration>
-                    <formats>
-                        <format>html</format>
-                        <format>xml</format>
-                    </formats>
-                    <check />
                 </configuration>
             </plugin>
         </plugins>
