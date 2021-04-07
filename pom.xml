@@ -14,8 +14,8 @@
     <description>Application for assigning football referees to matches</description>
 
     <properties>
-        <java.version>15</java.version>
-        <lombok.version>1.18.18</lombok.version>
+        <java.version>16</java.version>
+        <lombok.version>1.18.20</lombok.version>
         <gmaven.plus.version>1.11.0</gmaven.plus.version>
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
         <groovy.version>3.0.7</groovy.version>

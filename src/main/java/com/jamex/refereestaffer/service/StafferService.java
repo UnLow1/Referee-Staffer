@@ -41,6 +41,7 @@ public class StafferService {
         return matchConverter.convertFromEntities(sortedMatchesInQueue);
     }
 
+    // TODO move to MatchService
     private List<Match> getMatches(Short queue) {
         var allMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         matchService.calculatePointsForTeams(allMatches);
@@ -133,6 +134,7 @@ public class StafferService {
                 awayTeamRefereedMatchesMultiplier.getValue() * numberOfAwayTeamRefereedMatches;
     }
 
+    // TODO move it to RefereeService
     private List<Referee> getReferees(Short queue) {
         // TODO improve filtering SC referees
         var referees = refereeRepository.findAllWithNoMatchInQueue(queue).stream()
