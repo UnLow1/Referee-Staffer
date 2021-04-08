@@ -19,7 +19,7 @@
         <gmaven.plus.version>1.11.0</gmaven.plus.version>
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
         <groovy.version>3.0.7</groovy.version>
-        <spock.version>2.0-M3-groovy-3.0</spock.version>
+        <spock.version>2.0-M5-groovy-3.0</spock.version>
     </properties>
 
     <dependencies>
