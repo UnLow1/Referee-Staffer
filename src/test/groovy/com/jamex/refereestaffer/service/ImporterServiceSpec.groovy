@@ -26,7 +26,7 @@ class ImporterServiceSpec extends Specification {
     }
 
     // TODO create separate file for this test
-    // TODO add tests for exceptions
+    // TODO add tests for exceptions (TeamNotFoundException, RefereeNotFoundException)
     def "should import data from file"() {
         given:
         def file = new File("data/import data file.csv")

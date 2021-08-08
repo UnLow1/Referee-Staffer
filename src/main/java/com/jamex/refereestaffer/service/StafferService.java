@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.MatchDto;
+import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
@@ -11,7 +12,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -64,11 +70,11 @@ public class StafferService {
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam) {
-        var averageGradeMultiplier = configurationRepository.findByName("average grade multiplier");
-        var experienceMultiplier = configurationRepository.findByName("experience multiplier");
-        var numberOfMatchesMultiplier = configurationRepository.findByName("number of matches multiplier");
-        var homeTeamRefereedMatchesMultiplier = configurationRepository.findByName("home team refereed matches multiplier");
-        var awayTeamRefereedMatchesMultiplier = configurationRepository.findByName("away team refereed matches multiplier");
+        var averageGradeMultiplier = configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER.name());
+        var experienceMultiplier = configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER.name());
+        var numberOfMatchesMultiplier = configurationRepository.findByName(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER.name());
+        var homeTeamRefereedMatchesMultiplier = configurationRepository.findByName(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER.name());
+        var awayTeamRefereedMatchesMultiplier = configurationRepository.findByName(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER.name());
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 

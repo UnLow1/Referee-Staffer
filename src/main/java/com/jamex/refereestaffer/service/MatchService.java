@@ -1,5 +1,6 @@
 package com.jamex.refereestaffer.service;
 
+import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
@@ -22,8 +23,8 @@ import java.util.stream.Stream;
 @Service
 public class MatchService {
 
-    private static final short POINTS_FOR_WIN_MATCH = 3;
-    private static final short POINTS_FOR_DRAW_MATCH = 1;
+    static final short POINTS_FOR_WIN_MATCH = 3;
+    static final short POINTS_FOR_DRAW_MATCH = 1;
 
     private final MatchRepository matchRepository;
     private final GradeRepository gradeRepository;
@@ -75,8 +76,8 @@ public class MatchService {
     }
 
     private double countHardnessLvl(Match match) {
-        var matchHardnessLvlMultiplier = configurationRepository.findByName("match hardness level multiplier");
-        var matchHardnessIncrementer = configurationRepository.findByName("match hardness incrementer");
+        var matchHardnessLvlMultiplier = configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MULTIPLIER.name());
+        var matchHardnessIncrementer = configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_INCREMENTER.name());
         var homeTeam = match.getHome();
         var awayTeam = match.getAway();
 
@@ -93,18 +94,18 @@ public class MatchService {
 
     private double calculateHardnessLvlForDerby(Team homeTeam, Team awayTeam) {
         if (homeTeam.getCity() != null && homeTeam.getCity().equals(awayTeam.getCity()))
-            return configurationRepository.findByName("increment hardness level when same city").getValue();
+            return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_SAME_CITY_INCREMENTER.name()).getValue();
         return 0;
     }
 
     private double calculateHardnessLvlForEdgeMatch(Team homeTeam, Team awayTeam) {
-        var numberOfTeamsOnEdgeConfig = configurationRepository.findByName("number of teams on edge");
+        var numberOfTeamsOnEdgeConfig = configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS.name());
         var numberOfTeamsOnEdge = numberOfTeamsOnEdgeConfig.getValue().longValue();
         var numberOfTeams = teamRepository.findAll().size();
         if (homeTeam.getPlace() <= numberOfTeamsOnEdge && awayTeam.getPlace() <= numberOfTeamsOnEdge)
-            return configurationRepository.findByName("increment hardness when match on top").getValue();
+            return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_TOP_INCREMENTER.name()).getValue();
         else if (homeTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge && awayTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge)
-            return configurationRepository.findByName("increment hardness when match on bottom").getValue();
+            return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_BOTTOM_INCREMENTER.name()).getValue();
         return 0;
     }
 }

@@ -71,9 +71,11 @@ public class ImporterService {
         for (var line : splittedLines) {
             var queue = Short.parseShort(line[0]);
             var homeTeamName = line[1];
-            var homeTeam = teamRepository.findByName(homeTeamName).orElseThrow(() -> new TeamNotFoundException(homeTeamName));
+            var homeTeam = teamRepository.findByName(homeTeamName)
+                    .orElseThrow(() -> new TeamNotFoundException(homeTeamName));
             var awayTeamName = line[2];
-            var awayTeam = teamRepository.findByName(awayTeamName).orElseThrow(() -> new TeamNotFoundException(awayTeamName));
+            var awayTeam = teamRepository.findByName(awayTeamName)
+                    .orElseThrow(() -> new TeamNotFoundException(awayTeamName));
             Referee referee = null;
             Short homeTeamScore = null;
             Short awayTeamScore = null;

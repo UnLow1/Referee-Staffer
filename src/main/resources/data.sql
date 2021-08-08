@@ -1,12 +1,12 @@
 INSERT INTO config (id, name, value)
-VALUES (1, 'average grade multiplier', 50.0),
-       (2, 'experience multiplier', 0.01),
-       (3, 'number of matches multiplier', 3.0),
-       (4, 'home team refereed matches multiplier', 1.3),
-       (5, 'away team refereed matches multiplier', 1.3),
-       (6, 'match hardness level multiplier', 1.0),
-       (7, 'increment hardness level when same city', 10.0),
-       (8, 'increment hardness when match on top', 7.0),
-       (9, 'increment hardness when match on bottom', 5.0),
-       (10, 'number of teams on edge', 3.0),
-       (11, 'match hardness incrementer', 100.0);
+VALUES (1, 'AVERAGE_GRADE_MULTIPLIER', 50.0),
+       (2, 'EXPERIENCE_MULTIPLIER', 0.01),
+       (3, 'NUMBER_OF_MATCHES_MULTIPLIER', 3.0),
+       (4, 'HOME_TEAM_REFEREED_MULTIPLIER', 1.3),
+       (5, 'AWAY_TEAM_REFEREED_MULTIPLIER', 1.3),
+       (6, 'HARDNESS_LEVEL_MULTIPLIER', 1.0),
+       (7, 'HARDNESS_LEVEL_SAME_CITY_INCREMENTER', 10.0),
+       (8, 'HARDNESS_LEVEL_MATCH_ON_TOP_INCREMENTER', 7.0),
+       (9, 'HARDNESS_LEVEL_MATCH_ON_BOTTOM_INCREMENTER', 5.0),
+       (10, 'NUMBER_OF_EDGE_TEAMS', 3.0),
+       (11, 'HARDNESS_LEVEL_INCREMENTER', 100.0);

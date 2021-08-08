@@ -16,13 +16,14 @@ public class Config {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String name;
+    private ConfigName name;
 
     @Column(nullable = false)
     private Double value;
 
-    public Config(String name, Double value) {
+    public Config(ConfigName name, Double value) {
         this.name = name;
         this.value = value;
     }
