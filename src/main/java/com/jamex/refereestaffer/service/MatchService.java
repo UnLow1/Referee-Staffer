@@ -3,8 +3,10 @@ package com.jamex.refereestaffer.service;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
+import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.repository.TeamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ public class MatchService {
 
     private final MatchRepository matchRepository;
     private final GradeRepository gradeRepository;
+    private final ConfigurationRepository configurationRepository;
+    private final TeamRepository teamRepository;
 
     public void calculatePointsForTeams(List<Match> matches) {
         for (var match : matches) {
@@ -56,5 +60,51 @@ public class MatchService {
             gradeRepository.delete(match.getGrade());
         }
         matchRepository.delete(match);
+    }
+
+    public List<Match> getMatchesInQueue(Short queue) {
+        var allMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
+        calculatePointsForTeams(allMatches);
+
+        var matchesToAssign = matchRepository.findAllByQueueAndRefereeIsNull(queue);
+
+        return matchesToAssign.stream()
+                .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
+                .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
+                .collect(Collectors.toList());
+    }
+
+    private double countHardnessLvl(Match match) {
+        var matchHardnessLvlMultiplier = configurationRepository.findByName("match hardness level multiplier");
+        var matchHardnessIncrementer = configurationRepository.findByName("match hardness incrementer");
+        var homeTeam = match.getHome();
+        var awayTeam = match.getAway();
+
+        var pointDifference = Math.abs(homeTeam.getPoints() - awayTeam.getPoints());
+
+        var hardnessLvl = matchHardnessIncrementer.getValue() - pointDifference;
+        hardnessLvl *= matchHardnessLvlMultiplier.getValue();
+
+        hardnessLvl += calculateHardnessLvlForDerby(homeTeam, awayTeam);
+        hardnessLvl += calculateHardnessLvlForEdgeMatch(homeTeam, awayTeam);
+
+        return hardnessLvl;
+    }
+
+    private double calculateHardnessLvlForDerby(Team homeTeam, Team awayTeam) {
+        if (homeTeam.getCity() != null && homeTeam.getCity().equals(awayTeam.getCity()))
+            return configurationRepository.findByName("increment hardness level when same city").getValue();
+        return 0;
+    }
+
+    private double calculateHardnessLvlForEdgeMatch(Team homeTeam, Team awayTeam) {
+        var numberOfTeamsOnEdgeConfig = configurationRepository.findByName("number of teams on edge");
+        var numberOfTeamsOnEdge = numberOfTeamsOnEdgeConfig.getValue().longValue();
+        var numberOfTeams = teamRepository.findAll().size();
+        if (homeTeam.getPlace() <= numberOfTeamsOnEdge && awayTeam.getPlace() <= numberOfTeamsOnEdge)
+            return configurationRepository.findByName("increment hardness when match on top").getValue();
+        else if (homeTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge && awayTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge)
+            return configurationRepository.findByName("increment hardness when match on bottom").getValue();
+        return 0;
     }
 }

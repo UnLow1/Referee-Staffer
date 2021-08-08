@@ -4,8 +4,10 @@ import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.entity.Team
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException
+import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.GradeRepository
 import com.jamex.refereestaffer.repository.MatchRepository
+import com.jamex.refereestaffer.repository.TeamRepository
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -16,9 +18,11 @@ class MatchServiceSpec extends Specification {
 
     MatchRepository matchRepository = Mock()
     GradeRepository gradeRepository = Mock()
+    ConfigurationRepository configurationRepository = Mock()
+    TeamRepository teamRepository = Mock()
 
     def setup() {
-        matchService = new MatchService(matchRepository, gradeRepository)
+        matchService = new MatchService(matchRepository, gradeRepository, configurationRepository, teamRepository)
     }
 
     def "should throw MatchNotFoundException when match has not been found"() {

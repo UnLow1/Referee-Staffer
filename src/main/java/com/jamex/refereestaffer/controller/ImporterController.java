@@ -22,7 +22,6 @@ public class ImporterController {
     public ImportResponse importData(@RequestParam("file") MultipartFile file,
                                      @RequestParam("numberOfQueuesToImport") Short numberOfQueuesToImport) {
         log.info(String.format("Importing data from file \"%s\"", file.getOriginalFilename()));
-        // TODO numberOfQueuesToImport - only for testing purpose, should be removed later
         return importerService.importData(file, numberOfQueuesToImport);
     }
 }
