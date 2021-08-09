@@ -34,7 +34,7 @@ public class StafferService {
 
     public Collection<MatchDto> staffReferees(Short queue) {
         var referees = refereeService.getAvailableRefereesForQueue(queue);
-        var sortedMatchesInQueue = matchService.getMatchesInQueue(queue);
+        var sortedMatchesInQueue = matchService.getMatchesToAssignInQueue(queue);
 
         assignRefereesToMatches(referees, sortedMatchesInQueue);
 
@@ -47,7 +47,7 @@ public class StafferService {
 
             var availableReferees = referees.stream()
                     .filter(ref -> !ref.isBusy())
-                    .collect(Collectors.toList());
+                    .toList();
 
             for (var referee : availableReferees) {
                 var potentialLvl = countRefereePotentialLvl(referee, match.getHome(), match.getAway());

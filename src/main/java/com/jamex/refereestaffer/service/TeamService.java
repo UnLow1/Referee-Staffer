@@ -33,7 +33,7 @@ public class TeamService {
 
         var teamIds = teams.stream()
                 .map(Team::getId)
-                .collect(Collectors.toList());
+                .toList();
         List<Team> teamsWithoutMatches;
         // TODO probably this if could be removed
         if (teamIds.isEmpty())

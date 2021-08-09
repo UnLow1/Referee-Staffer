@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -25,11 +24,11 @@ public class RefereeService {
     private final MatchRepository matchRepository;
 
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
-        // TODO improve filtering SC referees
         var referees = refereeRepository.findAllWithNoMatchInQueue(queue).stream()
+                // filtering out "SC" referees is only for test data which I have
                 .filter(referee -> !referee.getFirstName().equals("S"))
                 .filter(referee -> !referee.getLastName().equals("C"))
-                .collect(Collectors.toList());
+                .toList();
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
 
@@ -47,7 +46,7 @@ public class RefereeService {
         var matchesWithGrade = matchesForReferee.stream()
                 .map(Match::getGrade)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
         var refereeGrades = matchesWithGrade.stream()
                 .map(Grade::getValue)
                 .reduce(0.0, Double::sum);

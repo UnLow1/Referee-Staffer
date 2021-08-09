@@ -47,7 +47,7 @@ public class MatchService {
                 .flatMap(match -> Stream.of(match.getHome(), match.getAway()))
                 .distinct()
                 .sorted(Comparator.comparingInt(Team::getPoints).reversed())
-                .collect(Collectors.toList());
+                .toList();
 
         IntStream.range(0, teams.size())
                 .forEach(i -> teams.get(i).setPlace((short) (i + 1)));
@@ -63,16 +63,16 @@ public class MatchService {
         matchRepository.delete(match);
     }
 
-    public List<Match> getMatchesInQueue(Short queue) {
-        var allMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
-        calculatePointsForTeams(allMatches);
+    public List<Match> getMatchesToAssignInQueue(Short queue) {
+        var allFinishedMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
+        calculatePointsForTeams(allFinishedMatches);
 
         var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
 
         return matchesToAssignInQueue.stream()
                 .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private double countHardnessLvl(Match match) {

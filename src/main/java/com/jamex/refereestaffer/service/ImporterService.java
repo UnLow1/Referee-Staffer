@@ -66,7 +66,7 @@ public class ImporterService {
     private void createMatchesAndGrades(List<String> lines, Short numberOfQueuesToImport) {
         var splittedLines = lines.stream()
                 .map(line -> line.split(";"))
-                .collect(Collectors.toList());
+                .toList();
 
         for (var line : splittedLines) {
             var queue = Short.parseShort(line[0]);
@@ -110,7 +110,7 @@ public class ImporterService {
                 .distinct()
 //                .filter(referee -> !referee.isBlank())
                 .map(refereeName -> new Referee(refereeName.split(" ")[0], refereeName.split(" ")[1]))
-                .collect(Collectors.toList());
+                .toList();
 
         refereeRepository.saveAll(referees);
         log.info(CREATED + referees.size() + " referees");
@@ -129,7 +129,7 @@ public class ImporterService {
 
         var teams = teamNames.stream()
                 .map(Team::new)
-                .collect(Collectors.toList());
+                .toList();
 
         teamRepository.saveAll(teams);
         log.info(CREATED + teams.size() + " teams");

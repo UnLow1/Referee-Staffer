@@ -59,7 +59,7 @@ public class MatchController {
     public void updateMatches(@RequestBody List<MatchDto> matchesDtos) {
         var matchIds = matchesDtos.stream()
                 .map(MatchDto::getId)
-                .collect(Collectors.toList());
+                .toList();
         log.info("Updating matches with ids: " + matchIds);
         var matches = matchConverter.convertFromDtos(matchesDtos);
         matchRepository.saveAll(matches);
