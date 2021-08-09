@@ -70,11 +70,11 @@ public class StafferService {
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam) {
-        var averageGradeMultiplier = configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER.name());
-        var experienceMultiplier = configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER.name());
-        var numberOfMatchesMultiplier = configurationRepository.findByName(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER.name());
-        var homeTeamRefereedMatchesMultiplier = configurationRepository.findByName(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER.name());
-        var awayTeamRefereedMatchesMultiplier = configurationRepository.findByName(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER.name());
+        var averageGradeMultiplier = configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER);
+        var experienceMultiplier = configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER);
+        var numberOfMatchesMultiplier = configurationRepository.findByName(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER);
+        var homeTeamRefereedMatchesMultiplier = configurationRepository.findByName(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER);
+        var awayTeamRefereedMatchesMultiplier = configurationRepository.findByName(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER);
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 
