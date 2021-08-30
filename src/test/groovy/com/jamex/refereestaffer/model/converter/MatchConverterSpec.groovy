@@ -9,10 +9,8 @@ import com.jamex.refereestaffer.model.exception.TeamNotFoundException
 import com.jamex.refereestaffer.repository.GradeRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.repository.TeamRepository
-import spock.lang.Ignore
 import spock.lang.Specification
 import spock.lang.Subject
-import spock.lang.Unroll
 
 class MatchConverterSpec extends Specification {
 
@@ -27,7 +25,6 @@ class MatchConverterSpec extends Specification {
         matchConverter = new MatchConverter(teamRepository, refereeRepository, gradeRepository)
     }
 
-    @Unroll
     def "should convert from Match entity to dto"() {
         given:
         def homeTeam = [getId: 33l] as Team
@@ -60,7 +57,6 @@ class MatchConverterSpec extends Specification {
         [getId: { 11l }] as Referee | [getId: { 22l }] as Grade
     }
 
-    @Unroll
     def "should throw TeamNotFoundException when home or away team has not been found"() {
         given:
         def correctTeamId = 1l
