@@ -101,7 +101,7 @@ public class MatchService {
     private double calculateHardnessLvlForEdgeMatch(Team homeTeam, Team awayTeam) {
         var numberOfTeamsOnEdgeConfig = configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS);
         var numberOfTeamsOnEdge = numberOfTeamsOnEdgeConfig.getValue().longValue();
-        var numberOfTeams = teamRepository.findAll().size();
+        var numberOfTeams = teamRepository.count();
         if (homeTeam.getPlace() <= numberOfTeamsOnEdge && awayTeam.getPlace() <= numberOfTeamsOnEdge)
             return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_TOP_INCREMENTER).getValue();
         else if (homeTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge && awayTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge)
