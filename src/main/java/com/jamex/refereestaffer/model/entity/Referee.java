@@ -36,11 +36,11 @@ public class Referee {
 
     @Transient
     @Setter
-    private double averageGrade;
+    private Double averageGrade;
 
     @Transient
     @Setter
-    private short numberOfMatchesInRound;
+    private Short numberOfMatchesInRound;
 
     @Transient
     @Setter

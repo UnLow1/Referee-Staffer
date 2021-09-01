@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,7 +33,7 @@ public class StafferService {
     private final MatchService matchService;
     private final RefereeService refereeService;
 
-    public Collection<MatchDto> staffReferees(Short queue) {
+    public Collection<MatchDto> staffReferees(short queue) {
         var referees = refereeService.getAvailableRefereesForQueue(queue);
         var sortedMatchesInQueue = matchService.getMatchesToAssignInQueue(queue);
 
@@ -78,7 +79,8 @@ public class StafferService {
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 
-        var averageGrade = referee.getAverageGrade() != 0 ? referee.getAverageGrade() : DEFAULT_AVERAGE_GRADE;
+        var averageGrade = Optional.ofNullable(referee.getAverageGrade())
+                .orElse(DEFAULT_AVERAGE_GRADE);
 
         return averageGradeMultiplier.getValue() * averageGrade +
                 experienceMultiplier.getValue() * referee.getExperience() -

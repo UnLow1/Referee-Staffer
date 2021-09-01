@@ -17,7 +17,7 @@ public class StafferController {
     private final StafferService stafferService;
 
     @GetMapping("/{queue}")
-    public Collection<MatchDto> staffReferees(@PathVariable Short queue) {
+    public Collection<MatchDto> staffReferees(@PathVariable short queue) {
         log.info("Generating cast for queue " + queue);
         return stafferService.staffReferees(queue);
     }
