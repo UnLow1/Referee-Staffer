@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.5.3</version>
+        <version>2.6.0</version>
     </parent>
     <groupId>com.jamex</groupId>
     <artifactId>referee-staffer</artifactId>
@@ -14,12 +14,12 @@
     <description>Application for assigning football referees to matches</description>
 
     <properties>
-        <java.version>16</java.version>
-        <lombok.version>1.18.20</lombok.version>
+        <java.version>17</java.version>
+        <lombok.version>1.18.22</lombok.version>
         <gmaven.plus.version>1.11.0</gmaven.plus.version>
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
-        <groovy.version>3.0.8</groovy.version>
-        <spock.version>2.0-groovy-3.0</spock.version>
+        <groovy.version>3.0.9</groovy.version>
+        <spock.version>2.1-M2-groovy-3.0</spock.version>
     </properties>
 
     <dependencies>
@@ -70,7 +70,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
-            <version>RELEASE</version>
             <scope>compile</scope>
         </dependency>
 
