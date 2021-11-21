@@ -14,12 +14,12 @@
         <td>{{ team.name }}</td>
         <td>{{ team.city }}</td>
         <td>
-          <button class="btn btn-info mx-3" (click)="editTeam(team)">Edit</button>
-          <button class="btn btn-info" (click)="deleteTeam(team)">Delete</button>
+          <button class="btn btn-secondary mx-3" (click)="editTeam(team)">Edit</button>
+          <button class="btn btn-danger" (click)="deleteTeam(team)">Delete</button>
         </td>
       </tr>
       </tbody>
     </table>
-    <a routerLink="/addTeam" class="btn btn-info">Add new team</a>
+    <a routerLink="/addTeam" class="btn btn-primary">Add new team</a>
   </div>
 </div>

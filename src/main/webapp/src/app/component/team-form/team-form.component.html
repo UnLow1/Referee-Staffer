@@ -23,7 +23,7 @@
                required #city="ngModel">
       </div>
       <div [hidden]="city.valid || city.untouched" class="alert alert-danger">City of team is required</div>
-      <button type="submit" [disabled]="!teamForm.form.valid" class="btn btn-info">Submit</button>
+      <button type="submit" [disabled]="!teamForm.form.valid" class="btn btn-success">Submit</button>
     </form>
   </div>
 </div>

@@ -26,7 +26,7 @@ export class AppComponent {
       this.matchService.deleteAll().subscribe(() => {
         this.refereeService.deleteAll().subscribe()
         this.teamService.deleteAll().subscribe()
-        this.dialog.open(InfoModalComponent, {data: {header: "Success", message: "Data has been cleared successfully"}})
+        this.dialog.open(InfoModalComponent, {data: {header: "Success", message: "Data has been cleared successfully!"}})
       }))
   }
 }

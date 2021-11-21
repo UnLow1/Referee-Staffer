@@ -18,12 +18,12 @@
         <td><a href="mailto:{{ referee.email }}">{{ referee.email }}</a></td>
         <td>{{ referee.experience }}</td>
         <td>
-          <button class="btn btn-info mx-3" (click)="editReferee(referee)">Edit</button>
-          <button class="btn btn-info" (click)="deleteReferee(referee)">Delete</button>
+          <button class="btn btn-secondary mx-3" (click)="editReferee(referee)">Edit</button>
+          <button class="btn btn-danger" (click)="deleteReferee(referee)">Delete</button>
         </td>
       </tr>
       </tbody>
     </table>
-    <a routerLink="/addReferee" class="btn btn-info">Add new referee</a>
+    <a routerLink="/addReferee" class="btn btn-primary">Add new referee</a>
   </div>
 </div>
