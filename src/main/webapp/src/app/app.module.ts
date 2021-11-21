@@ -19,6 +19,9 @@ import {ImporterComponent} from './component/importer/importer.component';
 import {StandingsComponent} from './component/standings/standings.component';
 import {ExcludeValuePipe} from './pipe/exclude-value.pipe';
 import {ConfigurationComponent} from './component/configuration/configuration.component';
+import {MatDialogModule} from "@angular/material/dialog";
+import {InfoModalComponent} from './component/modals/info-modal/info-modal.component';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
 @NgModule({
   declarations: [
@@ -34,13 +37,16 @@ import {ConfigurationComponent} from './component/configuration/configuration.co
     ImporterComponent,
     StandingsComponent,
     ExcludeValuePipe,
-    ConfigurationComponent
+    ConfigurationComponent,
+    InfoModalComponent
   ],
   imports: [
     BrowserModule,
     RouterModule,
     AppRoutingModule,
     HttpClientModule,
+    MatDialogModule,
+    BrowserAnimationsModule,
     FormsModule
   ],
   providers: [RefereeService],
