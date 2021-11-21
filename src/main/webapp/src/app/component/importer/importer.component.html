@@ -2,17 +2,21 @@
   <h2 class="text-center my-3">Import file with data</h2>
   <div class="card-body">
     <div class="form-group">
-      <label for="file">Choose File</label>
-      <input type="file"
-             id="file"
-             (change)="handleFileInput($event)">
-      <label for="numberOfQueuesToImportInput">Number of queues to import</label>
-      <input type="number" [(ngModel)]="numberOfQueuesToImport"
-             class="form-control"
-             id="numberOfQueuesToImportInput"
-             placeholder="Enter number of queues to import"
-             name="Number of queues to import"/>
-      <button (click)="uploadFileToActivity()" class="btn-large btn-submit">Save</button>
+      <div>
+        <label for="file-upload" class="btn btn-primary">
+          <em class="fa fa-cloud-upload"></em> Upload file
+        </label>
+        <input type="file" id="file-upload" (change)="handleFileInput($event)"/> {{fileToUpload.name}}
+      </div>
+      <div class="my-2">
+        <label for="numberOfQueuesToImportInput">Number of queues to import</label>
+        <input type="number" [(ngModel)]="numberOfQueuesToImport"
+               class="form-control"
+               id="numberOfQueuesToImportInput"
+               placeholder="Enter number of queues to import"
+               name="Number of queues to import"/>
+      </div>
+      <button (click)="uploadFileToActivity()" class="btn btn-success">Save</button>
     </div>
     <div *ngIf="importResult">
       <h4>Imported data:</h4>
