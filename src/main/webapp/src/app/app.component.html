@@ -1,42 +1,38 @@
 <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card bg-dark my-5">
-        <div class="card-body">
-          <h2 class="card-title text-center text-white py-3">{{ title }}</h2>
-          <ul class="text-center list-inline py-3">
-            <li class="list-inline-item">
-              <a routerLink="/referees" class="btn btn-info">List of referees</a>
-            </li>
-            <li class="list-inline-item">
-              <a routerLink="/matches" class="btn btn-info">List of matches</a>
-            </li>
-            <li class="list-inline-item">
-              <a routerLink="/teams" class="btn btn-info">List of teams</a>
-            </li>
-            <li class="list-inline-item">
-              <a routerLink="/standings" class="btn btn-info">Standings</a>
-            </li>
-            <li class="list-inline-item">
-              <a routerLink="/grades" class="btn btn-info">Grades of referees</a>
-            </li>
-            <li class="list-inline-item">
-              <a routerLink="/staffer" class="btn btn-info">Staff referees</a>
-            </li>
-            <!-- TODO add this button only for dev and local -->
-            <li class="list-inline-item">
-              <a routerLink="/importer" class="btn btn-info">Import data</a>
-            </li>
-            <li class="list-inline-item">
-              <a routerLink="/configuration" class="btn btn-info">Configuration</a>
-            </li>
-            <li class="list-inline-item">
-              <a (click)="clearData()" routerLink="" class="btn btn-info">Clear data</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-      <router-outlet></router-outlet>
+  <div class="card bg-dark my-5">
+    <div class="card-body">
+      <h2 class="card-title text-center text-white py-3">{{ title }}</h2>
+      <ul class="text-center list-inline py-3">
+        <li class="list-inline-item">
+          <a routerLink="/referees" class="btn btn-info">List of referees</a>
+        </li>
+        <li class="list-inline-item">
+          <a routerLink="/matches" class="btn btn-info">List of matches</a>
+        </li>
+        <li class="list-inline-item">
+          <a routerLink="/teams" class="btn btn-info">List of teams</a>
+        </li>
+        <li class="list-inline-item">
+          <a routerLink="/standings" class="btn btn-info">Standings</a>
+        </li>
+        <li class="list-inline-item">
+          <a routerLink="/grades" class="btn btn-info">Grades of referees</a>
+        </li>
+        <li class="list-inline-item">
+          <a routerLink="/staffer" class="btn btn-info">Staff referees</a>
+        </li>
+        <!-- TODO add this button only for dev and local -->
+        <li class="list-inline-item">
+          <a routerLink="/importer" class="btn btn-info">Import data</a>
+        </li>
+        <li class="list-inline-item">
+          <a routerLink="/configuration" class="btn btn-info">Configuration</a>
+        </li>
+        <li class="list-inline-item">
+          <a (click)="clearData()" routerLink="" class="btn btn-info">Clear data</a>
+        </li>
+      </ul>
     </div>
   </div>
+  <router-outlet></router-outlet>
 </div>
