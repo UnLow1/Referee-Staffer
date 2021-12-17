@@ -12,8 +12,11 @@
         <th scope="col">Actions</th>
       </tr>
       </thead>
+      <!-- TODO https://github.com/angular/angular/issues/42490 if resolved then change asIsOrder to null -->
       <tbody *ngFor="let groupedMatch of groupedMatches | keyvalue: asIsOrder">
-      <tr><th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th></tr>
+      <tr>
+        <th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th>
+      </tr>
       <tr *ngFor="let match of groupedMatch.value">
         <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
         <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
