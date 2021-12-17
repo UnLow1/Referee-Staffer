@@ -8,6 +8,7 @@ import {Referee} from "../../model/referee";
 import {GradeService} from "../../service/grade.service";
 import {Grade} from "../../model/grade";
 import {Router} from "@angular/router";
+import _ from 'lodash';
 
 @Component({
   selector: 'app-match-list',
@@ -20,7 +21,7 @@ export class MatchListComponent implements OnInit {
               private refereeService: RefereeService, private gradeService: GradeService) {
   }
 
-  matches: Match[]
+  groupedMatches: Map<number, Array<Match>>
   teams: Team[]
   referees: Referee[]
   grades: Grade[]
@@ -31,10 +32,18 @@ export class MatchListComponent implements OnInit {
         return value !== null && value !== undefined;
       }
 
-      this.matches = matches.sort((a, b) => a.queue - b.queue)
-      let teamIds = matches.map(match => match.homeTeamId).concat(matches.map(match => match.awayTeamId)).filter((item, i, ar) => ar.indexOf(item) === i)
-      let refereeIds = matches.map(match => match.refereeId).filter(notEmpty).filter((item, i, ar) => ar.indexOf(item) === i)
-      let gradeIds = matches.map(match => match.gradeId).filter(notEmpty).filter((item, i, ar) => ar.indexOf(item) === i)
+      this.groupedMatches = _.groupBy(matches, function (match) {
+        return match.queue
+      })
+      let teamIds = matches.map(match => match.homeTeamId)
+        .concat(matches.map(match => match.awayTeamId))
+        .filter((item, i, ar) => ar.indexOf(item) === i)
+      let refereeIds = matches.map(match => match.refereeId)
+        .filter(notEmpty)
+        .filter((item, i, ar) => ar.indexOf(item) === i)
+      let gradeIds = matches.map(match => match.gradeId)
+        .filter(notEmpty)
+        .filter((item, i, ar) => ar.indexOf(item) === i)
 
       this.teamService.findByIds(teamIds).subscribe(teams => this.teams = teams)
       this.refereeService.findByIds(refereeIds).subscribe(referees => this.referees = referees)
@@ -60,6 +69,10 @@ export class MatchListComponent implements OnInit {
 
   deleteMatch(matchToDelete: Match) {
     this.matchService.delete(matchToDelete.id).subscribe(() =>
-      this.matches = this.matches.filter((match: Match) => match.id !== matchToDelete.id))
+      this.groupedMatches[matchToDelete.queue] = this.groupedMatches[matchToDelete.queue].filter((match: Match) => match.id !== matchToDelete.id))
+  }
+
+  asIsOrder(a, b) {
+    return 1;
   }
 }

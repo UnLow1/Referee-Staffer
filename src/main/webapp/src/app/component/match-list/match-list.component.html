@@ -4,7 +4,6 @@
     <table aria-describedby="header" class="table table-bordered table-striped">
       <thead class="thead-dark">
       <tr>
-        <th scope="col">Queue</th>
         <th scope="col">Home team</th>
         <th scope="col">Away name</th>
         <th scope="col">Referee</th>
@@ -13,10 +12,9 @@
         <th scope="col">Actions</th>
       </tr>
       </thead>
-      <tbody>
-      <!-- TODO create Queue as separate object to better visualization -->
-      <tr *ngFor="let match of matches">
-        <td>{{ match.queue }}</td>
+      <tbody *ngFor="let groupedMatch of groupedMatches | keyvalue: asIsOrder">
+      <tr><th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th></tr>
+      <tr *ngFor="let match of groupedMatch.value">
         <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
         <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
         <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
