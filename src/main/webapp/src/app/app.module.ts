@@ -22,6 +22,8 @@ import {ConfigurationComponent} from './component/configuration/configuration.co
 import {MatDialogModule} from "@angular/material/dialog";
 import {InfoModalComponent} from './component/modals/info-modal/info-modal.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import {HeaderComponent} from './component/common/header/header.component';
+import {FooterComponent} from './component/common/footer/footer.component';
 
 @NgModule({
   declarations: [
@@ -38,7 +40,9 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
     StandingsComponent,
     ExcludeValuePipe,
     ConfigurationComponent,
-    InfoModalComponent
+    InfoModalComponent,
+    HeaderComponent,
+    FooterComponent
   ],
   imports: [
     BrowserModule,

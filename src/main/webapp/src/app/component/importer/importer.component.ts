@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component} from '@angular/core';
 import {ImporterService} from "../../service/importer.service";
 import {ImportResponse} from "../../request/importResonse";
 
@@ -7,16 +7,13 @@ import {ImportResponse} from "../../request/importResonse";
   templateUrl: './importer.component.html',
   styleUrls: ['./importer.component.scss']
 })
-export class ImporterComponent implements OnInit {
+export class ImporterComponent {
 
   fileToUpload: File = null
   importResult: ImportResponse
   numberOfQueuesToImport: number
 
   constructor(private importerService: ImporterService) {
-  }
-
-  ngOnInit() {
   }
 
   handleFileInput(event) {
