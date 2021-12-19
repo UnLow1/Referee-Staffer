@@ -8,7 +8,7 @@ import {Component, Input} from '@angular/core';
 export class FooterComponent {
   @Input() facebookUrl: string;
   @Input() linkedInUrl: string;
-  @Input() googleUrl: string;
+  @Input() email: string;
   @Input() steamUrl: string;
   @Input() copyright: string;
 }
