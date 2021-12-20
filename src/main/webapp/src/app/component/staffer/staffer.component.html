@@ -32,8 +32,12 @@
                required #queueInput="ngModel">
       </div>
       <div [hidden]="queueInput.valid || queueInput.untouched" class="alert alert-danger">Queue is required</div>
-      <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-primary">Generate cast</button>
-      <button type="button" (click)="updateMatches()" [hidden]="!matches" class="btn btn-success float-right">Save cast</button>
+      <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-primary">
+        <em class="fa fa-cogs mr-2"></em>Generate cast
+      </button>
+      <button type="button" (click)="updateMatches()" [hidden]="!matches" class="btn btn-success float-right">
+        <em class="fa fa-check mr-2"></em>Save cast
+      </button>
     </form>
   </div>
 </div>

@@ -16,7 +16,9 @@
         </div>
         <div [hidden]="settingInput.valid" class="alert alert-danger">Setting {{setting.name}} is required</div>
       </div>
-      <button type="submit" [disabled]="!configurationForm.form.valid" class="btn btn-success">Submit</button>
+      <button type="submit" [disabled]="!configurationForm.form.valid" class="btn btn-success">
+        <em class="fa fa-check mr-2"></em>Submit
+      </button>
     </form>
   </div>
 </div>

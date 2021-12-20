@@ -24,12 +24,18 @@
         <td>{{ match.homeScore }} - {{match.awayScore}}</td>
         <td>{{ getGrade(match.gradeId)?.value }}</td>
         <td>
-          <button class="btn btn-secondary mx-3" (click)="editMatch(match)">Edit</button>
-          <button class="btn btn-danger" (click)="deleteMatch(match)">Delete</button>
+          <button class="btn btn-secondary mx-3" (click)="editMatch(match)">
+            <em class="fa fa-pencil mr-2"></em>Edit
+          </button>
+          <button class="btn btn-danger" (click)="deleteMatch(match)">
+            <em class="fa fa-trash mr-2"></em>Delete
+          </button>
         </td>
       </tr>
       </tbody>
     </table>
-    <a routerLink="/addMatch" class="btn btn-primary">Add new match</a>
+    <a routerLink="/addMatch" class="btn btn-primary">
+      <em class="fa fa-plus-circle mr-2"></em>Add new match
+    </a>
   </div>
 </div>
