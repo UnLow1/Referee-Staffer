@@ -24,6 +24,9 @@ import {InfoModalComponent} from './component/modals/info-modal/info-modal.compo
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {HeaderComponent} from './component/common/header/header.component';
 import {FooterComponent} from './component/common/footer/footer.component';
+import {EditButtonComponent} from "./component/common/button/edit-button/edit-button.component";
+import {DeleteButtonComponent} from './component/common/button/delete-button/delete-button.component';
+import {AddButtonComponent} from './component/common/button/add-button/add-button.component';
 
 @NgModule({
   declarations: [
@@ -42,7 +45,10 @@ import {FooterComponent} from './component/common/footer/footer.component';
     ConfigurationComponent,
     InfoModalComponent,
     HeaderComponent,
-    FooterComponent
+    FooterComponent,
+    EditButtonComponent,
+    DeleteButtonComponent,
+    AddButtonComponent
   ],
   imports: [
     BrowserModule,
