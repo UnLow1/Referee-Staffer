@@ -20,6 +20,6 @@ export class AppComponent {
     this.linkedInUrl = 'https://www.linkedin.com/in/adam-jamka-273289145/';
     this.email = 'mailto: adam.jamka.1995@gmail.com';
     this.steamUrl = 'https://steamcommunity.com/id/UnLow/';
-    this.copyright = '© 2021 Copyright: Jamex';
+    this.copyright = '© 2022 Copyright: Jamex';
   }
 }

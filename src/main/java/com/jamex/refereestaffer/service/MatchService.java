@@ -69,15 +69,15 @@ public class MatchService {
 
         var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
 
+        matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(countHardnessLvl(match)));
         return matchesToAssignInQueue.stream()
-                .peek(match -> match.setHardnessLvl(countHardnessLvl(match)))
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .toList();
     }
 
     private double countHardnessLvl(Match match) {
-        var matchHardnessLvlMultiplier = configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MULTIPLIER);
-        var matchHardnessIncrementer = configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_INCREMENTER);
+        var matchHardnessLvlMultiplier = configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER);
+        var matchHardnessIncrementer = configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_INCREMENTER);
         var homeTeam = match.getHome();
         var awayTeam = match.getAway();
 
@@ -94,7 +94,7 @@ public class MatchService {
 
     private double calculateHardnessLvlForDerby(Team homeTeam, Team awayTeam) {
         if (homeTeam.getCity() != null && homeTeam.getCity().equals(awayTeam.getCity()))
-            return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_SAME_CITY_INCREMENTER).getValue();
+            return configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER).getValue();
         return 0;
     }
 
@@ -103,9 +103,9 @@ public class MatchService {
         var numberOfTeamsOnEdge = numberOfTeamsOnEdgeConfig.getValue().longValue();
         var numberOfTeams = teamRepository.count();
         if (homeTeam.getPlace() <= numberOfTeamsOnEdge && awayTeam.getPlace() <= numberOfTeamsOnEdge)
-            return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_TOP_INCREMENTER).getValue();
+            return configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER).getValue();
         else if (homeTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge && awayTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge)
-            return configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_BOTTOM_INCREMENTER).getValue();
+            return configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER).getValue();
         return 0;
     }
 }

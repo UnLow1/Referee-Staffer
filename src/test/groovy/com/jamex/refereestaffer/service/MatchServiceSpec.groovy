@@ -113,12 +113,12 @@ class MatchServiceSpec extends Specification {
         result.get(0).hardnessLvl == expectedHardnessLevel
         1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
         1 * matchRepository.findAllByQueueAndRefereeIsNull(queue) >> matches
-        matches.size() * configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MULTIPLIER) >> matchHardnessLvlMultiplier
-        matches.size() * configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_INCREMENTER) >> matchHardnessIncrementer
+        matches.size() * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) >> matchHardnessLvlMultiplier
+        matches.size() * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_INCREMENTER) >> matchHardnessIncrementer
         matches.size() * configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS) >> numberOfEdgeTeams
-        (0..matches.size()) * configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_SAME_CITY_INCREMENTER) >> matchHardnessDerbyIncrementer
-        (0..matches.size()) * configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_TOP_INCREMENTER) >> matchHardnessTopIncrementer
-        (0..matches.size()) * configurationRepository.findByName(ConfigName.HARDNESS_LEVEL_MATCH_ON_BOTTOM_INCREMENTER) >> matchHardnessBottomIncrementer
+        (0..matches.size()) * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER) >> matchHardnessDerbyIncrementer
+        (0..matches.size()) * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER) >> matchHardnessTopIncrementer
+        (0..matches.size()) * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER) >> matchHardnessBottomIncrementer
         1 * teamRepository.count() >> 3
 
         where:

@@ -9,7 +9,4 @@ export class AddButtonComponent {
 
   @Input() label: string;
   @Input() routerLink: string;
-
-  constructor() {
-  }
 }
