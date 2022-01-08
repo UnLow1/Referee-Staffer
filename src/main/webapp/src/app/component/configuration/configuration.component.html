@@ -6,7 +6,8 @@
         <div class="form-group row">
           <label for="{{setting.id}}" class="col-5 col-form-label text-right">{{setting.name}}</label>
           <div class="col-2">
-            <input type=number step=any [(ngModel)]="setting.value"
+            <input type=number [(ngModel)]="setting.value"
+                   step=any
                    class="form-control"
                    id="{{setting.id}}"
                    placeholder="Enter {{setting.name}}"
