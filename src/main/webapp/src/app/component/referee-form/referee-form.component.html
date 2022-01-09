@@ -3,47 +3,52 @@
   <h2 *ngIf="editMode" class="text-center my-3">Edit referee</h2>
   <div class="card-body">
     <form (ngSubmit)="onSubmit()" #refereeForm="ngForm">
-      <div class="form-group">
-        <label for="firstName">First name(*)</label>
-        <input type="text" [(ngModel)]="referee.firstName"
-               class="form-control"
-               id="firstName"
-               name="firstName"
-               placeholder="Enter your first name"
-               required #firstName="ngModel">
+      <div class="row">
+        <div class="form-group col-4">
+          <label for="firstName">First name(*)</label>
+          <input type="text" [(ngModel)]="referee.firstName"
+                 class="form-control"
+                 id="firstName"
+                 name="firstName"
+                 placeholder="Enter your first name"
+                 required #firstName="ngModel">
+          <div [hidden]="firstName.valid || firstName.untouched" class="alert alert-danger">First name is required</div>
+        </div>
+        <div class="form-group col-4">
+          <label for="lastName">Last name(*)</label>
+          <input type="text" [(ngModel)]="referee.lastName"
+                 class="form-control"
+                 id="lastName"
+                 name="lastName"
+                 placeholder="Enter your last name"
+                 required #lastName="ngModel">
+          <div [hidden]="lastName.valid || lastName.untouched" class="alert alert-danger">Last name is required</div>
+        </div>
+        <div class="form-group col-4">
+          <label for="email">Email(*)</label>
+          <input type="email" [(ngModel)]="referee.email" email
+                 class="form-control"
+                 id="email"
+                 name="email"
+                 placeholder="Enter your email address"
+                 required #email="ngModel">
+          <div [hidden]="email.valid || email.untouched" class="alert alert-danger">Email is required</div>
+        </div>
       </div>
-      <div [hidden]="firstName.valid || firstName.untouched" class="alert alert-danger">First name is required</div>
-      <div class="form-group">
-        <label for="lastName">Last name(*)</label>
-        <input type="text" [(ngModel)]="referee.lastName"
-               class="form-control"
-               id="lastName"
-               name="lastName"
-               placeholder="Enter your last name"
-               required #lastName="ngModel">
+      <div class="row">
+        <div class="form-group col-4">
+          <label for="experience">Experience(*)</label>
+          <input type="number" [(ngModel)]="referee.experience"
+                 min="0"
+                 class="form-control"
+                 id="experience"
+                 name="experience"
+                 placeholder="Number of refereed matches"
+                 required #experience="ngModel">
+          <div [hidden]="experience.valid || experience.untouched" class="alert alert-danger">Experience is required
+          </div>
+        </div>
       </div>
-      <div [hidden]="lastName.valid || lastName.untouched" class="alert alert-danger">Last name is required</div>
-      <div class="form-group">
-        <label for="email">Email(*)</label>
-        <input type="email" [(ngModel)]="referee.email" email
-               class="form-control"
-               id="email"
-               name="email"
-               placeholder="Enter your email address"
-               required #email="ngModel">
-      </div>
-      <div [hidden]="email.valid || email.untouched" class="alert alert-danger">Email is required</div>
-      <div class="form-group">
-        <label for="experience">Experience(*)</label>
-        <input type="number" [(ngModel)]="referee.experience"
-               min="0"
-               class="form-control"
-               id="experience"
-               name="experience"
-               placeholder="Enter your experience (number of matches)"
-               required #experience="ngModel">
-      </div>
-      <div [hidden]="experience.valid || experience.untouched" class="alert alert-danger">Experience is required</div>
       <button type="submit" [disabled]="!refereeForm.form.valid" class="btn btn-success">
         <em class="fa fa-check mr-2"></em>Submit
       </button>

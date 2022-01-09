@@ -3,26 +3,28 @@
   <h2 *ngIf="editMode" class="text-center my-3">Edit team</h2>
   <div class="card-body">
     <form (ngSubmit)="onSubmit()" #teamForm="ngForm">
-      <div class="form-group">
-        <label for="name">Name(*)</label>
-        <input type="text" [(ngModel)]="team.name"
-               class="form-control"
-               id="name"
-               name="name"
-               placeholder="Enter name of team"
-               required #name="ngModel">
+      <div class="row">
+        <div class="form-group col-4">
+          <label for="name">Name(*)</label>
+          <input type="text" [(ngModel)]="team.name"
+                 class="form-control"
+                 id="name"
+                 name="name"
+                 placeholder="Enter name of team"
+                 required #name="ngModel">
+          <div [hidden]="name.valid || name.untouched" class="alert alert-danger">Name of team is required</div>
+        </div>
+        <div class="form-group col-4">
+          <label for="city">City(*)</label>
+          <input type="text" [(ngModel)]="team.city"
+                 class="form-control"
+                 id="city"
+                 name="city"
+                 placeholder="Enter city of team"
+                 required #city="ngModel">
+          <div [hidden]="city.valid || city.untouched" class="alert alert-danger">City of team is required</div>
+        </div>
       </div>
-      <div [hidden]="name.valid || name.untouched" class="alert alert-danger">Name of team is required</div>
-      <div class="form-group">
-        <label for="city">City(*)</label>
-        <input type="text" [(ngModel)]="team.city"
-               class="form-control"
-               id="city"
-               name="city"
-               placeholder="Enter city of team"
-               required #city="ngModel">
-      </div>
-      <div [hidden]="city.valid || city.untouched" class="alert alert-danger">City of team is required</div>
       <button type="submit" [disabled]="!teamForm.form.valid" class="btn btn-success">
         <em class="fa fa-check mr-2"></em>Submit
       </button>
