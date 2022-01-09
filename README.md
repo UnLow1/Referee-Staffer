@@ -11,15 +11,15 @@
 
 In all formulas
 
-<img src="https://latex.codecogs.com/svg.latex?\alpha, \beta, \gamma, \delta, \epsilon - constants" />
+<img src="https://latex.codecogs.com/svg.latex?\alpha,\beta,\gamma,\delta,\epsilon-constants" />
 
 ### Referee's potential
 
-<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q} = \alpha \frac{\sum_{j=1}^{n_{i}} G_{i}^{j}}{n_{i}} + \beta E_{i}^{q-1}" /> 
+<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q} = \alpha \frac{\sum_{j=1}^{n_{i}} G_{i}^{j}}{n_{i}} + \beta E_{i}^{q-1}" ></img>
 
 where
 
-<img src="https://latex.codecogs.com/svg.latex?0 <= {n_i} < q" /><br>
+<img src="https://latex.codecogs.com/svg.latex?0<={n_i}<q"></img><br>
 <img src="https://latex.codecogs.com/svg.latex?P_{i}^{q}\text{ - potential of referee $i$ in queue $q$}" /><br>
 <img src="https://latex.codecogs.com/svg.latex?n_{i}\text{ - number of grades from observers received by referee $i$}" /><br>
 <img src="https://latex.codecogs.com/svg.latex?G_{i}^{j}\text{ - grade $j$ of referee $i$}" /><br>
