@@ -53,11 +53,18 @@ where
 
 ## Sample screenshots
 
-* Adding data
-  ![](data/screenshots/addReferee.png)
-* Changing configuration
-  ![](data/screenshots/configuration.png)
-* List of matches
-  ![](data/screenshots/listOfMatches.png)
-* Staffer
-  ![](data/screenshots/staffer.png)
+### Adding data (referees, teams, matches)
+
+![](data/screenshots/addReferee.png)
+
+### Changing configuration
+
+![](data/screenshots/configuration.png)
+
+### List of matches
+
+![](data/screenshots/listOfMatches.png)
+
+### Staffer
+
+![](data/screenshots/staffer.png)
