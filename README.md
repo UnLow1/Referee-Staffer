@@ -15,12 +15,12 @@ In all formulas
 
 ### Referee's potential
 
-<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q} = \alpha \frac{\sum_{j=1}^{n_{i}} G_{i}^{j}}{n_{i}} + \beta E_{i}^{q-1}" ></img>
+<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q}=\alpha\frac{\sum_{j=1}^{n_{i}}G_{i}^{j}}{n_{i}}+\beta E_{i}^{q-1}" />
 
 where
 
-<img src="https://latex.codecogs.com/svg.latex?0<={n_i}<q"></img><br>
-<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q}\text{ - potential of referee $i$ in queue $q$}" /><br>
+<img src="https://latex.codecogs.com/svg.latex?0<={n_i}<q"/><br>
+<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q}\text{-%20potential%20of%20referee%20$i$%20in%20queue%20$q$}" /><br>
 <img src="https://latex.codecogs.com/svg.latex?n_{i}\text{ - number of grades from observers received by referee $i$}" /><br>
 <img src="https://latex.codecogs.com/svg.latex?G_{i}^{j}\text{ - grade $j$ of referee $i$}" /><br>
 <img src="https://latex.codecogs.com/svg.latex?E_{i}^{q-1}\text{ - number of all matches refereed by referee $i$ until queue $q-1$}" />
