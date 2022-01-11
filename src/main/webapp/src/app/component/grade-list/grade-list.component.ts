@@ -17,6 +17,8 @@ export class GradeListComponent implements OnInit {
   matches: Match[]
   referees: Referee[]
   grades: Grade[]
+  sortedByGradesDesc: boolean
+  sortedByNameAsc: boolean
 
   constructor(private route: ActivatedRoute, private router: Router, private refereeService: RefereeService,
               private gradeService: GradeService, private matchService: MatchService) {
@@ -39,5 +41,29 @@ export class GradeListComponent implements OnInit {
   countAverageForReferee(referee: Referee): number {
     let grades = this.getGradesForReferee(referee)
     return grades?.reduce((a, b) => a + b, 0) / grades?.length
+  }
+
+  sortTableByGrade() {
+    this.referees = this.referees.sort(this.gradeComparator())
+    this.sortedByGradesDesc = !this.sortedByGradesDesc
+  }
+
+  sortTableByName() {
+    this.referees = this.referees.sort(this.nameComparator())
+    this.sortedByNameAsc = !this.sortedByNameAsc
+  }
+
+  private gradeComparator() {
+    if (this.sortedByGradesDesc)
+      return (a, b) => this.countAverageForReferee(a) - this.countAverageForReferee(b);
+    else
+      return (a, b) => this.countAverageForReferee(b) - this.countAverageForReferee(a);
+  }
+
+  private nameComparator() {
+    if (this.sortedByNameAsc)
+      return (a, b) => b.lastName.localeCompare(a.lastName);
+    else
+      return (a, b) => a.lastName.localeCompare(b.lastName);
   }
 }

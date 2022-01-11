@@ -4,9 +4,9 @@
     <table aria-describedby="header" class="table table-bordered table-striped">
       <thead class="thead-dark">
       <tr>
-        <th scope="col">Referee</th>
+        <th scope="col" (click)="sortTableByName()" style="cursor: pointer">Referee</th>
         <th scope="col">Grades</th>
-        <th scope="col">Average grade</th>
+        <th scope="col" (click)="sortTableByGrade()" style="cursor: pointer">Average grade</th>
       </tr>
       </thead>
       <tbody>
