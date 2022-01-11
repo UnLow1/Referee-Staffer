@@ -25,15 +25,16 @@
     <li class="list-inline-item">
       <a routerLink="/staffer" class="btn btn-info">Staff referees</a>
     </li>
-    <!-- TODO add this button only for dev and local -->
     <li class="list-inline-item">
       <a routerLink="/importer" class="btn btn-info">Import data</a>
     </li>
-    <li class="list-inline-item">
-      <a routerLink="/configuration" class="btn btn-info">Configuration</a>
-    </li>
-    <li class="list-inline-item">
-      <a (click)="clearData()" routerLink="" class="btn btn-info">Clear data</a>
-    </li>
+    <div id="admin" [hidden]="true" class="mt-2">
+      <li class="list-inline-item">
+        <a routerLink="/configuration" class="btn btn-info">Configuration</a>
+      </li>
+      <li class="list-inline-item">
+        <a (click)="clearData()" routerLink="" class="btn btn-info">Clear data</a>
+      </li>
+    </div>
   </ul>
 </div>

@@ -68,3 +68,8 @@ where
 ### Staffer
 
 ![](data/screenshots/staffer.png)
+
+### Admin panel
+
+To enable admin panel type in DevTools `admin.hidden=false`
+![](data/screenshots/adminPanel.PNG)

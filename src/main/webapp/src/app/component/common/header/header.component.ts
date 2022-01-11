@@ -14,7 +14,7 @@ import {MatDialog} from "@angular/material/dialog";
 export class HeaderComponent {
 
   @Input()
-  title: string;
+  title: string
 
   constructor(private matchService: MatchService, private teamService: TeamService,
               private refereeService: RefereeService, private gradeService: GradeService,
