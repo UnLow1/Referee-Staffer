@@ -5,3 +5,6 @@ spring:
     defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
+springdoc:
+  swagger-ui:
+    operationsSorter: method
