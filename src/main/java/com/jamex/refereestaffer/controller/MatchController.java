@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -39,7 +38,7 @@ public class MatchController {
     }
 
     @PostMapping
-    public MatchDto addMatch(@RequestBody MatchDto matchDto) {
+    public MatchDto createMatch(@RequestBody MatchDto matchDto) {
         log.info("Adding new match");
         var match = matchConverter.convertFromDto(matchDto);
         var savedMatch = matchRepository.save(match);

@@ -82,7 +82,7 @@ class RefereeControllerSpec extends Specification {
         def referee = [] as Referee
 
         when:
-        refereeController.addReferee(refereeDto)
+        refereeController.createReferee(refereeDto)
 
         then:
         1 * refereeConverter.convertFromDto(refereeDto) >> referee

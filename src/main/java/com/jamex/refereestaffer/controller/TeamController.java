@@ -38,7 +38,7 @@ public class TeamController {
     }
 
     @PostMapping
-    public void addTeam(@RequestBody TeamDto teamDto) {
+    public void createTeam(@RequestBody TeamDto teamDto) {
         log.info("Adding new team");
         var team = teamConverter.convertFromDto(teamDto);
         teamRepository.save(team);

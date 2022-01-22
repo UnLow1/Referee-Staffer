@@ -3,21 +3,31 @@
   <h2 *ngIf="editMode" class="text-center my-3">Edit match</h2>
   <div class="card-body">
     <form (ngSubmit)="onSubmit()" #matchForm="ngForm">
-        <div class="form-group row col-4">
-          <label for="queue" class="col-form-label">Queue(*)</label>
-          <div class="col-8">
-            <input type="number" [(ngModel)]="match.queue"
-                   min="0"
-                   class="form-control"
-                   id="queue"
-                   name="queue"
-                   placeholder="Enter queue"
-                   required #queue="ngModel">
-            <div [hidden]="queue.valid || queue.untouched" class="alert alert-danger">Queue is required</div>
-          </div>
+      <div class="form-group row col-4">
+        <label for="queue" class="col-form-label">Queue(*)</label>
+        <div class="col-8">
+          <input type="number" [(ngModel)]="match.queue"
+                 min="0"
+                 class="form-control"
+                 id="queue"
+                 name="queue"
+                 placeholder="Enter queue"
+                 required #queue="ngModel">
+          <div [hidden]="queue.valid || queue.untouched" class="alert alert-danger">Queue is required</div>
         </div>
+      </div>
+      <div class="form-group row col-4">
+        <label for="date" class="col-form-label">Date</label>
+        <div class="col-9">
+          <input type="datetime-local" [(ngModel)]="match.date"
+                 class="form-control"
+                 id="date"
+                 name="date"
+                 placeholder="Enter date">
+        </div>
+      </div>
       <div class="row">
-        <div class="form-group col-4">
+        <div class="form-group col-3">
           <label for="homeTeam">Home team(*)</label>
           <select class="custom-select" id="homeTeam" name="homeTeam" [(ngModel)]="match.homeTeamId" required
                   #homeTeam="ngModel">
@@ -27,7 +37,7 @@
           </select>
           <div [hidden]="homeTeam.valid || homeTeam.untouched" class="alert alert-danger">Home team is required</div>
         </div>
-        <div class="form-group col-4">
+        <div class="form-group col-3">
           <label for="awayTeam">Away team(*)</label>
           <select class="custom-select" id="awayTeam" name="awayTeam" [(ngModel)]="match.awayTeamId" required
                   #awayTeam="ngModel">
@@ -38,7 +48,7 @@
           <div [hidden]="awayTeam.valid || awayTeam.untouched" class="alert alert-danger">Away team is required</div>
         </div>
       </div>
-      <div class="form-group row col-6">
+      <div class="form-group row col-5">
         <label for="referee" class="col-form-label">Referee</label>
         <div class="col-8">
           <select class="custom-select" id="referee" name="referee" [(ngModel)]="match.refereeId">
@@ -50,25 +60,25 @@
         </div>
       </div>
       <div class="row">
-        <div class="form-group col-4">
+        <div class="form-group col-2">
           <label for="homeScore">Home team score</label>
           <input type="number" [(ngModel)]="match.homeScore"
                  min="0"
                  class="form-control"
                  id="homeScore"
                  name="homeScore"
-                 placeholder="Enter home team score">
+                 placeholder="Home team score">
         </div>
-        <div class="form-group col-4">
+        <div class="form-group col-2">
           <label for="awayScore">Away team score</label>
           <input type="number" [(ngModel)]="match.awayScore"
                  min="0"
                  class="form-control"
                  id="awayScore"
                  name="awayScore"
-                 placeholder="Enter away team score">
+                 placeholder="Away team score">
         </div>
-        <div class="form-group col-4">
+        <div class="form-group col-2">
           <label for="grade">Referee grade</label>
           <input type="number" [(ngModel)]="grade.value"
                  step="0.1"

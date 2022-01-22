@@ -37,7 +37,7 @@ public class GradeController {
     }
 
     @PostMapping("/{matchId}")
-    public void addGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
+    public void createGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
         log.info("Adding new grade for match with id " + matchId);
         gradeService.addGrade(gradeDto, matchId);
     }

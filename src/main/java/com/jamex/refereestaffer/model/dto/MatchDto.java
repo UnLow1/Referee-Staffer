@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -21,6 +22,8 @@ public class MatchDto {
 
     @NotNull
     private final Long awayTeamId;
+
+    private final LocalDateTime date;
 
     @Setter
     private Long refereeId;

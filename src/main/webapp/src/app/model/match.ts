@@ -3,6 +3,7 @@ export class Match {
   queue: number
   homeTeamId: number
   awayTeamId: number
+  date: Date
   refereeId: number
   gradeId: number
   homeScore: number

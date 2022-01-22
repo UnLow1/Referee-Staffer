@@ -3,6 +3,7 @@ package com.jamex.refereestaffer.model.entity;
 import lombok.*;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -25,6 +26,8 @@ public class Match {
     @ManyToOne(targetEntity = Team.class)
     private Team away;
 
+    private LocalDateTime date;
+
     @ManyToOne(targetEntity = Referee.class)
     @Setter
     private Referee referee;
@@ -40,10 +43,11 @@ public class Match {
     @Setter
     private double hardnessLvl;
 
-    public Match(short queue, Team home, Team away, Referee referee, Short homeScore, Short awayScore) {
+    public Match(short queue, Team home, Team away, LocalDateTime date, Referee referee, Short homeScore, Short awayScore) {
         this.queue = queue;
         this.home = home;
         this.away = away;
+        this.date = date;
         this.referee = referee;
         this.homeScore = homeScore;
         this.awayScore = awayScore;

@@ -72,7 +72,7 @@ class MatchControllerSpec extends Specification {
         def savedMatch = [] as Match
 
         when:
-        def result = matchController.addMatch(matchDto)
+        def result = matchController.createMatch(matchDto)
 
         then:
         1 * matchConverter.convertFromDto(matchDto) >> match

@@ -71,7 +71,7 @@ class TeamControllerSpec extends Specification {
         def team = [] as Team
 
         when:
-        teamController.addTeam(teamDto)
+        teamController.createTeam(teamDto)
 
         then:
         1 * teamConverter.convertFromDto(teamDto) >> team

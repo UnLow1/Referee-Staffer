@@ -71,7 +71,7 @@ class GradeControllerSpec extends Specification {
         def matchId = 4123213l
 
         when:
-        gradeController.addGrade(gradeDto, matchId)
+        gradeController.createGrade(gradeDto, matchId)
 
         then:
         1 * gradeService.addGrade(gradeDto, matchId)

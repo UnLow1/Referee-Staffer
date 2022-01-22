@@ -20,6 +20,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +32,8 @@ import java.util.stream.Collectors;
 public class ImporterService {
 
     private static final String CREATED = "Created ";
+    private static final String DATE_FORMAT = "dd.MM.yyy HH:mm";
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
     private final TeamRepository teamRepository;
     private final RefereeRepository refereeRepository;
@@ -76,22 +80,24 @@ public class ImporterService {
             var awayTeamName = line[2];
             var awayTeam = teamRepository.findByName(awayTeamName)
                     .orElseThrow(() -> new TeamNotFoundException(awayTeamName));
+            var date = LocalDateTime.parse(line[3], FORMATTER);
+
             Referee referee = null;
             Short homeTeamScore = null;
             Short awayTeamScore = null;
-            if (line.length > 3 && queue <= numberOfQueuesToImport) {
-                var refereeFirstName = line[3].split(" ")[0];
-                var refereeLastName = line[3].split(" ")[1];
+            if (line.length > 4 && queue <= numberOfQueuesToImport) {
+                var refereeFirstName = line[4].split(" ")[0];
+                var refereeLastName = line[4].split(" ")[1];
                 referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName)
                         .orElseThrow(() -> new RefereeNotFoundException(refereeFirstName, refereeLastName));
-                homeTeamScore = Short.valueOf(line[4]);
-                awayTeamScore = Short.valueOf(line[5]);
+                homeTeamScore = Short.valueOf(line[5]);
+                awayTeamScore = Short.valueOf(line[6]);
             }
-            var match = new Match(queue, homeTeam, awayTeam, referee, homeTeamScore, awayTeamScore);
+            var match = new Match(queue, homeTeam, awayTeam, date, referee, homeTeamScore, awayTeamScore);
             matchRepository.save(match);
 
-            if (line.length == 7 && queue <= numberOfQueuesToImport) {
-                var value = Double.parseDouble(line[6]);
+            if (line.length == 8 && queue <= numberOfQueuesToImport) {
+                var value = Double.parseDouble(line[7]);
                 var grade = new Grade(match, value);
                 gradeRepository.save(grade);
             }
@@ -105,8 +111,8 @@ public class ImporterService {
     private void createReferees(List<String> lines) {
         var referees = lines.stream()
                 .map(line -> line.split(";"))
-                .filter(line -> line.length > 3)
-                .map(line -> line[3])
+                .filter(line -> line.length > 4)
+                .map(line -> line[4])
                 .distinct()
 //                .filter(referee -> !referee.isBlank())
                 .map(refereeName -> new Referee(refereeName.split(" ")[0], refereeName.split(" ")[1]))

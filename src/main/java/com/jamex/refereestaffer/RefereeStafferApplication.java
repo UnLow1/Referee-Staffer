@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @SpringBootApplication
@@ -41,15 +42,15 @@ public class RefereeStafferApplication {
             var team5 = new Team("Lech", "Poznań");
             var team6 = new Team("Łks", "Łódź");
 
-            var match1 = new Match((short) 1, team1, team5, ref1, (short) 1, (short) 0);
-            var match2 = new Match((short) 1, team2, team6, ref2, (short) 0, (short) 0);
-            var match3 = new Match((short) 1, team4, team3, ref3, (short) 0, (short) 2);
-            var match4 = new Match((short) 2, team4, team6, ref1, (short) 1, (short) 2);
-            var match5 = new Match((short) 2, team3, team5, ref2, (short) 3, (short) 3);
-            var match6 = new Match((short) 2, team2, team1, ref3, (short) 2, (short) 2);
-            var match7 = new Match((short) 3, team4, team2, ref1, (short) 0, (short) 0);
-            var match8 = new Match((short) 3, team1, team3, ref2, (short) 1, (short) 3);
-            var match9 = new Match((short) 3, team5, team6, ref3, (short) 2, (short) 2);
+            var match1 = new Match((short) 1, team1, team5, LocalDateTime.of(2022, 1, 14, 12, 0), ref1, (short) 1, (short) 0);
+            var match2 = new Match((short) 1, team2, team6, LocalDateTime.of(2022, 1, 15, 12, 0), ref2, (short) 0, (short) 0);
+            var match3 = new Match((short) 1, team4, team3, LocalDateTime.of(2022, 1, 14, 12, 0), ref3, (short) 0, (short) 2);
+            var match4 = new Match((short) 2, team4, team6, LocalDateTime.of(2022, 1, 15, 12, 0), ref1, (short) 1, (short) 2);
+            var match5 = new Match((short) 2, team3, team5, LocalDateTime.of(2022, 1, 14, 12, 0), ref2, (short) 3, (short) 3);
+            var match6 = new Match((short) 2, team2, team1, LocalDateTime.of(2022, 1, 14, 14, 30), ref3, (short) 2, (short) 2);
+            var match7 = new Match((short) 3, team4, team2, LocalDateTime.of(2022, 1, 15, 14, 30), ref1, (short) 0, (short) 0);
+            var match8 = new Match((short) 3, team1, team3, LocalDateTime.of(2022, 1, 14, 14, 30), ref2, (short) 1, (short) 3);
+            var match9 = new Match((short) 3, team5, team6, LocalDateTime.of(2022, 1, 15, 14, 30), ref3, (short) 2, (short) 2);
 
             var grade1 = new Grade(match1, 8.3);
             var grade2 = new Grade(match2, 8.2);

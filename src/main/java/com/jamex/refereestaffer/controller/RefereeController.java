@@ -50,7 +50,7 @@ public class RefereeController {
     }
 
     @PostMapping
-    public void addReferee(@RequestBody RefereeDto refereeDto) {
+    public void createReferee(@RequestBody RefereeDto refereeDto) {
         log.info("Adding new referee");
         var referee = refereeConverter.convertFromDto(refereeDto);
         refereeRepository.save(referee);
