@@ -1,4 +1,4 @@
-INSERT INTO config (id, name, value)
+INSERT IGNORE INTO config (id, name, value)
 VALUES (1, 'AVERAGE_GRADE_MULTIPLIER', 50.0),
        (2, 'EXPERIENCE_MULTIPLIER', 0.01),
        (3, 'NUMBER_OF_MATCHES_MULTIPLIER', 3.0),
