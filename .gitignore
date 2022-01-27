@@ -3,6 +3,7 @@ target/
 !**/src/main/**
 !**/src/test/**
 src/main/resources/static
+src/main/webapp/node
 
 ### STS ###
 .apt_generated
