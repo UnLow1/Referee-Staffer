@@ -1,6 +1,7 @@
 # Referee Staffer
 
 [![Build Status](https://travis-ci.com/UnLow1/Referee-Staffer.svg?branch=master)](https://travis-ci.com/UnLow1/Referee-Staffer)
+![Coverage](.github/badges/jacoco.svg)
 [![Snyk.io vulnerabilities](https://snyk.io/test/github/UnLow1/Referee-Staffer/badge.svg)](https://app.snyk.io/org/unlow1/projects)
 [![codeclimate](https://codeclimate.com/github/UnLow1/Referee-Staffer/badges/gpa.svg)](https://codeclimate.com/github/UnLow1/Referee-Staffer)
 
