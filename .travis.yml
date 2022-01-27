@@ -1,2 +1,5 @@
 language: java
 jdk: oraclejdk17
+notifications:
+  email:
+    on_success: never
