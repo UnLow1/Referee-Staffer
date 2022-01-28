@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import {Component} from '@angular/core';
 import {StafferService} from "../../service/staffer.service";
 import {ActivatedRoute, Router} from "@angular/router";
 import {Match} from "../../model/match";
@@ -13,7 +13,7 @@ import {MatchService} from "../../service/match.service";
   templateUrl: './staffer.component.html',
   styleUrls: ['./staffer.component.scss']
 })
-export class StafferComponent implements OnInit {
+export class StafferComponent {
 
   queue: number
   matches: Match[]
@@ -23,9 +23,6 @@ export class StafferComponent implements OnInit {
   constructor(private route: ActivatedRoute, private router: Router, private stafferService: StafferService,
               private teamService: TeamService, private refereeService: RefereeService,
               private matchService: MatchService) {
-  }
-
-  ngOnInit(): void {
   }
 
   onSubmit() {
