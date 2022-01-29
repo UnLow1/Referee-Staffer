@@ -19,6 +19,7 @@ export class StafferComponent {
   matches: Match[]
   teams: Team[]
   referees: Referee[]
+  acceptedMatches: Match[] = []
 
   constructor(private route: ActivatedRoute, private router: Router, private stafferService: StafferService,
               private teamService: TeamService, private refereeService: RefereeService,
@@ -41,8 +42,9 @@ export class StafferComponent {
     return this.teams?.find(team => team.id === teamId)
   }
 
-  getReferee(refereeId: number): Referee {
-    return this.referees?.find(referee => referee.id === refereeId)
+  getRefereeName(refereeId: number): string {
+    let referee = this.referees?.find(ref => ref.id === refereeId)
+    return referee.firstName + " " + referee.lastName
   }
 
   updateMatches() {
@@ -51,5 +53,13 @@ export class StafferComponent {
 
   gotoMatchesList() {
     this.router.navigate(['/matches'])
+  }
+
+  updateMatch(match: Match) {
+    this.matchService.update(match).subscribe(() => this.acceptedMatches.push(match))
+  }
+
+  isAccepted(match: Match): boolean {
+    return this.acceptedMatches.indexOf(match) > -1
   }
 }

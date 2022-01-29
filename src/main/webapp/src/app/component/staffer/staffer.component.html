@@ -4,19 +4,25 @@
     <table aria-describedby="header" *ngIf="matches" class="table table-bordered table-striped">
       <thead class="thead-dark">
       <tr>
-        <th id="queueHeader" [colSpan]="3" class="text-center">Queue {{queue}}</th>
+        <th id="queueHeader" [colSpan]="4" class="text-center">Queue {{queue}}</th>
       </tr>
       <tr>
         <th scope="col">Home team</th>
         <th scope="col">Away name</th>
         <th scope="col">Referee</th>
+        <th scope="col">&nbsp;</th>
       </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let match of matches">
+      <tr *ngFor="let match of matches" [class.accepted]="isAccepted(match)">
         <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
         <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
-        <td headers="queueHeader">{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
+        <td headers="queueHeader">{{ getRefereeName(match.refereeId) }}</td>
+        <td>
+          <button type="button" class="btn btn-success" (click)="updateMatch(match)" [disabled]="isAccepted(match)">
+            <em class="fa fa-check mr-2"></em>Accept
+          </button>
+        </td>
       </tr>
       </tbody>
     </table>

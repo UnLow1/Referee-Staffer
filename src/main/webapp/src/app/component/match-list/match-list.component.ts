@@ -55,8 +55,9 @@ export class MatchListComponent implements OnInit {
     return this.teams?.find(team => team.id === teamId)
   }
 
-  getReferee(refereeId: number): Referee {
-    return this.referees?.find(referee => referee.id === refereeId)
+  getRefereeName(refereeId: number): string {
+    let referee = this.referees?.find(ref => ref.id === refereeId)
+    return referee.firstName + " " + referee.lastName
   }
 
   getGrade(gradeId: number): Grade {

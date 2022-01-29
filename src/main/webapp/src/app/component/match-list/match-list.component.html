@@ -22,7 +22,7 @@
         <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
         <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
         <td>{{ match.date | date: 'dd.MM.yyyy HH:mm'}}</td>
-        <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
+        <td>{{ getRefereeName(match.refereeId) }}</td>
         <td>{{ match.homeScore }} - {{match.awayScore}}</td>
         <td>{{ getGrade(match.gradeId)?.value }}</td>
         <td>

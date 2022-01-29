@@ -52,23 +52,35 @@ export class MatchFormComponent implements OnInit {
   onSubmit() {
     if (this.editMode)
       this.matchService.update(this.match).subscribe(match => {
-        if (this.grade.value && this.grade.id)
+        if (this.isGradeUpdated())
           this.gradeService.update(this.grade).subscribe(() => this.gotoMatchesList())
-        else if (this.grade.value)
+        else if (this.isNewGradeAdded())
           this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
-        else if (this.grade.id)
+        else if (this.isGradeRemoved())
           this.gradeService.delete(this.grade).subscribe(() => this.gotoMatchesList())
         else
           this.gotoMatchesList()
       })
     else
       this.matchService.save(this.match).subscribe(match => {
-          if (this.grade.value)
+          if (this.isNewGradeAdded())
             this.gradeService.save(match, this.grade).subscribe(() => this.gotoMatchesList())
           else
             this.gotoMatchesList()
         }
       )
+  }
+
+  private isGradeRemoved() {
+    return this.grade.id;
+  }
+
+  private isNewGradeAdded() {
+    return this.grade.value;
+  }
+
+  private isGradeUpdated() {
+    return this.isGradeRemoved() && this.isNewGradeAdded() ;
   }
 
   gotoMatchesList() {
