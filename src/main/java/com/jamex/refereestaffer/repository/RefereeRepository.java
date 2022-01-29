@@ -18,7 +18,7 @@ public interface RefereeRepository extends JpaRepository<Referee, Long> {
 
     @Query(value = "SELECT * FROM referee " +
             "WHERE id NOT IN " +
-            "(SELECT referee_id FROM match " +
+            "(SELECT DISTINCT referee_id FROM match " +
             "WHERE queue = :queue " +
             "AND referee_id IS NOT NULL)", nativeQuery = true)
     List<Referee> findAllWithNoMatchInQueue(@Param("queue") Short queue);
