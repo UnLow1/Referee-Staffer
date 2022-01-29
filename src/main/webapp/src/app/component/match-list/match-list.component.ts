@@ -28,10 +28,6 @@ export class MatchListComponent implements OnInit {
 
   ngOnInit() {
     this.matchService.findAll().subscribe(matches => {
-      function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-        return value !== null && value !== undefined;
-      }
-
       this.groupedMatches = _.groupBy(matches, function (match) {
         return match.queue
       })
@@ -39,10 +35,10 @@ export class MatchListComponent implements OnInit {
         .concat(matches.map(match => match.awayTeamId))
         .filter((item, i, ar) => ar.indexOf(item) === i)
       let refereeIds = matches.map(match => match.refereeId)
-        .filter(notEmpty)
+        .filter(this.notEmpty)
         .filter((item, i, ar) => ar.indexOf(item) === i)
       let gradeIds = matches.map(match => match.gradeId)
-        .filter(notEmpty)
+        .filter(this.notEmpty)
         .filter((item, i, ar) => ar.indexOf(item) === i)
 
       this.teamService.findByIds(teamIds).subscribe(teams => this.teams = teams)
@@ -51,13 +47,16 @@ export class MatchListComponent implements OnInit {
     })
   }
 
+  notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
+    return value !== null && value !== undefined;
+  }
+
   getTeam(teamId: number): Team {
     return this.teams?.find(team => team.id === teamId)
   }
 
-  getRefereeName(refereeId: number): string {
-    let referee = this.referees?.find(ref => ref.id === refereeId)
-    return referee.firstName + " " + referee.lastName
+  getReferee(refereeId: number): Referee {
+    return this.referees?.find(referee => referee.id === refereeId)
   }
 
   getGrade(gradeId: number): Grade {

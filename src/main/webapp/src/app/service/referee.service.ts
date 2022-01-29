@@ -39,6 +39,10 @@ export class RefereeService {
     return this.http.post<Referee[]>(`${this.refereesUrl}/byIds`, {ids}, this.httpOptions);
   }
 
+  public findRefereesAvailableForQueue(queue: number): Observable<Referee[]> {
+    return this.http.get<Referee[]>(`${this.refereesUrl}/available/${queue}`, this.httpOptions);
+  }
+
   public delete(id: number) {
     return this.http.delete(`${this.refereesUrl}/${id}`)
   }

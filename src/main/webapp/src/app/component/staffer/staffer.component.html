@@ -14,12 +14,17 @@
       </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let match of matches" [class.accepted]="isAccepted(match)">
+      <tr *ngFor="let match of matches" [class.accepted]="acceptedMatches.includes(match)">
         <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
         <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
-        <td headers="queueHeader">{{ getRefereeName(match.refereeId) }}</td>
         <td>
-          <button type="button" class="btn btn-success" (click)="updateMatch(match)" [disabled]="isAccepted(match)">
+          <select class="custom-select" [(ngModel)]="match.refereeId">
+            <option *ngFor="let referee of referees" [ngValue]="referee.id">{{ getRefereeName(referee) }} </option>
+          </select>
+        </td>
+        <td>
+          <button type="button" class="btn btn-success" (click)="updateMatch(match)"
+                  [disabled]="acceptedMatches.includes(match)">
             <em class="fa fa-check mr-2"></em>Accept
           </button>
         </td>

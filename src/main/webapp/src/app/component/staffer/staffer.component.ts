@@ -30,11 +30,12 @@ export class StafferComponent {
     this.stafferService.staffReferees(this.queue).subscribe(matches => {
       this.matches = matches
 
-      let teamIds = matches.map(match => match.homeTeamId).concat(matches.map(match => match.awayTeamId)).filter((item, i, ar) => ar.indexOf(item) === i)
-      let refereeIds = matches.map(match => match.refereeId).filter((item, i, ar) => ar.indexOf(item) === i)
+      let teamIds = matches.map(match => match.homeTeamId)
+        .concat(matches.map(match => match.awayTeamId))
+        .filter((item, i, ar) => ar.indexOf(item) === i)
 
       this.teamService.findByIds(teamIds).subscribe(teams => this.teams = teams)
-      this.refereeService.findByIds(refereeIds).subscribe(referees => this.referees = referees)
+      this.refereeService.findRefereesAvailableForQueue(this.queue).subscribe(referees => this.referees = referees)
     })
   }
 
@@ -42,8 +43,7 @@ export class StafferComponent {
     return this.teams?.find(team => team.id === teamId)
   }
 
-  getRefereeName(refereeId: number): string {
-    let referee = this.referees?.find(ref => ref.id === refereeId)
+  getRefereeName(referee: Referee): string {
     return referee.firstName + " " + referee.lastName
   }
 
@@ -57,9 +57,5 @@ export class StafferComponent {
 
   updateMatch(match: Match) {
     this.matchService.update(match).subscribe(() => this.acceptedMatches.push(match))
-  }
-
-  isAccepted(match: Match): boolean {
-    return this.acceptedMatches.indexOf(match) > -1
   }
 }

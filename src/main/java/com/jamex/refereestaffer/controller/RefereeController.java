@@ -42,6 +42,13 @@ public class RefereeController {
         return refereeConverter.convertFromEntity(referee);
     }
 
+    @GetMapping("/available/{queue}")
+    public Collection<RefereeDto> getRefereesAvailableForQueue(@PathVariable Short queue) {
+        log.info("Getting referees available for queue " + queue);
+        var referees = refereeRepository.findAllWithNoMatchInQueue(queue);
+        return refereeConverter.convertFromEntities(referees);
+    }
+
     @PutMapping
     public void updateReferee(@RequestBody RefereeDto refereeDto) {
         log.info("Updating referee with id " + refereeDto.getId());
