@@ -1,6 +1,7 @@
 import {Component} from '@angular/core';
 import {ImporterService} from "../../service/importer.service";
 import {ImportResponse} from "../../request/importResonse";
+import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-importer',
@@ -23,5 +24,12 @@ export class ImporterComponent {
 
   uploadFileToActivity() {
     this.importerService.postFile(this.fileToUpload, this.numberOfQueuesToImport).subscribe(result => this.importResult = result)
+  }
+
+  downloadExampleFile() {
+    this.importerService.downloadExampleFile().subscribe(blob => {
+      console.log(blob)
+      saveAs(blob, "example import file.csv")
+    })
   }
 }

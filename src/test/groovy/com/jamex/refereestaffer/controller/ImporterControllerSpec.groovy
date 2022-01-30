@@ -1,5 +1,6 @@
 package com.jamex.refereestaffer.controller
 
+import com.jamex.refereestaffer.service.DownloadService
 import com.jamex.refereestaffer.service.ImporterService
 import org.springframework.web.multipart.MultipartFile
 import spock.lang.Specification
@@ -11,14 +12,15 @@ class ImporterControllerSpec extends Specification {
     ImporterController importerController
 
     ImporterService importerService = Mock()
+    DownloadService downloadService = Mock()
 
     def setup() {
-        importerController = new ImporterController(importerService)
+        importerController = new ImporterController(importerService, downloadService)
     }
 
     def "should import data"() {
         given:
-        def multipartFile = [getOriginalFilename: { "filename" } ] as MultipartFile
+        def multipartFile = [getOriginalFilename: { "filename" }] as MultipartFile
         short numberOfQueuesToImport = 20
 
         when:
@@ -26,5 +28,13 @@ class ImporterControllerSpec extends Specification {
 
         then:
         1 * importerService.importData(multipartFile, numberOfQueuesToImport)
+    }
+
+    def "should download example file"() {
+        when:
+        importerController.download()
+
+        then:
+        1 * downloadService.downloadFile(importerController.EXAMPLE_FILENAME)
     }
 }

@@ -20,4 +20,10 @@ export class ImporterService {
     formData.append('numberOfQueuesToImport', numberOfQueuesToImport.toString())
     return this.http.post<ImportResponse>(this.importerUrl, formData)
   }
+
+  public downloadExampleFile():Observable<Blob> {
+    return this.http.get(`${this.importerUrl}/example`, {
+      responseType: 'blob'
+    });
+  }
 }
