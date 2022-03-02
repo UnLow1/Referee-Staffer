@@ -41,12 +41,10 @@ public class ImporterService {
     private final GradeRepository gradeRepository;
 
     public ImportResponse importData(MultipartFile file, Short numberOfQueuesToImport) {
-        BufferedReader br;
         List<String> result = new ArrayList<>();
-        try {
+        try (var is = file.getInputStream()) {
+            var br = new BufferedReader(new InputStreamReader(is));
             String line;
-            var is = file.getInputStream();
-            br = new BufferedReader(new InputStreamReader(is));
             br.readLine(); // skip headers
             while ((line = br.readLine()) != null) {
                 result.add(line);

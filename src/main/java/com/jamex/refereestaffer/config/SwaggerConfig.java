@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
-    public OpenAPI springShopOpenAPI() {
+    public OpenAPI refereeStafferOpenApi() {
         return new OpenAPI()
                 .info(new Info().title("Referee Staffer API")
                         .description("Application for assigning referees to matches")
