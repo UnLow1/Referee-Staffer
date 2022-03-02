@@ -5,8 +5,9 @@ import com.jamex.refereestaffer.model.dto.GradeDto;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
