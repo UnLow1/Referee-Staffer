@@ -1,8 +1,8 @@
 package com.jamex.refereestaffer.model.request;
 
-import java.util.List;
-
 import lombok.Getter;
+
+import java.util.List;
 
 @Getter
 public class IDRequest {

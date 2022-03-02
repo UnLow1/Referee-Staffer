@@ -1,10 +1,10 @@
 package com.jamex.refereestaffer.model.dto;
 
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotNull;
-
 import lombok.Builder;
 import lombok.Getter;
+
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotNull;
 
 @Getter
 @Builder

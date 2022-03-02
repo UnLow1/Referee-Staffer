@@ -1,11 +1,11 @@
 package com.jamex.refereestaffer.model.dto;
 
-import javax.validation.constraints.NotNull;
-import java.time.LocalDateTime;
-
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+
+import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
