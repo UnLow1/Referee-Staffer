@@ -1,5 +1,5 @@
 language: java
-jdk: oraclejdk17
+jdk: oraclejdk18
 notifications:
   email:
     on_success: never
