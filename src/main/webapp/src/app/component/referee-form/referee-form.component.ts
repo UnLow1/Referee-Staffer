@@ -36,6 +36,6 @@ export class RefereeFormComponent implements OnInit {
   }
 
   gotoRefereesList() {
-    this.router.navigate(['/referees'])
+    this.router.navigate(['referees'])
   }
 }

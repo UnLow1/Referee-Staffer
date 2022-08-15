@@ -32,12 +32,14 @@ public class Match {
     @Column(nullable = false)
     private Short queue;
 
+    // TODO check optional=false, or OneToOne?
     @ManyToOne(targetEntity = Team.class)
     private Team home;
 
     @ManyToOne(targetEntity = Team.class)
     private Team away;
 
+    @Column(nullable = false)
     private LocalDateTime date;
 
     @ManyToOne(targetEntity = Referee.class)

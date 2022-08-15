@@ -64,7 +64,7 @@ export class MatchListComponent implements OnInit {
   }
 
   editMatch(match: Match) {
-    this.router.navigate(['/addMatch/', match.id])
+    this.router.navigate(['addMatch', match.id])
   }
 
   deleteMatch(matchToDelete: Match) {

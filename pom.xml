@@ -88,6 +88,7 @@
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -146,7 +147,7 @@
                 </executions>
             </plugin>
 
-            <!-- needed for Heroku-->
+            <!-- needed for Heroku -->
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>

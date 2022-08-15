@@ -36,6 +36,6 @@ export class TeamFormComponent implements OnInit {
   }
 
   gotoTeamsList() {
-    this.router.navigate(['/teams'])
+    this.router.navigate(['teams'])
   }
 }

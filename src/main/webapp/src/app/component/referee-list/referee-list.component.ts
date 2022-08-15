@@ -20,7 +20,7 @@ export class RefereeListComponent implements OnInit {
   }
 
   editReferee(referee: Referee) {
-    this.router.navigate(['/addReferee/', referee.id])
+    this.router.navigate(['addReferee', referee.id])
   }
 
   deleteReferee(refereeToDelete: Referee) {

@@ -84,6 +84,6 @@ export class MatchFormComponent implements OnInit {
   }
 
   gotoMatchesList() {
-    this.router.navigate(['/matches'])
+    this.router.navigate(['matches'])
   }
 }

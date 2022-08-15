@@ -52,7 +52,7 @@ export class StafferComponent {
   }
 
   gotoMatchesList() {
-    this.router.navigate(['/matches'])
+    this.router.navigate(['matches'])
   }
 
   updateMatch(match: Match) {

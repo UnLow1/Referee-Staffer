@@ -20,7 +20,7 @@ export class TeamListComponent implements OnInit {
   }
 
   editTeam(team: Team) {
-    this.router.navigate(['/addTeam/', team.id])
+    this.router.navigate(['addTeam', team.id])
   }
 
   deleteTeam(teamToDelete: Team) {
