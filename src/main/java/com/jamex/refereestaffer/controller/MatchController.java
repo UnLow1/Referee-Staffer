@@ -52,8 +52,9 @@ public class MatchController {
         return matchConverter.convertFromEntity(savedMatch);
     }
 
-    @PutMapping
-    public MatchDto updateMatch(@RequestBody MatchDto matchDto) {
+    // TODO is this id needed?
+    @PutMapping("/{id}")
+    public MatchDto updateMatch(@RequestBody MatchDto matchDto, @PathVariable Long id) {
         log.info("Updating match with id " + matchDto.getId());
         var match = matchConverter.convertFromDto(matchDto);
         var updatedMatch = matchRepository.save(match);

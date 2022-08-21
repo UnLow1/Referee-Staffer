@@ -27,7 +27,7 @@ export class MatchService {
   }
 
   public update(match: Match): Observable<Match> {
-    return this.http.put<Match>(`${this.matchesUrl}`, match)
+    return this.http.put<Match>(`${this.matchesUrl}/${match.id}`, match)
   }
 
   public updateList(matches: Match[]) {
