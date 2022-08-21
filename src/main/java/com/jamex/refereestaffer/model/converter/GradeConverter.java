@@ -25,6 +25,7 @@ public class GradeConverter implements BaseConverter<Grade, GradeDto> {
     @Override
     public Grade convertFromDto(GradeDto dto) {
         Match match = null;
+        // TODO remove if?
         if (dto.getId() != null) {
             match = gradeRepository.findById(dto.getId())
                     .map(Grade::getMatch)

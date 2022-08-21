@@ -1,0 +1,47 @@
+<div class="card my-5">
+  <h2 *ngIf="!editMode" class="text-center my-3">Add new vacation</h2>
+  <h2 *ngIf="editMode" class="text-center my-3">Edit vacation</h2>
+  <div class="card-body">
+    <form (ngSubmit)="onSubmit()" #vacationForm="ngForm">
+      <div class="form-group row col-6">
+        <label for="referee" class="col-form-label">Referee(*)</label>
+        <div class="col-8">
+          <select class="custom-select" id="referee" name="referee" [(ngModel)]="vacation.refereeId" required
+                  #referee="ngModel">
+            <option hidden [ngValue]="undefined" selected>Choose referee</option>
+            <option *ngFor="let referee of referees"
+                    [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
+          </select>
+          <div [hidden]="referee.valid || referee.untouched" class="alert alert-danger">Referee is required</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group col-3">
+          <label for="startDate">Start date(*)</label>
+          <input type="date" [(ngModel)]="vacation.startDate"
+                 [max]="vacation.endDate"
+                 class="form-control"
+                 id="startDate"
+                 name="startDate"
+                 placeholder="Enter start date"
+                 required #startDate="ngModel">
+          <div [hidden]="startDate.valid || startDate.untouched" class="alert alert-danger">Start date is required</div>
+        </div>
+        <div class="form-group col-3">
+          <label for="endDate">End date(*)</label>
+          <input type="date" [(ngModel)]="vacation.endDate"
+                 [min]="vacation.startDate"
+                 class="form-control"
+                 id="endDate"
+                 name="endDate"
+                 placeholder="Enter end date"
+                 required #endDate="ngModel">
+          <div [hidden]="endDate.valid || endDate.untouched" class="alert alert-danger">End date is required</div>
+        </div>
+      </div>
+      <button type="submit" [disabled]="!vacationForm.form.valid" class="btn btn-success">
+        <em class="fa fa-check mr-2"></em>Submit
+      </button>
+    </form>
+  </div>
+</div>

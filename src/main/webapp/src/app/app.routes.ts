@@ -11,6 +11,8 @@ import {StafferComponent} from "./component/staffer/staffer.component";
 import {ImporterComponent} from "./component/importer/importer.component";
 import {StandingsComponent} from "./component/standings/standings.component";
 import {ConfigurationComponent} from "./component/configuration/configuration.component";
+import {VacationListComponent} from "./component/vacation-list/vacation-list.component";
+import {VacationFormComponent} from "./component/vacation-form/vacation-form.component";
 
 const routes: Routes = [
   {path: 'referees', component: RefereeListComponent},
@@ -26,7 +28,10 @@ const routes: Routes = [
   {path: 'staffer', component: StafferComponent},
   {path: 'importer', component: ImporterComponent},
   {path: "standings", component: StandingsComponent},
-  {path: "configuration", component: ConfigurationComponent}
+  {path: "configuration", component: ConfigurationComponent},
+  {path: "vacations", component: VacationListComponent},
+  {path: "addVacation/:id", component: VacationFormComponent},
+  {path: "addVacation", component: VacationFormComponent}
 ];
 
 @NgModule({

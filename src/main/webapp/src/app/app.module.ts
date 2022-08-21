@@ -27,6 +27,8 @@ import {FooterComponent} from './component/common/footer/footer.component';
 import {EditButtonComponent} from "./component/common/button/edit-button/edit-button.component";
 import {DeleteButtonComponent} from './component/common/button/delete-button/delete-button.component';
 import {AddButtonComponent} from './component/common/button/add-button/add-button.component';
+import {VacationListComponent} from './component/vacation-list/vacation-list.component';
+import {VacationFormComponent} from './component/vacation-form/vacation-form.component';
 
 @NgModule({
   declarations: [
@@ -48,7 +50,9 @@ import {AddButtonComponent} from './component/common/button/add-button/add-butto
     FooterComponent,
     EditButtonComponent,
     DeleteButtonComponent,
-    AddButtonComponent
+    AddButtonComponent,
+    VacationListComponent,
+    VacationFormComponent
   ],
   imports: [
     BrowserModule,

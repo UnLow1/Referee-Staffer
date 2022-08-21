@@ -1,0 +1,27 @@
+<div class="card my-5">
+  <h2 id="header" class="text-center my-3">List of vacations</h2>
+  <div class="card-body">
+    <table aria-describedby="header" class="table table-bordered table-striped">
+      <thead class="thead-dark">
+      <tr>
+        <th scope="col">Referee name</th>
+        <th scope="col">Start date</th>
+        <th scope="col">End date</th>
+        <th scope="col">Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let vacation of vacations">
+        <td>{{getRefereeName(vacation.refereeId)}}</td>
+        <td>{{ vacation.startDate | date: 'dd.MM.yyyy'}}</td>
+        <td>{{ vacation.endDate | date: 'dd.MM.yyyy'}}</td>
+        <td>
+          <edit-button (onClick)="editVacation(vacation)"></edit-button>
+          <delete-button (onClick)="deleteVacation(vacation)"></delete-button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+    <add-button label="Add new vacation" routerLink="addVacation"></add-button>
+  </div>
+</div>
