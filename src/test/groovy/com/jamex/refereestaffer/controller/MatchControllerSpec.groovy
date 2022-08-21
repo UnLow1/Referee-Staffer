@@ -83,14 +83,13 @@ class MatchControllerSpec extends Specification {
 
     def "should update match"() {
         given:
-        def matchId = 3899l
         def matchDto = MatchDto.builder().build()
         def updatedMatchDto = MatchDto.builder().build()
         def match = [] as Match
         def updatedMatch = [] as Match
 
         when:
-        def result = matchController.updateMatch(matchDto, matchId)
+        def result = matchController.updateMatch(matchDto)
 
         then:
         1 * matchConverter.convertFromDto(matchDto) >> match

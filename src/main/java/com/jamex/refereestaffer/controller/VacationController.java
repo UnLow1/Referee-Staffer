@@ -49,8 +49,8 @@ public class VacationController {
         return vacationConverter.convertFromEntity(savedVacation);
     }
 
-    @PutMapping("/{id}")
-    public VacationDto updateVacation(@RequestBody VacationDto vacationDto, @PathVariable Long id) {
+    @PutMapping
+    public VacationDto updateVacation(@RequestBody VacationDto vacationDto) {
         log.info("Updating vacation with id " + vacationDto.getId());
         var vacation = vacationConverter.convertFromDto(vacationDto);
         var updatedVacation = vacationRepository.save(vacation);

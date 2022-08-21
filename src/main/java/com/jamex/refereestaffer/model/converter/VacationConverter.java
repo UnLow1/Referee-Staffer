@@ -15,11 +15,9 @@ public class VacationConverter implements BaseConverter<Vacation, VacationDto> {
 
     @Override
     public VacationDto convertFromEntity(Vacation entity) {
-        var referee = entity.getReferee().getId();
-
         return VacationDto.builder()
                 .id(entity.getId())
-                .refereeId(referee)
+                .refereeId(entity.getReferee().getId())
                 .startDate(entity.getStartDate())
                 .endDate(entity.getEndDate())
                 .build();
