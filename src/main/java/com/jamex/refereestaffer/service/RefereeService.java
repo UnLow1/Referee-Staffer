@@ -26,9 +26,10 @@ public class RefereeService {
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
         var referees = refereeRepository.findAllWithNoMatchInQueue(queue).stream()
                 // filtering out "SC" referees is only for test data which I have
-                .filter(referee -> !referee.getFirstName().equals("S"))
-                .filter(referee -> !referee.getLastName().equals("C"))
+                .filter(referee -> !(referee.getFirstName().equals("S") && referee.getLastName().equals("C")))
                 .toList();
+
+        // TODO separate method for calculating referee stats
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
 

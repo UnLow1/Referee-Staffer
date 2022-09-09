@@ -2,13 +2,13 @@ package com.jamex.refereestaffer.service
 
 import com.jamex.refereestaffer.model.converter.MatchConverter
 import com.jamex.refereestaffer.model.dto.MatchDto
-import com.jamex.refereestaffer.model.entity.ConfigName
-import com.jamex.refereestaffer.model.entity.Match
-import com.jamex.refereestaffer.model.entity.Referee
-import com.jamex.refereestaffer.model.entity.Team
+import com.jamex.refereestaffer.model.entity.*
 import com.jamex.refereestaffer.repository.ConfigurationRepository
+import com.jamex.refereestaffer.repository.VacationRepository
 import spock.lang.Specification
 import spock.lang.Subject
+
+import java.time.LocalDateTime
 
 class StafferServiceSpec extends Specification {
 
@@ -16,15 +16,16 @@ class StafferServiceSpec extends Specification {
     StafferService stafferService
 
     ConfigurationRepository configurationRepository = Mock()
+    VacationRepository vacationRepository = Mock()
     MatchConverter matchConverter = Mock()
     MatchService matchService = Mock()
     RefereeService refereeService = Mock()
 
     def setup() {
-        stafferService = new StafferService(configurationRepository, matchConverter, matchService, refereeService)
+        stafferService = new StafferService(configurationRepository, vacationRepository, matchConverter, matchService, refereeService)
     }
 
-    def "should staff referees to matches in queue"() {
+    def "should assign referees to matches in queue"() {
         given:
         short queue = 2
         def team1 = Team.builder()
@@ -53,6 +54,7 @@ class StafferServiceSpec extends Specification {
         result == matchesDtos
         match1.referee == ref2
         match2.referee == ref1
+        2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [ref1, ref2]
         1 * matchService.getMatchesToAssignInQueue(queue) >> matches
         1 * matchConverter.convertFromEntities(matches) >> matchesDtos
@@ -70,5 +72,39 @@ class StafferServiceSpec extends Specification {
         0               | 0             | 0                     | 1                  | 0
         0               | 0             | 0                     | 0                  | 1
         50              | 0.01          | 3                     | 1.3                | 1.3
+    }
+
+    def "should not assign referees to matches if referee has vacation"() {
+        given:
+        def ref1 = [averageGrade: 8.6] as Referee
+        def ref2 = [teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def ref3 = [teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def ref4 = [averageGrade: 8.6] as Referee
+        def ref5 = [averageGrade: 8.6] as Referee
+        def ref6 = [averageGrade: 8.6] as Referee
+        def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
+        def matchDate = matchDateTime.toLocalDate()
+        def match1 = [date: matchDateTime] as Match
+        def match2 = [date: matchDateTime] as Match
+        def matches = [match1, match2]
+        def futureDate = matchDate.plusDays(1)
+        def pastDate = matchDate.minusDays(1)
+        def vacations = [
+                Vacation.builder().referee(ref1).startDate(matchDate).endDate(matchDate).build(),
+                Vacation.builder().referee(ref4).startDate(matchDate).endDate(futureDate).build(),
+                Vacation.builder().referee(ref5).startDate(pastDate).endDate(matchDate).build(),
+                Vacation.builder().referee(ref6).startDate(pastDate).endDate(futureDate).build()]
+
+        when:
+        stafferService.staffReferees(2 as short)
+
+        then:
+        match1.referee == ref2 || match1.referee == ref3
+        match2.referee == ref2 || match2.referee == ref3
+        2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> vacations
+        1 * refereeService.getAvailableRefereesForQueue(_) >> [ref1, ref2, ref3, ref4, ref5, ref6]
+        1 * matchService.getMatchesToAssignInQueue(_) >> matches
+        1 * matchConverter.convertFromEntities(matches)
+        15 * configurationRepository.findByName(_) >> [value: 1]
     }
 }

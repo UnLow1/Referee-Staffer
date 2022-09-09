@@ -6,8 +6,10 @@ import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.entity.Vacation;
 import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
+import com.jamex.refereestaffer.repository.VacationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +31,7 @@ public class StafferService {
     private static final double DEFAULT_AVERAGE_GRADE = 8.3;
 
     private final ConfigurationRepository configurationRepository;
+    private final VacationRepository vacationRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
     private final RefereeService refereeService;
@@ -45,9 +48,15 @@ public class StafferService {
     private void assignRefereesToMatches(List<Referee> referees, List<Match> matches) {
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
+            var vacations = vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(match.getDate());
+
+            var refereesWithVacations = vacations.stream()
+                    .map(Vacation::getReferee)
+                    .toList();
 
             var availableReferees = referees.stream()
                     .filter(ref -> !ref.isBusy())
+                    .filter(ref -> !refereesWithVacations.contains(ref))
                     .toList();
 
             for (var referee : availableReferees) {
@@ -58,12 +67,12 @@ public class StafferService {
                     .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
-            log.info(String.format("Match: %s - %s; hardnessLvl = %f", match.getHome(), match.getAway(), match.getHardnessLvl()));
-            log.info("Referees with their potential:");
-            log.info(sortedRefereesPotentialLvlMap.toString());
+            log.debug(String.format("Match: %s - %s; hardnessLvl = %f", match.getHome(), match.getAway(), match.getHardnessLvl()));
+            log.debug("Referees with their potential:" + sortedRefereesPotentialLvlMap);
             var chosenReferee = sortedRefereesPotentialLvlMap.keySet().stream()
                     .findFirst()
                     .orElseThrow(StafferException::new);
+            // TODO separate list for assigned referees id - get rid off field busy
             chosenReferee.setBusy(true);
 
             match.setReferee(chosenReferee);
