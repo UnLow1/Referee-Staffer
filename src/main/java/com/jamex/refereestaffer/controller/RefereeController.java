@@ -5,6 +5,7 @@ import com.jamex.refereestaffer.model.dto.RefereeDto;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.RefereeRepository;
+import com.jamex.refereestaffer.service.RefereeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,6 +27,7 @@ public class RefereeController {
 
     private final RefereeRepository refereeRepository;
     private final RefereeConverter refereeConverter;
+    private final RefereeService refereeService;
 
     @GetMapping
     public Collection<RefereeDto> getReferees() {
@@ -45,7 +47,7 @@ public class RefereeController {
     @GetMapping("/available/{queue}")
     public Collection<RefereeDto> getRefereesAvailableForQueue(@PathVariable Short queue) {
         log.info("Getting referees available for queue " + queue);
-        var referees = refereeRepository.findAllWithNoMatchInQueue(queue);
+        var referees = refereeService.getAvailableRefereesForQueue(queue);
         return refereeConverter.convertFromEntities(referees);
     }
 

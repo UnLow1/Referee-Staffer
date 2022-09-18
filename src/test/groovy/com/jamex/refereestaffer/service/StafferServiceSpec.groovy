@@ -82,6 +82,7 @@ class StafferServiceSpec extends Specification {
         def ref4 = [averageGrade: 8.6] as Referee
         def ref5 = [averageGrade: 8.6] as Referee
         def ref6 = [averageGrade: 8.6] as Referee
+        def referees = [ref1, ref2, ref3, ref4, ref5, ref6]
         def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def matchDate = matchDateTime.toLocalDate()
         def match1 = [date: matchDateTime] as Match
@@ -102,7 +103,8 @@ class StafferServiceSpec extends Specification {
         match1.referee == ref2 || match1.referee == ref3
         match2.referee == ref2 || match2.referee == ref3
         2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> vacations
-        1 * refereeService.getAvailableRefereesForQueue(_) >> [ref1, ref2, ref3, ref4, ref5, ref6]
+        1 * refereeService.getAvailableRefereesForQueue(_) >> referees
+        1 * refereeService.calculateStats(referees)
         1 * matchService.getMatchesToAssignInQueue(_) >> matches
         1 * matchConverter.convertFromEntities(matches)
         15 * configurationRepository.findByName(_) >> [value: 1]

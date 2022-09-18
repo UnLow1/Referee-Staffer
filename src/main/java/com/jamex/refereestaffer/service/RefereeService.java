@@ -24,12 +24,13 @@ public class RefereeService {
     private final MatchRepository matchRepository;
 
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
-        var referees = refereeRepository.findAllWithNoMatchInQueue(queue).stream()
+        return refereeRepository.findAllWithNoMatchInQueue(queue).stream()
                 // filtering out "SC" referees is only for test data which I have
                 .filter(referee -> !(referee.getFirstName().equals("S") && referee.getLastName().equals("C")))
                 .toList();
+    }
 
-        // TODO separate method for calculating referee stats
+    public void calculateStats(List<Referee> referees) {
         for (var referee : referees) {
             var matchesForReferee = matchRepository.findAllByReferee(referee);
 
@@ -40,7 +41,6 @@ public class RefereeService {
             referee.setTeamsRefereed(teamsRefereedMap);
             referee.setNumberOfMatchesInRound((short) matchesForReferee.size());
         }
-        return referees;
     }
 
     private double countAverageGrade(List<Match> matchesForReferee) {

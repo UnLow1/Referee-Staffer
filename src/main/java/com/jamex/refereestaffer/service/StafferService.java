@@ -38,6 +38,7 @@ public class StafferService {
 
     public Collection<MatchDto> staffReferees(short queue) {
         var referees = refereeService.getAvailableRefereesForQueue(queue);
+        refereeService.calculateStats(referees);
         var sortedMatchesInQueue = matchService.getMatchesToAssignInQueue(queue);
 
         assignRefereesToMatches(referees, sortedMatchesInQueue);

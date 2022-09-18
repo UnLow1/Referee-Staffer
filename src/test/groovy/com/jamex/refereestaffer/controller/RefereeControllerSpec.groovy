@@ -6,6 +6,7 @@ import com.jamex.refereestaffer.model.entity.Referee
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.model.request.IDRequest
 import com.jamex.refereestaffer.repository.RefereeRepository
+import com.jamex.refereestaffer.service.RefereeService
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -16,9 +17,10 @@ class RefereeControllerSpec extends Specification {
 
     RefereeRepository refereeRepository = Mock()
     RefereeConverter refereeConverter = Mock()
+    RefereeService refereeService = Mock()
 
     def setup() {
-        refereeController = new RefereeController(refereeRepository, refereeConverter)
+        refereeController = new RefereeController(refereeRepository, refereeConverter, refereeService)
     }
 
     def "should return referees"() {
@@ -122,5 +124,20 @@ class RefereeControllerSpec extends Specification {
 
         then:
         1 * refereeRepository.deleteById(refereeId)
+    }
+
+    def "should return referees available for given queue"() {
+        given:
+        short queue = 21
+        def referees = [[] as Referee, [] as Referee]
+        def refereesDtos = [RefereeDto.builder().build(), RefereeDto.builder().build()]
+
+        when:
+        def result = refereeController.getRefereesAvailableForQueue(queue)
+
+        then:
+        result == refereesDtos
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
+        1 * refereeConverter.convertFromEntities(referees) >> refereesDtos
     }
 }

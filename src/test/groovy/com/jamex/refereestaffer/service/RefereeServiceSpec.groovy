@@ -25,6 +25,18 @@ class RefereeServiceSpec extends Specification {
         given:
         Short queue = 4
         def availableReferees = createReferees()
+
+        when:
+        def result = refereeService.getAvailableRefereesForQueue(queue)
+
+        then:
+        1 * refereeRepository.findAllWithNoMatchInQueue(queue) >> availableReferees
+        result.size() == 2
+    }
+
+    def "should calculate referees stats"() {
+        given:
+        def referees = createReferees()
         def grade1 = 8.3
         def grade2 = 8.1
         def team1 = Team.builder()
@@ -39,13 +51,11 @@ class RefereeServiceSpec extends Specification {
         def refereesMatches = createMatches(team1, team2, team3, grade1, grade2)
 
         when:
-        def result = refereeService.getAvailableRefereesForQueue(queue)
+        refereeService.calculateStats(referees)
 
         then:
-        1 * refereeRepository.findAllWithNoMatchInQueue(queue) >> availableReferees
-        2 * matchRepository.findAllByReferee(_) >> refereesMatches
-        result.size() == 2
-        def referee = result.get(0)
+        3 * matchRepository.findAllByReferee(_) >> refereesMatches
+        def referee = referees.get(0)
         referee.averageGrade == (double) (grade1 + grade2) / 2
         referee.numberOfMatchesInRound == (short) refereesMatches.size()
         def teamRefereedMap = referee.teamsRefereed
