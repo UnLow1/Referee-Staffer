@@ -1,6 +1,4 @@
 spring:
   datasource:
-    url: jdbc:h2:file:./data/db/RefereeStaffer;MODE=MySQL;NON_KEYWORDS=VALUE
-  sql:
-    init:
-      mode: always
+    url: jdbc-secretsmanager:postgresql://referee-staffer.cluster-cpqiwowitlsq.eu-central-1.rds.amazonaws.com:5432/RefereeStaffer
+    username: prod/RefereeStaffer/postgres
