@@ -1,10 +1,4 @@
 spring:
-  datasource:
-    url: jdbc-secretsmanager:postgresql://referee-staffer-dev.cluster-cpqiwowitlsq.eu-central-1.rds.amazonaws.com:5432/RefereeStaffer
-    username: dev/RefereeStaffer/postgres
   jpa:
     hibernate:
       ddl-auto: create-drop
-  sql:
-    init:
-      mode: always
