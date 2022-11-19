@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.3</version>
+        <version>2.7.5</version>
     </parent>
     <groupId>com.jamex</groupId>
     <artifactId>referee-staffer</artifactId>
@@ -18,9 +18,9 @@
         <lombok.version>1.18.24</lombok.version>
         <gmaven.plus.version>1.13.1</gmaven.plus.version>
         <surefire.plugin.version>2.22.2</surefire.plugin.version>
-        <openapi.version>1.6.11</openapi.version>
-        <groovy.version>3.0.12</groovy.version>
-        <spock.version>2.2-groovy-4.0</spock.version>
+        <openapi.version>1.6.12</openapi.version>
+        <groovy.version>3.0.13</groovy.version>
+        <spock.version>2.3-groovy-4.0</spock.version>
     </properties>
 
     <dependencies>
