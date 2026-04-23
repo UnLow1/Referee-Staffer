@@ -10,10 +10,10 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 
 ## Tech stack
 
-- **Backend:** Spring Boot 2.7.5, Java 17, Maven
-- **Tests:** Spock 2.3 (`spock-core:2.3-groovy-4.0`) compiled with Groovy 3.0.13 via `gmavenplus-plugin`. **Version mismatch:** the Spock artifact has the `groovy-4.0` classifier but the project pulls Groovy 3.0.13. Works due to backwards compatibility, but it is tech debt — align to either Groovy 3 + `spock-2.x-groovy-3.0` or Groovy 4 + `spock-2.x-groovy-4.0`.
-- **Frontend:** Angular 15 under `src/main/webapp/`, built by `frontend-maven-plugin` as part of the Maven build (Node 16.13.0, npm 8.1.0 downloaded by the plugin)
-- **Other:** Lombok 1.18.24, springdoc-openapi-ui 1.6.12 (Swagger UI), JaCoCo 0.8.7
+- **Backend:** Spring Boot 3.5.6, Java 25 (Corretto 25.0.2), Maven. Uses `jakarta.*` (JPA, validation) — migrated from `javax.*` in 2026-04.
+- **Tests:** Spock 2.3 (`spock-core:2.3-groovy-4.0`) compiled with Groovy 4.0.28 via `gmavenplus-plugin` 3.0.2. Classifier/Groovy versions aligned — previously was a mismatch (Groovy 3 + `groovy-4.0` classifier).
+- **Frontend:** Angular 15 under `src/main/webapp/`, built by `frontend-maven-plugin` 1.6 as part of the Maven build (Node 16.13.0, npm 8.1.0 downloaded by the plugin). Not yet bumped — out of scope of Java 25 migration.
+- **Other:** Lombok 1.18.38 (annotation processor declared explicitly in `maven-compiler-plugin` — required since JDK 23 deprecated implicit annotation processing), springdoc-openapi-starter-webmvc-ui 2.8.9 (Swagger UI), JaCoCo 0.8.13.
 
 ## Build & run
 
@@ -62,9 +62,9 @@ GitHub Actions workflows under `.github/workflows/`:
 
 **Known issues across workflows (not silently fix — flag first):**
 
-- `maven.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-java@v1`, `actions/upload-artifact@v2`. `java-version: 1.18` is wrong — the project is Java 17.
+- `maven.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-java@v1`, `actions/upload-artifact@v2`. `java-version: 1.18` is wrong — the project is Java 25 (bump from 17 in 2026-04).
 - `nodejs.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-node@v1`. Step order is also broken: runs `npm ci` → `npm run build` → `npm install` (the trailing `npm install` re-resolves from `package.json` and undoes the deterministic install). Workflow is also redundant with `mvn package` (which builds the frontend via `frontend-maven-plugin`).
-- `codeql-analysis.yml`: **CodeQL v1 actions are deprecated** (`github/codeql-action/init@v1`, `autobuild@v1`, `analyze@v1`) — GitHub will/does reject runs on these versions. This workflow likely fails or will fail soon. Also uses `actions/checkout@v2`. (Note: this workflow correctly sets `java-version: 17` with Zulu — inconsistent with `maven.yml`'s `1.18` typo.)
+- `codeql-analysis.yml`: **CodeQL v1 actions are deprecated** (`github/codeql-action/init@v1`, `autobuild@v1`, `analyze@v1`) — GitHub will/does reject runs on these versions. This workflow likely fails or will fail soon. Also uses `actions/checkout@v2`. (Note: `java-version: 17` with Zulu — stale, project is now Java 25.)
 
 ## CD
 
