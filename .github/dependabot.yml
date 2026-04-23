@@ -1,0 +1,66 @@
+# Dependabot configuration — auto-opens PRs for outdated dependencies.
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+#
+# Grouping reduces PR spam: related packages (Angular family, Spring family,
+# test frameworks) land in one PR instead of five. Weekly cadence is enough
+# noise for a solo project — bump to "monthly" if it still feels too chatty.
+
+version: 2
+updates:
+  # ---- Backend: Maven (pom.xml) ----
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+      spring-ecosystem:
+        patterns:
+          - "org.springframework*:*"
+          - "io.swagger*:*"
+          - "org.springdoc:*"
+      test-stack:
+        patterns:
+          - "org.spockframework:*"
+          - "org.apache.groovy:*"
+          - "org.codehaus.gmavenplus:*"
+      build-plugins:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.jacoco:*"
+          - "com.github.eirslett:*"
+
+  # ---- Frontend: npm (src/main/webapp) ----
+  - package-ecosystem: "npm"
+    directory: "/src/main/webapp"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
+          - "@angular-devkit/*"
+          - "angular-eslint"
+      eslint:
+        patterns:
+          - "eslint"
+          - "typescript-eslint"
+      karma-jasmine:
+        patterns:
+          - "karma*"
+          - "jasmine*"
+          - "@types/jasmine"
+      types:
+        patterns:
+          - "@types/*"
+
+  # ---- CI: GitHub Actions (.github/workflows) ----
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
