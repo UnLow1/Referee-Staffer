@@ -60,11 +60,14 @@ GitHub Actions workflows under `.github/workflows/`:
 - `nodejs.yml` — Node.js/Angular build (redundant with `mvn package`, but currently active).
 - `codeql-analysis.yml` — GitHub CodeQL security scanning.
 
-**Known issues across workflows (not silently fix — flag first):**
+**Modernized 2026-04-23:**
 
-- `maven.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-java@v1`, `actions/upload-artifact@v2`. `java-version: 1.18` is wrong — the project is Java 25 (bump from 17 in 2026-04).
-- `nodejs.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-node@v1` (the pinned Node version in the workflow is also stale — frontend now needs Node 22). Step order is also broken: runs `npm ci` → `npm run build` → `npm install` (the trailing `npm install` re-resolves from `package.json` and undoes the deterministic install). Workflow is also redundant with `mvn package` (which builds the frontend via `frontend-maven-plugin`). Strong candidate for deletion.
-- `codeql-analysis.yml`: **CodeQL v1 actions are deprecated** (`github/codeql-action/init@v1`, `autobuild@v1`, `analyze@v1`) — GitHub will/does reject runs on these versions. This workflow likely fails or will fail soon. Also uses `actions/checkout@v2`. (Note: `java-version: 17` with Zulu — stale, project is now Java 25.)
+- `maven.yml`: bumped to `actions/checkout@v4`, `actions/setup-java@v4` (`distribution: temurin`, `java-version: 25`, `cache: maven`), `actions/upload-artifact@v4`.
+- `codeql-analysis.yml`: bumped CodeQL actions from v1 to v3 (`init@v3`, `autobuild@v3`, `analyze@v3`) — previously deprecated and rejected by GitHub. Also `actions/checkout@v4`, `actions/setup-java@v4` on Temurin 25.
+
+**Still outstanding:**
+
+- `nodejs.yml`: outdated actions (`actions/checkout@v2`, `actions/setup-node@v1`), pinned Node version is stale (frontend now needs Node 22), and step order is broken: runs `npm ci` → `npm run build` → `npm install` (the trailing `npm install` re-resolves from `package.json` and undoes the deterministic install). Workflow is also redundant with `mvn package` (which builds the frontend via `frontend-maven-plugin`). Strong candidate for deletion.
 
 ## CD
 
@@ -79,8 +82,8 @@ GitHub Actions workflows under `.github/workflows/`:
 
 ## Legacy / dead files
 
-- `.travis.yml` — Travis CI free tier is effectively defunct. Do not treat it as authoritative.
-- `system.properties` — Heroku Java runtime hint. Heroku free tier ended November 2022.
+- `.travis.yml` — Travis CI free tier is effectively defunct. Do not treat it as authoritative. (Kept in the repo for now since builds reportedly still run; will be removed once the new CI is verified.)
+- `system.properties` — removed 2026-04-23. Was a Heroku Java runtime hint (`java.runtime.version=18`); Heroku free tier ended November 2022 and the project is not deployed there.
 - Commit `0304975` (reverted by `e198a13`) attempted an AWS Aurora + Secrets Manager migration. Ignore these files if they appear in history/blame searches — they are not the direction of the project.
 
 ## Conventions
