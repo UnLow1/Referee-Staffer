@@ -10,10 +10,10 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 
 ## Tech stack
 
-- **Backend:** Spring Boot 3.5.6, Java 25 (Corretto 25.0.2), Maven. Uses `jakarta.*` (JPA, validation) — migrated from `javax.*` in 2026-04.
+- **Backend:** Spring Boot 4.0.6 (bumped from 3.5.6 on 2026-04-23, the same day 4.0.6 GA shipped), Java 25 (Corretto 25.0.2), Maven. Pulls in Spring Framework 7, Spring Security 7 (not used), Hibernate 7.1. Uses `jakarta.*` (JPA, validation) — migrated from `javax.*` in 2026-04. Jackson 2 still ships in SB 4 as deprecated — the single `@JsonIgnore` in `Grade.java` still imports from `com.fasterxml.jackson.annotation.*` and works; a future migration to Jackson 3 (`tools.jackson.*`) is possible but not urgent.
 - **Tests:** Spock `2.4-M6-groovy-4.0` compiled with Groovy 4.0.28 via `gmavenplus-plugin` 3.0.2. Classifier/Groovy versions aligned — previously was a mismatch (Groovy 3 + `groovy-4.0` classifier). **Gotcha:** Spock has not released a stable 2.4 and has not patched 2.3 since September 2022; the `2.4-M*` milestone line has ~4 years of active development and is de facto the stable track. If you see stale "Spock 2.3" references anywhere, that's historical.
 - **Frontend:** Angular 20 under `src/main/webapp/`, built by `frontend-maven-plugin` 1.15.1 as part of the Maven build (Node 22.22.2, npm 10.9.7 downloaded by the plugin). Migrated Angular 15 → 20 via step-by-step `ng update` chain in 2026-04. RxJS 7.8, TypeScript 5.9, zone.js 0.15. Linting: ESLint 9 + `angular-eslint` + `typescript-eslint` (TSLint + codelyzer removed). No E2E tests — Protractor + `e2e/` removed (EOL 2023, no replacement wired up yet; Playwright/Cypress would be the natural choice if E2E coverage is ever added).
-- **Other:** Lombok 1.18.38 (annotation processor declared explicitly in `maven-compiler-plugin` — required since JDK 23 deprecated implicit annotation processing), springdoc-openapi-starter-webmvc-ui 2.8.9 (Swagger UI), JaCoCo 0.8.13.
+- **Other:** Lombok 1.18.38 (annotation processor declared explicitly in `maven-compiler-plugin` — required since JDK 23 deprecated implicit annotation processing), springdoc-openapi-starter-webmvc-ui 3.0.3 (Swagger UI; the 3.x line targets Spring Boot 4.x — 2.8.x is the SB 3 line), JaCoCo 0.8.13. OpenAPI spec served as 3.1.0 (was 3.0.1 under SB 3 + springdoc 2.8.x).
 
 ## Build & run
 
