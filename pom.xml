@@ -15,7 +15,7 @@
 
     <properties>
         <java.version>25</java.version>
-        <lombok.version>1.18.38</lombok.version>
+        <lombok.version>1.18.46</lombok.version>
         <gmaven.plus.version>3.0.2</gmaven.plus.version>
         <openapi.version>3.0.3</openapi.version>
         <groovy.version>4.0.28</groovy.version>
