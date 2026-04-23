@@ -8,9 +8,10 @@ import {MatchService} from "../../service/match.service";
 import {Match} from "../../model/match";
 
 @Component({
-  selector: 'app-grade-list',
-  templateUrl: './grade-list.component.html',
-  styleUrls: ['./grade-list.component.scss']
+    selector: 'app-grade-list',
+    templateUrl: './grade-list.component.html',
+    styleUrls: ['./grade-list.component.scss'],
+    standalone: false
 })
 export class GradeListComponent implements OnInit {
 

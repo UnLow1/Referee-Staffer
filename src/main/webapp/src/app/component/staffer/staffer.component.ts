@@ -9,9 +9,10 @@ import {RefereeService} from "../../service/referee.service";
 import {MatchService} from "../../service/match.service";
 
 @Component({
-  selector: 'app-staffer',
-  templateUrl: './staffer.component.html',
-  styleUrls: ['./staffer.component.scss']
+    selector: 'app-staffer',
+    templateUrl: './staffer.component.html',
+    styleUrls: ['./staffer.component.scss'],
+    standalone: false
 })
 export class StafferComponent {
 

@@ -4,9 +4,10 @@ import {Team} from "../../model/team";
 import {Router} from "@angular/router";
 
 @Component({
-  selector: 'app-team-list',
-  templateUrl: './team-list.component.html',
-  styleUrls: ['./team-list.component.scss']
+    selector: 'app-team-list',
+    templateUrl: './team-list.component.html',
+    styleUrls: ['./team-list.component.scss'],
+    standalone: false
 })
 export class TeamListComponent implements OnInit {
 

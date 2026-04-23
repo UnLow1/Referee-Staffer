@@ -6,9 +6,10 @@ import {RefereeService} from "../../service/referee.service";
 import {Referee} from "../../model/referee";
 
 @Component({
-  selector: 'app-vacation-form',
-  templateUrl: './vacation-form.component.html',
-  styleUrls: ['./vacation-form.component.scss']
+    selector: 'app-vacation-form',
+    templateUrl: './vacation-form.component.html',
+    styleUrls: ['./vacation-form.component.scss'],
+    standalone: false
 })
 export class VacationFormComponent implements OnInit {
 

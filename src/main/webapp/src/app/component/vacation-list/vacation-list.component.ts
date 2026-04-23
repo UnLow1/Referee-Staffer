@@ -6,9 +6,10 @@ import {Referee} from "../../model/referee";
 import {RefereeService} from "../../service/referee.service";
 
 @Component({
-  selector: 'app-vacation-list',
-  templateUrl: './vacation-list.component.html',
-  styleUrls: ['./vacation-list.component.scss']
+    selector: 'app-vacation-list',
+    templateUrl: './vacation-list.component.html',
+    styleUrls: ['./vacation-list.component.scss'],
+    standalone: false
 })
 export class VacationListComponent implements OnInit {
 

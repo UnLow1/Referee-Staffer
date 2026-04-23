@@ -3,9 +3,10 @@ import {TeamService} from "../../service/team.service";
 import {Team} from "../../model/team";
 
 @Component({
-  selector: 'app-standings',
-  templateUrl: './standings.component.html',
-  styleUrls: ['./standings.component.scss']
+    selector: 'app-standings',
+    templateUrl: './standings.component.html',
+    styleUrls: ['./standings.component.scss'],
+    standalone: false
 })
 export class StandingsComponent implements OnInit {
 

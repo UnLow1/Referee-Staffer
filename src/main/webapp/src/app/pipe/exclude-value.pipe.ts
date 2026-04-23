@@ -1,7 +1,8 @@
 import {Pipe, PipeTransform} from '@angular/core';
 
 @Pipe({
-  name: 'excludeValue'
+    name: 'excludeValue',
+    standalone: false
 })
 export class ExcludeValuePipe implements PipeTransform {
 

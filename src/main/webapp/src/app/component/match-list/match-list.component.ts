@@ -8,12 +8,13 @@ import {Referee} from "../../model/referee";
 import {GradeService} from "../../service/grade.service";
 import {Grade} from "../../model/grade";
 import {Router} from "@angular/router";
-import _ from 'lodash';
+import {groupBy} from 'lodash-es';
 
 @Component({
-  selector: 'app-match-list',
-  templateUrl: './match-list.component.html',
-  styleUrls: ['./match-list.component.scss']
+    selector: 'app-match-list',
+    templateUrl: './match-list.component.html',
+    styleUrls: ['./match-list.component.scss'],
+    standalone: false
 })
 export class MatchListComponent implements OnInit {
 
@@ -21,16 +22,14 @@ export class MatchListComponent implements OnInit {
               private refereeService: RefereeService, private gradeService: GradeService) {
   }
 
-  groupedMatches: Map<number, Array<Match>>
+  groupedMatches: { [queue: number]: Array<Match> }
   teams: Team[]
   referees: Referee[]
   grades: Grade[]
 
   ngOnInit() {
     this.matchService.findAll().subscribe(matches => {
-      this.groupedMatches = _.groupBy(matches, function (match) {
-        return match.queue
-      })
+      this.groupedMatches = groupBy(matches, (match) => match.queue);
       let teamIds = matches.map(match => match.homeTeamId)
         .concat(matches.map(match => match.awayTeamId))
         .filter((item, i, ar) => ar.indexOf(item) === i)

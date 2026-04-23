@@ -4,9 +4,10 @@ import {Referee} from "../../model/referee";
 import {Router} from "@angular/router";
 
 @Component({
-  selector: 'app-referee-list',
-  templateUrl: './referee-list.component.html',
-  styleUrls: ['./referee-list.component.scss']
+    selector: 'app-referee-list',
+    templateUrl: './referee-list.component.html',
+    styleUrls: ['./referee-list.component.scss'],
+    standalone: false
 })
 export class RefereeListComponent implements OnInit {
 

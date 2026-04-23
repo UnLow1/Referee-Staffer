@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {HttpClient, HttpHeaders} from "@angular/common/http";
+import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Grade} from "../model/grade";
 import {Match} from "../model/match";

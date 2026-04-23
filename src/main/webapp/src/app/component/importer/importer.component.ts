@@ -4,9 +4,10 @@ import {ImportResponse} from "../../request/importResonse";
 import { saveAs } from 'file-saver';
 
 @Component({
-  selector: 'app-importer',
-  templateUrl: './importer.component.html',
-  styleUrls: ['./importer.component.scss']
+    selector: 'app-importer',
+    templateUrl: './importer.component.html',
+    styleUrls: ['./importer.component.scss'],
+    standalone: false
 })
 export class ImporterComponent {
 

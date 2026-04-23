@@ -4,9 +4,10 @@ import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {TeamService} from "../../service/team.service";
 
 @Component({
-  selector: 'app-team-form',
-  templateUrl: './team-form.component.html',
-  styleUrls: ['./team-form.component.scss']
+    selector: 'app-team-form',
+    templateUrl: './team-form.component.html',
+    styleUrls: ['./team-form.component.scss'],
+    standalone: false
 })
 export class TeamFormComponent implements OnInit {
 

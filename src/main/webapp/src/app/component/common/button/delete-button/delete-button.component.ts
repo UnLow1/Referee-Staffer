@@ -1,9 +1,10 @@
 import {Component, EventEmitter, Output} from '@angular/core';
 
 @Component({
-  selector: 'delete-button',
-  templateUrl: './delete-button.component.html',
-  styleUrls: ['./delete-button.component.scss']
+    selector: 'delete-button',
+    templateUrl: './delete-button.component.html',
+    styleUrls: ['./delete-button.component.scss'],
+    standalone: false
 })
 export class DeleteButtonComponent {
 

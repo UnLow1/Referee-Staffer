@@ -3,9 +3,10 @@ import {Config} from "../../model/config";
 import {ConfigurationService} from "../../service/configuration.service";
 
 @Component({
-  selector: 'app-configuration',
-  templateUrl: './configuration.component.html',
-  styleUrls: ['./configuration.component.scss']
+    selector: 'app-configuration',
+    templateUrl: './configuration.component.html',
+    styleUrls: ['./configuration.component.scss'],
+    standalone: false
 })
 export class ConfigurationComponent implements OnInit {
 

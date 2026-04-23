@@ -10,9 +10,10 @@ import {Grade} from "../../model/grade";
 import {GradeService} from "../../service/grade.service";
 
 @Component({
-  selector: 'app-match-form',
-  templateUrl: './match-form.component.html',
-  styleUrls: ['./match-form.component.scss']
+    selector: 'app-match-form',
+    templateUrl: './match-form.component.html',
+    styleUrls: ['./match-form.component.scss'],
+    standalone: false
 })
 export class MatchFormComponent implements OnInit {
 

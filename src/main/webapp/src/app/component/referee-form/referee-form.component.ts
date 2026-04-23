@@ -4,9 +4,10 @@ import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {RefereeService} from "../../service/referee.service";
 
 @Component({
-  selector: 'app-referee-form',
-  templateUrl: './referee-form.component.html',
-  styleUrls: ['./referee-form.component.scss']
+    selector: 'app-referee-form',
+    templateUrl: './referee-form.component.html',
+    styleUrls: ['./referee-form.component.scss'],
+    standalone: false
 })
 export class RefereeFormComponent implements OnInit {
 

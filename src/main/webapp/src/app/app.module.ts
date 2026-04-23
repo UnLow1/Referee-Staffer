@@ -8,7 +8,7 @@ import {RefereeFormComponent} from './component/referee-form/referee-form.compon
 import {RefereeService} from "./service/referee.service";
 import {AppRoutingModule} from "./app.routes";
 import {FormsModule} from "@angular/forms";
-import {HttpClientModule} from "@angular/common/http";
+import { provideHttpClient, withInterceptorsFromDi } from "@angular/common/http";
 import {MatchListComponent} from './component/match-list/match-list.component';
 import {MatchFormComponent} from './component/match-form/match-form.component';
 import {GradeListComponent} from './component/grade-list/grade-list.component';
@@ -30,41 +30,34 @@ import {AddButtonComponent} from './component/common/button/add-button/add-butto
 import {VacationListComponent} from './component/vacation-list/vacation-list.component';
 import {VacationFormComponent} from './component/vacation-form/vacation-form.component';
 
-@NgModule({
-  declarations: [
-    AppComponent,
-    RefereeListComponent,
-    RefereeFormComponent,
-    MatchListComponent,
-    MatchFormComponent,
-    GradeListComponent,
-    TeamListComponent,
-    TeamFormComponent,
-    StafferComponent,
-    ImporterComponent,
-    StandingsComponent,
-    ExcludeValuePipe,
-    ConfigurationComponent,
-    InfoModalComponent,
-    HeaderComponent,
-    FooterComponent,
-    EditButtonComponent,
-    DeleteButtonComponent,
-    AddButtonComponent,
-    VacationListComponent,
-    VacationFormComponent
-  ],
-  imports: [
-    BrowserModule,
-    RouterModule,
-    AppRoutingModule,
-    HttpClientModule,
-    MatDialogModule,
-    BrowserAnimationsModule,
-    FormsModule
-  ],
-  providers: [RefereeService],
-  bootstrap: [AppComponent]
-})
+@NgModule({ declarations: [
+        AppComponent,
+        RefereeListComponent,
+        RefereeFormComponent,
+        MatchListComponent,
+        MatchFormComponent,
+        GradeListComponent,
+        TeamListComponent,
+        TeamFormComponent,
+        StafferComponent,
+        ImporterComponent,
+        StandingsComponent,
+        ExcludeValuePipe,
+        ConfigurationComponent,
+        InfoModalComponent,
+        HeaderComponent,
+        FooterComponent,
+        EditButtonComponent,
+        DeleteButtonComponent,
+        AddButtonComponent,
+        VacationListComponent,
+        VacationFormComponent
+    ],
+    bootstrap: [AppComponent], imports: [BrowserModule,
+        RouterModule,
+        AppRoutingModule,
+        MatDialogModule,
+        BrowserAnimationsModule,
+        FormsModule], providers: [RefereeService, provideHttpClient(withInterceptorsFromDi())] })
 export class AppModule {
 }

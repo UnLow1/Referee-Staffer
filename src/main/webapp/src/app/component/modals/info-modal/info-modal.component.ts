@@ -3,9 +3,10 @@ import {MAT_DIALOG_DATA} from '@angular/material/dialog';
 import {ModalData} from "../../../model/modalData";
 
 @Component({
-  selector: 'app-info-modal',
-  templateUrl: './info-modal.component.html',
-  styleUrls: ['./info-modal.component.scss']
+    selector: 'app-info-modal',
+    templateUrl: './info-modal.component.html',
+    styleUrls: ['./info-modal.component.scss'],
+    standalone: false
 })
 export class InfoModalComponent {
 
