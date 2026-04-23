@@ -11,47 +11,47 @@
 
 ## How it works
 
-In all formulas
-
-<img src="https://latex.codecogs.com/svg.latex?\alpha,\beta,\gamma,\delta,\epsilon-constants" />
+In all formulas $\alpha, \beta, \gamma, \delta, \epsilon$ - constants
 
 ### Referee's potential
 
-<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q}=\alpha\frac{\sum_{j=1}^{n_{i}}G_{i}^{j}}{n_{i}}+\beta%20E_{i}^{q-1}" />
+$$P_{i}^{q} = \alpha \frac{\sum_{j=1}^{n_{i}} G_{i}^{j}}{n_{i}} + \beta E_{i}^{q-1}$$
 
 where
 
-<img src="https://latex.codecogs.com/svg.latex?0<={n_i}<q"/><br>
-<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q}\text{%20-%20potential%20of%20referee%20$i$%20in%20queue%20$q$}" /><br>
-<img src="https://latex.codecogs.com/svg.latex?n_{i}\text{%20-%20number%20of%20grades%20from%20observers%20received%20by%20referee%20$i$}" /><br>
-<img src="https://latex.codecogs.com/svg.latex?G_{i}^{j}\text{%20-%20grade%20$j$%20of%20referee%20$i$}" /><br>
-<img src="https://latex.codecogs.com/svg.latex?E_{i}^{q-1}\text{%20-%20number%20of%20all%20matches%20refereed%20by%20referee%20$i$%20until%20queue%20$q-1$}" />
+$0 \leq n_{i} < q$ <br>
+$P_{i}^{q}$ - potential of referee $i$ in queue $q$ <br>
+$n_{i}$ - number of grades from observers received by referee $i$ <br>
+$G_{i}^{j}$ - grade $j$ of referee $i$ <br>
+$E_{i}^{q-1}$ - number of all matches refereed by referee $i$ until queue $q-1$
 
 ### Match's difficulty
 
 [//]: # (TODO is alpha needed?)
-<img src="https://latex.codecogs.com/svg.latex?D_{i}^{q}=\alpha(\beta-|P_{i}^{q-1}|)+\gamma%20C_{i}+\delta%20T_{i}^{q-1}+\epsilon%20L_{i}^{q-1}" />
+
+$$D_{i}^{q} = \alpha (\beta - |P_{i}^{q-1}|) + \gamma C_{i} + \delta T_{i}^{q-1} + \epsilon L_{i}^{q-1}$$
 
 where
 
-<img src="https://latex.codecogs.com/svg.latex?D_{i}^{q}\text{%20-%20difficulty%20of%20match%20$i$%20in%20queue%20$q$}" /><br>
-<img src="https://latex.codecogs.com/svg.latex?P_{i}^{q-1}\text{%20-%20points%20difference%20between%20teams%20in%20match%20$i$%20after%20queue%20$q-1$}" /><br>
-<img src="https://latex.codecogs.com/svg.image?C_i=\left\{\begin{matrix}1&\text{teams%20in%20match%20$i$%20are%20from%20the%20same%20city}\\0&\text{in%20other%20case}\end{matrix}\right." /><br>
-<img src="https://latex.codecogs.com/svg.image?T_{i}^{q-1}=\left\{\begin{matrix}1&\text{teams%20in%20match%20$i$%20are%20in%20the%20top%203%20in%20standings%20after%20queue%20$q-1$}\\0&\text{in%20other%20case}\end{matrix}\right." /><br>
-<img src="https://latex.codecogs.com/svg.image?L_{i}^{q-1}=\left\{\begin{matrix}1&\text{teams%20in%20match%20$i$%20are%20in%20the%20last%203%20in%20standings%20after%20queue%20$q-1$}\\0&\text{in%20other%20case}\end{matrix}\right." />
+$D_{i}^{q}$ - difficulty of match $i$ in queue $q$ <br>
+$P_{i}^{q-1}$ - points difference between teams in match $i$ after queue $q-1$ <br>
+$\displaystyle C_{i} = \begin{cases} 1 & \text{teams in match } i \text{ are from the same city} \\ 0 & \text{in other case} \end{cases}$ <br>
+$\displaystyle T_{i}^{q-1} = \begin{cases} 1 & \text{teams in match } i \text{ are in the top 3 in standings after queue } q-1 \\ 0 & \text{in other case} \end{cases}$ <br>
+$\displaystyle L_{i}^{q-1} = \begin{cases} 1 & \text{teams in match } i \text{ are in the last 3 in standings after queue } q-1 \\ 0 & \text{in other case} \end{cases}$
 
 ### Referee's effective value
 
 [//]: # (TODO maybe sum H and G and get rid off one constant)
-<img src="https://latex.codecogs.com/svg.image?E_{i}^{q}=P_{i}^{q}-\alpha%20C_{i}^{q-1}-\beta%20H_{i}^{q-1}-\gamma%20G_{i}^{q-1}" />
+
+$$E_{i}^{q} = P_{i}^{q} - \alpha C_{i}^{q-1} - \beta H_{i}^{q-1} - \gamma G_{i}^{q-1}$$
 
 where
 
-<img src="https://latex.codecogs.com/svg.image?E_{i}^{q}\text{%20-%20effective%20value%20of%20referee%20$i$%20in%20queue%20$q$}" /><br>
-<img src="https://latex.codecogs.com/svg.image?P_{i}^{q}\text{%20-%20potential%20of%20referee%20$i$%20in%20queue%20$q$}" /><br>
-<img src="https://latex.codecogs.com/svg.image?C_{i}^{q-1}\text{%20-%20number%20of%20matches%20refereed%20by%20referee%20$i$%20until%20queue%20$q-1$}" /><br>
-<img src="https://latex.codecogs.com/svg.image?H_{i}^{q-1}\text{%20-%20number%20of%20home%20team%20matches%20to%20be%20refereed%20by%20referee%20$i$%20until%20queue%20$q-1$}" /><br>
-<img src="https://latex.codecogs.com/svg.image?G_{i}^{q-1}\text{%20-%20number%20of%20guest%20team%20matches%20to%20be%20refereed%20by%20referee%20$i$%20until%20queue%20$q-1$}" />
+$E_{i}^{q}$ - effective value of referee $i$ in queue $q$ <br>
+$P_{i}^{q}$ - potential of referee $i$ in queue $q$ <br>
+$C_{i}^{q-1}$ - number of matches refereed by referee $i$ until queue $q-1$ <br>
+$H_{i}^{q-1}$ - number of home team matches to be refereed by referee $i$ until queue $q-1$ <br>
+$G_{i}^{q-1}$ - number of guest team matches to be refereed by referee $i$ until queue $q-1$
 
 ## Sample screenshots
 
