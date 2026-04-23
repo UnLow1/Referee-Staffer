@@ -11,8 +11,8 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 ## Tech stack
 
 - **Backend:** Spring Boot 3.5.6, Java 25 (Corretto 25.0.2), Maven. Uses `jakarta.*` (JPA, validation) — migrated from `javax.*` in 2026-04.
-- **Tests:** Spock 2.3 (`spock-core:2.3-groovy-4.0`) compiled with Groovy 4.0.28 via `gmavenplus-plugin` 3.0.2. Classifier/Groovy versions aligned — previously was a mismatch (Groovy 3 + `groovy-4.0` classifier).
-- **Frontend:** Angular 15 under `src/main/webapp/`, built by `frontend-maven-plugin` 1.6 as part of the Maven build (Node 16.13.0, npm 8.1.0 downloaded by the plugin). Not yet bumped — out of scope of Java 25 migration.
+- **Tests:** Spock `2.4-M6-groovy-4.0` compiled with Groovy 4.0.28 via `gmavenplus-plugin` 3.0.2. Classifier/Groovy versions aligned — previously was a mismatch (Groovy 3 + `groovy-4.0` classifier). **Gotcha:** Spock has not released a stable 2.4 and has not patched 2.3 since September 2022; the `2.4-M*` milestone line has ~4 years of active development and is de facto the stable track. If you see stale "Spock 2.3" references anywhere, that's historical.
+- **Frontend:** Angular 20 under `src/main/webapp/`, built by `frontend-maven-plugin` 1.15.1 as part of the Maven build (Node 22.22.2, npm 10.9.7 downloaded by the plugin). Migrated Angular 15 → 20 via step-by-step `ng update` chain in 2026-04. RxJS 7.8, TypeScript 5.9, zone.js 0.15. Linting: ESLint 9 + `angular-eslint` + `typescript-eslint` (TSLint + codelyzer removed). No E2E tests — Protractor + `e2e/` removed (EOL 2023, no replacement wired up yet; Playwright/Cypress would be the natural choice if E2E coverage is ever added).
 - **Other:** Lombok 1.18.38 (annotation processor declared explicitly in `maven-compiler-plugin` — required since JDK 23 deprecated implicit annotation processing), springdoc-openapi-starter-webmvc-ui 2.8.9 (Swagger UI), JaCoCo 0.8.13.
 
 ## Build & run
@@ -63,7 +63,7 @@ GitHub Actions workflows under `.github/workflows/`:
 **Known issues across workflows (not silently fix — flag first):**
 
 - `maven.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-java@v1`, `actions/upload-artifact@v2`. `java-version: 1.18` is wrong — the project is Java 25 (bump from 17 in 2026-04).
-- `nodejs.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-node@v1`. Step order is also broken: runs `npm ci` → `npm run build` → `npm install` (the trailing `npm install` re-resolves from `package.json` and undoes the deterministic install). Workflow is also redundant with `mvn package` (which builds the frontend via `frontend-maven-plugin`).
+- `nodejs.yml`: outdated actions — `actions/checkout@v2`, `actions/setup-node@v1` (the pinned Node version in the workflow is also stale — frontend now needs Node 22). Step order is also broken: runs `npm ci` → `npm run build` → `npm install` (the trailing `npm install` re-resolves from `package.json` and undoes the deterministic install). Workflow is also redundant with `mvn package` (which builds the frontend via `frontend-maven-plugin`). Strong candidate for deletion.
 - `codeql-analysis.yml`: **CodeQL v1 actions are deprecated** (`github/codeql-action/init@v1`, `autobuild@v1`, `analyze@v1`) — GitHub will/does reject runs on these versions. This workflow likely fails or will fail soon. Also uses `actions/checkout@v2`. (Note: `java-version: 17` with Zulu — stale, project is now Java 25.)
 
 ## CD
@@ -93,7 +93,7 @@ GitHub Actions workflows under `.github/workflows/`:
 
 - `src/main/java/com/jamex/refereestaffer/` — Spring Boot sources
 - `src/main/resources/` — `application*.yml`, `data.sql`, `example import.csv`
-- `src/main/webapp/` — Angular 15 frontend (own `package.json`)
+- `src/main/webapp/` — Angular 20 frontend (own `package.json`, own `eslint.config.js`)
 - `src/test/groovy/com/jamex/refereestaffer/` — Spock specs
 - `src/test/resources/` — `SpockConfig.groovy`, `test file.csv`
 - `data/` — `import data file.csv` plus `screenshots/` referenced from `README.md`. Committed to the repo (not generated).
