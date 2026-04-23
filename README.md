@@ -5,8 +5,8 @@
 [![Snyk.io vulnerabilities](https://snyk.io/test/github/UnLow1/Referee-Staffer/badge.svg)](https://app.snyk.io/org/unlow1/projects)
 [![codeclimate](https://codeclimate.com/github/UnLow1/Referee-Staffer/badges/gpa.svg)](https://codeclimate.com/github/UnLow1/Referee-Staffer)
 
-[![Java CI with Maven](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml)
-[![Node.js CI](https://github.com/UnLow1/Referee-Staffer/actions/workflows/nodejs.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/nodejs.yml)
+[![Backend CI (Maven)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml)
+[![Frontend CI (Angular)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/frontend.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/frontend.yml)
 [![CodeQL](https://github.com/UnLow1/Referee-Staffer/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/codeql-analysis.yml)
 
 ## How it works

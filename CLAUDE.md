@@ -54,20 +54,30 @@ Seed data: `src/main/resources/data.sql` runs in **every** profile, but via diff
 
 ## CI
 
-GitHub Actions workflows under `.github/workflows/`:
+GitHub Actions workflows under `.github/workflows/`, split by concern:
 
-- `maven.yml` — Java/Maven build, JaCoCo badge generation and commit, coverage artifact upload.
-- `nodejs.yml` — Node.js/Angular build (redundant with `mvn package`, but currently active).
-- `codeql-analysis.yml` — GitHub CodeQL security scanning.
+- `maven.yml` — **Backend only**. Builds Spring Boot with Maven, runs Spock specs, generates + commits the JaCoCo badge, uploads the coverage report. Triggers only on backend paths (`pom.xml`, `src/main/java/**`, `src/main/resources/**`, `src/test/**`). Builds with `-DskipFrontend=true` so the frontend-maven-plugin doesn't run.
+- `frontend.yml` — **Frontend only**. Runs `npm ci`, `npm run build`, and `npm test` (Angular/Karma) on Node 22.22.2. Triggers only on `src/main/webapp/**`. Lint is **not** run — `npm run lint` currently surfaces ~134 pre-existing `@angular-eslint/prefer-inject` errors; re-enable once cleaned up.
+- `codeql-analysis.yml` — GitHub CodeQL security scanning (Java + JavaScript).
 
-**Modernized 2026-04-23:**
+**Split rationale:** the old arrangement built the frontend twice (once inside `mvn package` via `frontend-maven-plugin`, once in a separate `nodejs.yml`) and the frontend workflow was broken (`npm ci` → `npm run build` → `npm install` undid the deterministic install, `npm test` was commented out). Now backend and frontend each have one authoritative workflow with a `paths:` filter, so backend-only changes don't spin up a Node install.
+
+**Skipping the frontend in Maven:** `pom.xml` defines a `skipFrontend` property (default `false`). Each `frontend-maven-plugin` execution respects `<skip>${skipFrontend}</skip>`, so `mvn -DskipFrontend=true package` skips install-node-and-npm, npm install, and the Angular build. Note: plugin-level `<skip>` and `-Dfrontend.skip` do **not** work reliably on 1.15.1 — the per-execution flag is the one that actually skips.
+
+**Karma config gotcha:** `src/main/webapp/src/karma.conf.js` previously required `karma-coverage-istanbul-reporter`, which was removed in the Angular 15 → 20 migration, so `ng test` errored on startup. Now uses `karma-coverage` and defines a `ChromeHeadlessNoSandbox` custom launcher (base: `ChromeHeadless`, flags: `--no-sandbox --disable-gpu`) for CI. A duplicate `src/main/webapp/karma.conf.js` at the webapp root was dead (not referenced by `angular.json`) and was deleted.
+
+**Modernized 2026-04-23 (backend / CodeQL):**
 
 - `maven.yml`: bumped to `actions/checkout@v4`, `actions/setup-java@v4` (`distribution: temurin`, `java-version: 25`, `cache: maven`), `actions/upload-artifact@v4`.
 - `codeql-analysis.yml`: bumped CodeQL actions from v1 to v3 (`init@v3`, `autobuild@v3`, `analyze@v3`) — previously deprecated and rejected by GitHub. Also `actions/checkout@v4`, `actions/setup-java@v4` on Temurin 25.
 
-**Still outstanding:**
+## Dependabot
 
-- `nodejs.yml`: outdated actions (`actions/checkout@v2`, `actions/setup-node@v1`), pinned Node version is stale (frontend now needs Node 22), and step order is broken: runs `npm ci` → `npm run build` → `npm install` (the trailing `npm install` re-resolves from `package.json` and undoes the deterministic install). Workflow is also redundant with `mvn package` (which builds the frontend via `frontend-maven-plugin`). Strong candidate for deletion.
+`.github/dependabot.yml` — weekly Maven + npm updates, monthly GitHub Actions updates. Grouped so related packages land in one PR:
+
+- Maven: `spring-boot`, `spring-ecosystem`, `test-stack` (Spock/Groovy/gmavenplus), `build-plugins` (maven plugins, JaCoCo, frontend-maven-plugin).
+- npm: `angular`, `eslint`, `karma-jasmine`, `types`.
+- GitHub Actions: ungrouped, monthly.
 
 ## CD
 

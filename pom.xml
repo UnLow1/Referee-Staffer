@@ -21,6 +21,9 @@
         <groovy.version>4.0.28</groovy.version>
         <spock.version>2.4-M6-groovy-4.0</spock.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
+             Override with -DskipFrontend=true. -->
+        <skipFrontend>false</skipFrontend>
     </properties>
 
     <dependencies>
@@ -163,6 +166,9 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <phase>generate-resources</phase>
+                        <configuration>
+                            <skip>${skipFrontend}</skip>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>npm install</id>
@@ -171,6 +177,7 @@
                         </goals>
                         <configuration>
                             <arguments>install</arguments>
+                            <skip>${skipFrontend}</skip>
                         </configuration>
                     </execution>
                     <execution>
@@ -181,6 +188,7 @@
                         </goals>
                         <configuration>
                             <arguments>run-script build</arguments>
+                            <skip>${skipFrontend}</skip>
                         </configuration>
                     </execution>
                 </executions>
