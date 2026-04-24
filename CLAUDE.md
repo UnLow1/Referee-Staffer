@@ -87,12 +87,12 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 
 `README.md` has diverged from the actual implementation and environment — review before trusting it:
 
-- **Badges**: includes a Travis CI badge (service is effectively dead for this project), a Snyk badge, and a CodeClimate badge. Activity/validity of Snyk and CodeClimate integrations is unverified — badges may be stale or broken.
+- **Badges**: a Snyk badge and a CodeClimate badge are still in the README. Activity/validity of those integrations is unverified — badges may be stale or broken. (Travis badge removed 2026-04-24 alongside `.travis.yml`.)
 - **Algorithm formulas (LaTeX)**: the README describes the scoring algorithm with hard-coded "top 3" / "last 3" thresholds for edge matches, but the code uses the configurable `NUMBER_OF_EDGE_TEAMS` parameter. The formulas also do not fully reflect the current weights in `data.sql`. Treat the README math as **historical design notes**, not ground truth — `StafferService.countRefereePotentialLvl` and `MatchService.countHardnessLvl` are authoritative.
 
 ## Legacy / dead files
 
-- `.travis.yml` — Travis CI free tier is effectively defunct. Do not treat it as authoritative. (Kept in the repo for now since builds reportedly still run; will be removed once the new CI is verified.)
+- `.travis.yml` — removed 2026-04-24. Travis CI free tier is effectively defunct; GitHub Actions (`maven.yml`, `frontend.yml`, `codeql-analysis.yml`) are now the single source of CI truth.
 - `system.properties` — removed 2026-04-23. Was a Heroku Java runtime hint (`java.runtime.version=18`); Heroku free tier ended November 2022 and the project is not deployed there.
 - Commit `0304975` (reverted by `e198a13`) attempted an AWS Aurora + Secrets Manager migration. Ignore these files if they appear in history/blame searches — they are not the direction of the project.
 
