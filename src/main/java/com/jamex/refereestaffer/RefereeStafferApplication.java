@@ -8,7 +8,8 @@ import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,8 +20,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @SpringBootApplication
-@Slf4j
 public class RefereeStafferApplication {
+
+    private static final Logger log = LoggerFactory.getLogger(RefereeStafferApplication.class);
 
     public static void main(String[] args) {
         SpringApplication.run(RefereeStafferApplication.class, args);

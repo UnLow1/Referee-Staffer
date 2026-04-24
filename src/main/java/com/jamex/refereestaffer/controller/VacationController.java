@@ -4,8 +4,8 @@ import com.jamex.refereestaffer.model.converter.VacationConverter;
 import com.jamex.refereestaffer.model.dto.VacationDto;
 import com.jamex.refereestaffer.model.exception.VacationNotFoundException;
 import com.jamex.refereestaffer.repository.VacationRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,14 +17,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collection;
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/vacations")
 public class VacationController {
 
+    private static final Logger log = LoggerFactory.getLogger(VacationController.class);
+
     private final VacationRepository vacationRepository;
     private final VacationConverter vacationConverter;
+
+    public VacationController(VacationRepository vacationRepository, VacationConverter vacationConverter) {
+        this.vacationRepository = vacationRepository;
+        this.vacationConverter = vacationConverter;
+    }
 
     @GetMapping
     public Collection<VacationDto> getVacations() {

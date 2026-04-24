@@ -1,10 +1,5 @@
 package com.jamex.refereestaffer.model.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@AllArgsConstructor
-@Getter
 public enum ConfigName {
     DIFFICULTY_LEVEL_MULTIPLIER,
     DIFFICULTY_LEVEL_INCREMENTER,

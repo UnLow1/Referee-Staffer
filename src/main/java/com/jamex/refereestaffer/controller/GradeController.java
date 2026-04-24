@@ -6,8 +6,8 @@ import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.service.GradeService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,15 +19,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collection;
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/grades")
 public class GradeController {
+
+    private static final Logger log = LoggerFactory.getLogger(GradeController.class);
 
     private final GradeRepository gradeRepository;
     private final GradeConverter gradeConverter;
     private final GradeService gradeService;
+
+    public GradeController(GradeRepository gradeRepository, GradeConverter gradeConverter, GradeService gradeService) {
+        this.gradeRepository = gradeRepository;
+        this.gradeConverter = gradeConverter;
+        this.gradeService = gradeService;
+    }
 
     @GetMapping
     public Collection<GradeDto> getGrades() {

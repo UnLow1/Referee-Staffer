@@ -8,18 +8,22 @@ import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-@RequiredArgsConstructor
 @Component
 public class MatchConverter implements BaseConverter<Match, MatchDto> {
 
     private final TeamRepository teamRepository;
     private final RefereeRepository refereeRepository;
     private final GradeRepository gradeRepository;
+
+    public MatchConverter(TeamRepository teamRepository, RefereeRepository refereeRepository, GradeRepository gradeRepository) {
+        this.teamRepository = teamRepository;
+        this.refereeRepository = refereeRepository;
+        this.gradeRepository = gradeRepository;
+    }
 
     @Override
     public MatchDto convertFromEntity(Match entity) {
@@ -28,17 +32,16 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
         var grade = Optional.ofNullable(entity.getGrade())
                 .map(Grade::getId);
 
-        return MatchDto.builder()
-                .id(entity.getId())
-                .queue(entity.getQueue())
-                .homeTeamId(entity.getHome().getId())
-                .awayTeamId(entity.getAway().getId())
-                .date(entity.getDate())
-                .refereeId(referee.orElse(null))
-                .gradeId(grade.orElse(null))
-                .homeScore(entity.getHomeScore())
-                .awayScore(entity.getAwayScore())
-                .build();
+        return new MatchDto(
+                entity.getId(),
+                entity.getQueue(),
+                entity.getHome().getId(),
+                entity.getAway().getId(),
+                entity.getDate(),
+                referee.orElse(null),
+                entity.getHomeScore(),
+                entity.getAwayScore(),
+                grade.orElse(null));
     }
 
     @Override
@@ -52,16 +55,16 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
         var grade = Optional.ofNullable(dto.getGradeId())
                 .flatMap(gradeRepository::findById);
 
-        return Match.builder()
-                .id(dto.getId())
-                .queue(dto.getQueue())
-                .home(homeTeam)
-                .away(awayTeam)
-                .date(dto.getDate())
-                .referee(referee.orElse(null))
-                .grade(grade.orElse(null))
-                .homeScore(dto.getHomeScore())
-                .awayScore(dto.getAwayScore())
-                .build();
+        return new Match(
+                dto.getId(),
+                dto.getQueue(),
+                homeTeam,
+                awayTeam,
+                dto.getDate(),
+                referee.orElse(null),
+                grade.orElse(null),
+                dto.getHomeScore(),
+                dto.getAwayScore(),
+                0.0);
     }
 }

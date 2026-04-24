@@ -6,8 +6,8 @@ import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import com.jamex.refereestaffer.service.TeamService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,15 +19,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collection;
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/teams")
 public class TeamController {
+
+    private static final Logger log = LoggerFactory.getLogger(TeamController.class);
 
     private final TeamService teamService;
     private final TeamRepository teamRepository;
     private final TeamConverter teamConverter;
+
+    public TeamController(TeamService teamService, TeamRepository teamRepository, TeamConverter teamConverter) {
+        this.teamService = teamService;
+        this.teamRepository = teamRepository;
+        this.teamConverter = teamConverter;
+    }
 
     @GetMapping
     public Collection<TeamDto> getTeams() {

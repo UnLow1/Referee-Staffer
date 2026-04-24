@@ -5,8 +5,8 @@ import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.service.MatchService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,15 +19,21 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Collection;
 import java.util.List;
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/matches")
 public class MatchController {
+
+    private static final Logger log = LoggerFactory.getLogger(MatchController.class);
 
     private final MatchRepository matchRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
+
+    public MatchController(MatchRepository matchRepository, MatchConverter matchConverter, MatchService matchService) {
+        this.matchRepository = matchRepository;
+        this.matchConverter = matchConverter;
+        this.matchService = matchService;
+    }
 
     @GetMapping
     public Collection<MatchDto> getMatches() {

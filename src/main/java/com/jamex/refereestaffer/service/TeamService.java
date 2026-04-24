@@ -3,7 +3,6 @@ package com.jamex.refereestaffer.service;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -12,13 +11,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@RequiredArgsConstructor
 @Service
 public class TeamService {
 
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
     private final MatchService matchService;
+
+    public TeamService(TeamRepository teamRepository, MatchRepository matchRepository, MatchService matchService) {
+        this.teamRepository = teamRepository;
+        this.matchRepository = matchRepository;
+        this.matchService = matchService;
+    }
 
     public Collection<Team> getStandings() {
         var matches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();

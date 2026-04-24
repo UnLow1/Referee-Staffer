@@ -6,8 +6,8 @@ import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.service.RefereeService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,15 +19,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collection;
 
-@Slf4j
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/referees")
 public class RefereeController {
+
+    private static final Logger log = LoggerFactory.getLogger(RefereeController.class);
 
     private final RefereeRepository refereeRepository;
     private final RefereeConverter refereeConverter;
     private final RefereeService refereeService;
+
+    public RefereeController(RefereeRepository refereeRepository, RefereeConverter refereeConverter, RefereeService refereeService) {
+        this.refereeRepository = refereeRepository;
+        this.refereeConverter = refereeConverter;
+        this.refereeService = refereeService;
+    }
 
     @GetMapping
     public Collection<RefereeDto> getReferees() {

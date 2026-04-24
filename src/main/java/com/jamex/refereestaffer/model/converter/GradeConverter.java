@@ -5,21 +5,20 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-@RequiredArgsConstructor
 @Component
 public class GradeConverter implements BaseConverter<Grade, GradeDto> {
 
     private final GradeRepository gradeRepository;
 
+    public GradeConverter(GradeRepository gradeRepository) {
+        this.gradeRepository = gradeRepository;
+    }
+
     @Override
     public GradeDto convertFromEntity(Grade entity) {
-        return GradeDto.builder()
-                .id(entity.getId())
-                .value(entity.getValue())
-                .build();
+        return new GradeDto(entity.getId(), entity.getValue());
     }
 
     @Override
@@ -31,10 +30,6 @@ public class GradeConverter implements BaseConverter<Grade, GradeDto> {
                     .map(Grade::getMatch)
                     .orElseThrow(() -> new GradeNotFoundException(dto.getId()));
         }
-        return Grade.builder()
-                .id(dto.getId())
-                .value(dto.getValue())
-                .match(match)
-                .build();
+        return new Grade(dto.getId(), dto.getValue(), match);
     }
 }

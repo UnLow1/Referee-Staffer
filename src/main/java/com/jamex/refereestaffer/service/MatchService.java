@@ -8,8 +8,8 @@ import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-@Slf4j
-@RequiredArgsConstructor
 @Service
 public class MatchService {
+
+    private static final Logger log = LoggerFactory.getLogger(MatchService.class);
 
     static final short POINTS_FOR_WIN_MATCH = 3;
     static final short POINTS_FOR_DRAW_MATCH = 1;
@@ -29,6 +29,14 @@ public class MatchService {
     private final GradeRepository gradeRepository;
     private final ConfigurationRepository configurationRepository;
     private final TeamRepository teamRepository;
+
+    public MatchService(MatchRepository matchRepository, GradeRepository gradeRepository,
+                        ConfigurationRepository configurationRepository, TeamRepository teamRepository) {
+        this.matchRepository = matchRepository;
+        this.gradeRepository = gradeRepository;
+        this.configurationRepository = configurationRepository;
+        this.teamRepository = teamRepository;
+    }
 
     public void calculatePointsForTeams(List<Match> matches) {
         for (var match : matches) {

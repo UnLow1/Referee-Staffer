@@ -4,23 +4,24 @@ import com.jamex.refereestaffer.model.dto.VacationDto;
 import com.jamex.refereestaffer.model.entity.Vacation;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.repository.RefereeRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-@RequiredArgsConstructor
 @Component
 public class VacationConverter implements BaseConverter<Vacation, VacationDto> {
 
     private final RefereeRepository refereeRepository;
 
+    public VacationConverter(RefereeRepository refereeRepository) {
+        this.refereeRepository = refereeRepository;
+    }
+
     @Override
     public VacationDto convertFromEntity(Vacation entity) {
-        return VacationDto.builder()
-                .id(entity.getId())
-                .refereeId(entity.getReferee().getId())
-                .startDate(entity.getStartDate())
-                .endDate(entity.getEndDate())
-                .build();
+        return new VacationDto(
+                entity.getId(),
+                entity.getReferee().getId(),
+                entity.getStartDate(),
+                entity.getEndDate());
     }
 
     @Override
@@ -28,11 +29,6 @@ public class VacationConverter implements BaseConverter<Vacation, VacationDto> {
         var referee = refereeRepository.findById(dto.getRefereeId())
                 .orElseThrow(() -> new RefereeNotFoundException(dto.getRefereeId()));
 
-        return Vacation.builder()
-                .id(dto.getId())
-                .referee(referee)
-                .startDate(dto.getStartDate())
-                .endDate(dto.getEndDate())
-                .build();
+        return new Vacation(dto.getId(), referee, dto.getStartDate(), dto.getEndDate());
     }
 }

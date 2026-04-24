@@ -9,23 +9,26 @@ public class RefereeConverter implements BaseConverter<Referee, RefereeDto> {
 
     @Override
     public RefereeDto convertFromEntity(Referee entity) {
-        return RefereeDto.builder()
-                .id(entity.getId())
-                .firstName(entity.getFirstName())
-                .lastName(entity.getLastName())
-                .email(entity.getEmail())
-                .experience(entity.getExperience())
-                .build();
+        return new RefereeDto(
+                entity.getId(),
+                entity.getFirstName(),
+                entity.getLastName(),
+                entity.getEmail(),
+                entity.getExperience());
     }
 
     @Override
     public Referee convertFromDto(RefereeDto dto) {
-        return Referee.builder()
-                .id(dto.getId())
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
-                .email(dto.getEmail())
-                .experience(dto.getExperience())
-                .build();
+        return new Referee(
+                dto.getId(),
+                dto.getFirstName(),
+                dto.getLastName(),
+                dto.getEmail(),
+                null,
+                dto.getExperience(),
+                null,
+                null,
+                null,
+                false);
     }
 }

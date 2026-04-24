@@ -15,7 +15,6 @@
 
     <properties>
         <java.version>25</java.version>
-        <lombok.version>1.18.46</lombok.version>
         <gmaven.plus.version>4.3.1</gmaven.plus.version>
         <openapi.version>3.0.3</openapi.version>
         <groovy.version>4.0.31</groovy.version>
@@ -62,14 +61,6 @@
             <version>${openapi.version}</version>
         </dependency>
 
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-            <optional>true</optional>
-        </dependency>
-
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -96,20 +87,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-
             <!-- The gmavenplus plugin is used to compile Groovy code -->
             <!-- https://github.com/groovy/GMavenPlus/wiki -->
             <plugin>

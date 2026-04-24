@@ -10,8 +10,8 @@ import com.jamex.refereestaffer.model.entity.Vacation;
 import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.VacationRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -23,10 +23,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Slf4j
-@RequiredArgsConstructor
 @Service
 public class StafferService {
+
+    private static final Logger log = LoggerFactory.getLogger(StafferService.class);
 
     private static final double DEFAULT_AVERAGE_GRADE = 8.3;
 
@@ -35,6 +35,15 @@ public class StafferService {
     private final MatchConverter matchConverter;
     private final MatchService matchService;
     private final RefereeService refereeService;
+
+    public StafferService(ConfigurationRepository configurationRepository, VacationRepository vacationRepository,
+                          MatchConverter matchConverter, MatchService matchService, RefereeService refereeService) {
+        this.configurationRepository = configurationRepository;
+        this.vacationRepository = vacationRepository;
+        this.matchConverter = matchConverter;
+        this.matchService = matchService;
+        this.refereeService = refereeService;
+    }
 
     public Collection<MatchDto> staffReferees(short queue) {
         var referees = refereeService.getAvailableRefereesForQueue(queue);

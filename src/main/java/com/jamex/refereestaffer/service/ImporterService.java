@@ -12,8 +12,8 @@ import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,10 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
-@RequiredArgsConstructor
 @Service
 public class ImporterService {
+
+    private static final Logger log = LoggerFactory.getLogger(ImporterService.class);
 
     private static final String CREATED = "Created ";
     private static final String DATE_FORMAT = "dd.MM.yyy HH:mm";
@@ -39,6 +39,14 @@ public class ImporterService {
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
     private final GradeRepository gradeRepository;
+
+    public ImporterService(TeamRepository teamRepository, RefereeRepository refereeRepository,
+                           MatchRepository matchRepository, GradeRepository gradeRepository) {
+        this.teamRepository = teamRepository;
+        this.refereeRepository = refereeRepository;
+        this.matchRepository = matchRepository;
+        this.gradeRepository = gradeRepository;
+    }
 
     public ImportResponse importData(MultipartFile file, Short numberOfQueuesToImport) {
         List<String> result = new ArrayList<>();
