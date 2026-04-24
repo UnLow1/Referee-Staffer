@@ -18,25 +18,27 @@
         <label class="col-3 col-form-label" for="numberOfQueuesToImportInput">Number of queues to import</label>
         <div class="col-2">
           <input type="number" [(ngModel)]="numberOfQueuesToImport"
-                 min="0"
-                 class="form-control"
-                 id="numberOfQueuesToImportInput"
-                 placeholder="No of queues"/>
+            min="0"
+            class="form-control"
+            id="numberOfQueuesToImportInput"
+            placeholder="No of queues"/>
+          </div>
         </div>
+        <button (click)="uploadFileToActivity()" class="btn btn-success"
+          [disabled]="fileToUpload===null ||(numberOfQueuesToImport === undefined || numberOfQueuesToImport === null)">
+          <em class="fa fa-check mr-2"></em>Save
+        </button>
       </div>
-      <button (click)="uploadFileToActivity()" class="btn btn-success"
-              [disabled]="fileToUpload===null ||(numberOfQueuesToImport === undefined || numberOfQueuesToImport === null)">
-        <em class="fa fa-check mr-2"></em>Save
-      </button>
-    </div>
-    <div *ngIf="importResult">
-      <h4>Imported data:</h4>
-      <div>
-        Referees: {{importResult.referees}}<br>
-        Grades: {{importResult.grades}}<br>
-        Teams: {{importResult.teams}}<br>
-        Matches: {{importResult.matches}}
-      </div>
+      @if (importResult) {
+        <div>
+          <h4>Imported data:</h4>
+          <div>
+            Referees: {{importResult.referees}}<br>
+            Grades: {{importResult.grades}}<br>
+            Teams: {{importResult.teams}}<br>
+            Matches: {{importResult.matches}}
+          </div>
+        </div>
+      }
     </div>
   </div>
-</div>

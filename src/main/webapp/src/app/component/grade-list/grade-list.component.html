@@ -3,18 +3,20 @@
   <div class="card-body">
     <table aria-describedby="header" class="table table-bordered table-striped">
       <thead class="thead-dark">
-      <tr>
-        <th scope="col" (click)="sortTableByName()" style="cursor: pointer">Referee</th>
-        <th scope="col">Grades</th>
-        <th scope="col" (click)="sortTableByGrade()" style="cursor: pointer">Average grade</th>
-      </tr>
+        <tr>
+          <th scope="col" (click)="sortTableByName()" style="cursor: pointer">Referee</th>
+          <th scope="col">Grades</th>
+          <th scope="col" (click)="sortTableByGrade()" style="cursor: pointer">Average grade</th>
+        </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let referee of referees">
-        <td>{{ referee.firstName }} {{ referee.lastName }}</td>
-        <td>{{ getGradesForReferee(referee)?.join(", ") }}</td>
-        <td>{{ countAverageForReferee(referee).toFixed(3) || ""}}</td>
-      </tr>
+        @for (referee of referees; track referee) {
+          <tr>
+            <td>{{ referee.firstName }} {{ referee.lastName }}</td>
+            <td>{{ getGradesForReferee(referee)?.join(", ") }}</td>
+            <td>{{ countAverageForReferee(referee).toFixed(3) || ""}}</td>
+          </tr>
+        }
       </tbody>
     </table>
   </div>

@@ -1,56 +1,62 @@
 <div class="card my-5">
   <h2 id="header" class="text-center my-3">Create cast</h2>
   <div class="card-body">
-    <table aria-describedby="header" *ngIf="matches" class="table table-bordered table-striped">
-      <thead class="thead-dark">
-      <tr>
-        <th id="queueHeader" [colSpan]="4" class="text-center">Queue {{queue}}</th>
-      </tr>
-      <tr>
-        <th scope="col">Home team</th>
-        <th scope="col">Away name</th>
-        <th scope="col">Referee</th>
-        <th scope="col">&nbsp;</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr *ngFor="let match of matches" [class.accepted]="acceptedMatches.includes(match)">
-        <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
-        <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
-        <td>
-          <select class="custom-select" [(ngModel)]="match.refereeId">
-            <option *ngFor="let referee of referees" [ngValue]="referee.id">{{ getRefereeName(referee) }} </option>
-          </select>
-        </td>
-        <td>
-          <button type="button" class="btn btn-success" (click)="updateMatch(match)"
+    @if (matches) {
+      <table aria-describedby="header" class="table table-bordered table-striped">
+        <thead class="thead-dark">
+          <tr>
+            <th id="queueHeader" [colSpan]="4" class="text-center">Queue {{queue}}</th>
+          </tr>
+          <tr>
+            <th scope="col">Home team</th>
+            <th scope="col">Away name</th>
+            <th scope="col">Referee</th>
+            <th scope="col">&nbsp;</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (match of matches; track match) {
+            <tr [class.accepted]="acceptedMatches.includes(match)">
+              <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
+              <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
+              <td>
+                <select class="custom-select" [(ngModel)]="match.refereeId">
+                  @for (referee of referees; track referee) {
+                    <option [ngValue]="referee.id">{{ getRefereeName(referee) }} </option>
+                  }
+                </select>
+              </td>
+              <td>
+                <button type="button" class="btn btn-success" (click)="updateMatch(match)"
                   [disabled]="acceptedMatches.includes(match)">
-            <em class="fa fa-check mr-2"></em>Accept
-          </button>
-        </td>
-      </tr>
-      </tbody>
-    </table>
+                  <em class="fa fa-check mr-2"></em>Accept
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
     <form (ngSubmit)="onSubmit()" #stafferForm="ngForm">
       <div class="form-group row">
         <label class="col-1 col-form-label" for="queueInput">Queue</label>
         <div class="col-2">
           <input type="number" [(ngModel)]="queue"
-                 class="form-control"
-                 min="1"
-                 id="queueInput"
-                 name="queueInput"
-                 placeholder="Enter queue"
-                 required #queueInput="ngModel">
+            class="form-control"
+            min="1"
+            id="queueInput"
+            name="queueInput"
+            placeholder="Enter queue"
+            required #queueInput="ngModel">
+          </div>
         </div>
-      </div>
-      <div [hidden]="queueInput.valid || queueInput.untouched" class="col-3 alert alert-danger">Queue is required</div>
-      <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-primary">
-        <em class="fa fa-cogs mr-2"></em>Generate cast
-      </button>
-      <button type="button" (click)="updateMatches()" [hidden]="!matches" class="btn btn-success float-right">
-        <em class="fa fa-check mr-2"></em>Save cast
-      </button>
-    </form>
+        <div [hidden]="queueInput.valid || queueInput.untouched" class="col-3 alert alert-danger">Queue is required</div>
+        <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-primary">
+          <em class="fa fa-cogs mr-2"></em>Generate cast
+        </button>
+        <button type="button" (click)="updateMatches()" [hidden]="!matches" class="btn btn-success float-right">
+          <em class="fa fa-check mr-2"></em>Save cast
+        </button>
+      </form>
+    </div>
   </div>
-</div>

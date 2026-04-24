@@ -3,25 +3,27 @@
   <div class="card-body">
     <table aria-describedby="header" class="table table-bordered table-striped">
       <thead class="thead-dark">
-      <tr>
-        <th scope="col">First name</th>
-        <th scope="col">Last name</th>
-        <th scope="col">Email</th>
-        <th scope="col">Experience</th>
-        <th scope="col">Actions</th>
-      </tr>
+        <tr>
+          <th scope="col">First name</th>
+          <th scope="col">Last name</th>
+          <th scope="col">Email</th>
+          <th scope="col">Experience</th>
+          <th scope="col">Actions</th>
+        </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let referee of referees">
-        <td>{{ referee.firstName }}</td>
-        <td>{{ referee.lastName }}</td>
-        <td><a href="mailto:{{ referee.email }}">{{ referee.email }}</a></td>
-        <td>{{ referee.experience }}</td>
-        <td>
-          <edit-button (onClick)="editReferee(referee)"></edit-button>
-          <delete-button (onClick)="deleteReferee(referee)"></delete-button>
-        </td>
-      </tr>
+        @for (referee of referees; track referee) {
+          <tr>
+            <td>{{ referee.firstName }}</td>
+            <td>{{ referee.lastName }}</td>
+            <td><a href="mailto:{{ referee.email }}">{{ referee.email }}</a></td>
+            <td>{{ referee.experience }}</td>
+            <td>
+              <edit-button (onClick)="editReferee(referee)"></edit-button>
+              <delete-button (onClick)="deleteReferee(referee)"></delete-button>
+            </td>
+          </tr>
+        }
       </tbody>
     </table>
     <add-button label="Add new referee" routerLink="addReferee"></add-button>

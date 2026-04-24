@@ -3,34 +3,38 @@
   <div class="card-body">
     <table aria-describedby="header" class="table table-bordered table-striped">
       <thead class="thead-dark">
-      <tr>
-        <th scope="col">Home team</th>
-        <th scope="col">Away name</th>
-        <th scope="col">Date</th>
-        <th scope="col">Referee</th>
-        <th scope="col">Score</th>
-        <th scope="col">Referee grade</th>
-        <th scope="col">Actions</th>
-      </tr>
+        <tr>
+          <th scope="col">Home team</th>
+          <th scope="col">Away name</th>
+          <th scope="col">Date</th>
+          <th scope="col">Referee</th>
+          <th scope="col">Score</th>
+          <th scope="col">Referee grade</th>
+          <th scope="col">Actions</th>
+        </tr>
       </thead>
       <!-- TODO https://github.com/angular/angular/issues/42490 if resolved then change asIsOrder to null -->
-      <tbody *ngFor="let groupedMatch of groupedMatches | keyvalue: asIsOrder">
-      <tr>
-        <th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th>
-      </tr>
-      <tr *ngFor="let match of groupedMatch.value">
-        <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
-        <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
-        <td>{{ match.date | date: 'dd.MM.yyyy HH:mm'}}</td>
-        <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
-        <td>{{ match.homeScore }} - {{match.awayScore}}</td>
-        <td>{{ getGrade(match.gradeId)?.value }}</td>
-        <td>
-          <edit-button (onClick)="editMatch(match)"></edit-button>
-          <delete-button (onClick)="deleteMatch(match)"></delete-button>
-        </td>
-      </tr>
-      </tbody>
+      @for (groupedMatch of groupedMatches | keyvalue: asIsOrder; track groupedMatch) {
+        <tbody>
+          <tr>
+            <th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th>
+          </tr>
+          @for (match of groupedMatch.value; track match) {
+            <tr>
+              <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
+              <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
+              <td>{{ match.date | date: 'dd.MM.yyyy HH:mm'}}</td>
+              <td>{{ getReferee(match.refereeId)?.firstName }} {{ getReferee(match.refereeId)?.lastName }}</td>
+              <td>{{ match.homeScore }} - {{match.awayScore}}</td>
+              <td>{{ getGrade(match.gradeId)?.value }}</td>
+              <td>
+                <edit-button (onClick)="editMatch(match)"></edit-button>
+                <delete-button (onClick)="deleteMatch(match)"></delete-button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      }
     </table>
     <add-button label="Add new match" routerLink="addMatch"></add-button>
   </div>

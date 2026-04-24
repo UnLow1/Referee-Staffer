@@ -11,9 +11,9 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 ## Tech stack
 
 - **Backend:** Spring Boot 4.0.6 (bumped from 3.5.6 on 2026-04-23, the same day 4.0.6 GA shipped), Java 25 (Corretto 25.0.2), Maven. Pulls in Spring Framework 7, Spring Security 7 (not used), Hibernate 7.1. Uses `jakarta.*` (JPA, validation) — migrated from `javax.*` in 2026-04. Jackson 2 still ships in SB 4 as deprecated — the single `@JsonIgnore` in `Grade.java` still imports from `com.fasterxml.jackson.annotation.*` and works; a future migration to Jackson 3 (`tools.jackson.*`) is possible but not urgent.
-- **Tests:** Spock `2.4-M6-groovy-4.0` compiled with Groovy 4.0.28 via `gmavenplus-plugin` 3.0.2. Classifier/Groovy versions aligned — previously was a mismatch (Groovy 3 + `groovy-4.0` classifier). **Gotcha:** Spock has not released a stable 2.4 and has not patched 2.3 since September 2022; the `2.4-M*` milestone line has ~4 years of active development and is de facto the stable track. If you see stale "Spock 2.3" references anywhere, that's historical.
-- **Frontend:** Angular 20 under `src/main/webapp/`, built by `frontend-maven-plugin` 1.15.1 as part of the Maven build (Node 22.22.2, npm 10.9.7 downloaded by the plugin). Migrated Angular 15 → 20 via step-by-step `ng update` chain in 2026-04. RxJS 7.8, TypeScript 5.9, zone.js 0.15. Linting: ESLint 9 + `angular-eslint` + `typescript-eslint` (TSLint + codelyzer removed). No E2E tests — Protractor + `e2e/` removed (EOL 2023, no replacement wired up yet; Playwright/Cypress would be the natural choice if E2E coverage is ever added).
-- **Other:** Lombok 1.18.38 (annotation processor declared explicitly in `maven-compiler-plugin` — required since JDK 23 deprecated implicit annotation processing), springdoc-openapi-starter-webmvc-ui 3.0.3 (Swagger UI; the 3.x line targets Spring Boot 4.x — 2.8.x is the SB 3 line), JaCoCo 0.8.13. OpenAPI spec served as 3.1.0 (was 3.0.1 under SB 3 + springdoc 2.8.x).
+- **Tests:** Spock `2.4-groovy-4.0` (GA, released 2026-04) compiled with Groovy 4.0.31 via `gmavenplus-plugin` 4.3.1. Classifier/Groovy versions aligned — previously was a mismatch (Groovy 3 + `groovy-4.0` classifier). Spock 2.4 GA followed ~4 years of `2.4-M*` milestone development; if you see stale references to milestones or "Spock 2.3" anywhere, that's historical.
+- **Frontend:** Angular 21 under `src/main/webapp/`, built by `frontend-maven-plugin` 2.0.0 as part of the Maven build (Node 24.15.0 Krypton LTS, npm 11.12.1 downloaded by the plugin). Migrated Angular 15 → 20 → 21 via step-by-step `ng update` chain in 2026-04. RxJS 7.8, TypeScript 5.9, zone.js 0.15. The Angular 20 → 21 `ng update` auto-migrated all templates to the `@if`/`@for` block control-flow syntax (`*ngIf`/`*ngFor` gone) and moved deprecated bootstrap options to providers in `main.ts`. Linting: ESLint 9 + `angular-eslint` + `typescript-eslint` (TSLint + codelyzer removed). No E2E tests — Protractor + `e2e/` removed (EOL 2023, no replacement wired up yet; Playwright/Cypress would be the natural choice if E2E coverage is ever added).
+- **Other:** Lombok 1.18.46 (annotation processor declared explicitly in `maven-compiler-plugin` — required since JDK 23 deprecated implicit annotation processing), springdoc-openapi-starter-webmvc-ui 3.0.3 (Swagger UI; the 3.x line targets Spring Boot 4.x — 2.8.x is the SB 3 line), JaCoCo 0.8.14. OpenAPI spec served as 3.1.0 (was 3.0.1 under SB 3 + springdoc 2.8.x).
 
 ## Build & run
 
@@ -57,12 +57,12 @@ Seed data: `src/main/resources/data.sql` runs in **every** profile, but via diff
 GitHub Actions workflows under `.github/workflows/`, split by concern:
 
 - `maven.yml` — **Backend only**. Builds Spring Boot with Maven, runs Spock specs, generates + commits the JaCoCo badge, uploads the coverage report. Triggers only on backend paths (`pom.xml`, `src/main/java/**`, `src/main/resources/**`, `src/test/**`). Builds with `-DskipFrontend=true` so the frontend-maven-plugin doesn't run.
-- `frontend.yml` — **Frontend only**. Runs `npm ci`, `npm run build`, and `npm test` (Angular/Karma) on Node 22.22.2. Triggers only on `src/main/webapp/**`. Lint is **not** run — `npm run lint` currently surfaces ~134 pre-existing `@angular-eslint/prefer-inject` errors; re-enable once cleaned up.
+- `frontend.yml` — **Frontend only**. Runs `npm ci`, `npm run build`, and `npm test` (Angular/Karma) on Node 24.15.0. Triggers only on `src/main/webapp/**`. Lint is **not** run — `npm run lint` currently surfaces ~134 pre-existing `@angular-eslint/prefer-inject` errors; re-enable once cleaned up.
 - `codeql-analysis.yml` — GitHub CodeQL security scanning (Java + JavaScript).
 
 **Split rationale:** the old arrangement built the frontend twice (once inside `mvn package` via `frontend-maven-plugin`, once in a separate `nodejs.yml`) and the frontend workflow was broken (`npm ci` → `npm run build` → `npm install` undid the deterministic install, `npm test` was commented out). Now backend and frontend each have one authoritative workflow with a `paths:` filter, so backend-only changes don't spin up a Node install.
 
-**Skipping the frontend in Maven:** `pom.xml` defines a `skipFrontend` property (default `false`). Each `frontend-maven-plugin` execution respects `<skip>${skipFrontend}</skip>`, so `mvn -DskipFrontend=true package` skips install-node-and-npm, npm install, and the Angular build. Note: plugin-level `<skip>` and `-Dfrontend.skip` do **not** work reliably on 1.15.1 — the per-execution flag is the one that actually skips.
+**Skipping the frontend in Maven:** `pom.xml` defines a `skipFrontend` property (default `false`). Each `frontend-maven-plugin` execution respects `<skip>${skipFrontend}</skip>`, so `mvn -DskipFrontend=true package` skips install-node-and-npm, npm install, and the Angular build. Note: plugin-level `<skip>` and `-Dfrontend.skip` did not work reliably on 1.15.1 — the per-execution flag is the one we rely on. Behavior on 2.0.0 is assumed to be the same; the per-execution flag remains the authoritative toggle.
 
 **Karma config gotcha:** `src/main/webapp/src/karma.conf.js` previously required `karma-coverage-istanbul-reporter`, which was removed in the Angular 15 → 20 migration, so `ng test` errored on startup. Now uses `karma-coverage` and defines a `ChromeHeadlessNoSandbox` custom launcher (base: `ChromeHeadless`, flags: `--no-sandbox --disable-gpu`) for CI. A duplicate `src/main/webapp/karma.conf.js` at the webapp root was dead (not referenced by `angular.json`) and was deleted.
 
@@ -106,7 +106,7 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 
 - `src/main/java/com/jamex/refereestaffer/` — Spring Boot sources
 - `src/main/resources/` — `application*.yml`, `data.sql`, `example import.csv`
-- `src/main/webapp/` — Angular 20 frontend (own `package.json`, own `eslint.config.js`)
+- `src/main/webapp/` — Angular 21 frontend (own `package.json`, own `eslint.config.js`)
 - `src/test/groovy/com/jamex/refereestaffer/` — Spock specs
 - `src/test/resources/` — `SpockConfig.groovy`, `test file.csv`
 - `data/` — `import data file.csv` plus `screenshots/` referenced from `README.md`. Committed to the repo (not generated).

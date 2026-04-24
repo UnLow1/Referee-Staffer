@@ -3,21 +3,23 @@
   <div class="card-body">
     <table aria-describedby="header" class="table table-bordered table-striped">
       <thead class="thead-dark">
-      <tr>
-        <th scope="col">Team name</th>
-        <th scope="col">City</th>
-        <th scope="col">Actions</th>
-      </tr>
+        <tr>
+          <th scope="col">Team name</th>
+          <th scope="col">City</th>
+          <th scope="col">Actions</th>
+        </tr>
       </thead>
       <tbody>
-      <tr *ngFor="let team of teams">
-        <td>{{ team.name }}</td>
-        <td>{{ team.city }}</td>
-        <td>
-          <edit-button (onClick)="editTeam(team)"></edit-button>
-          <delete-button (onClick)="deleteTeam(team)"></delete-button>
-        </td>
-      </tr>
+        @for (team of teams; track team) {
+          <tr>
+            <td>{{ team.name }}</td>
+            <td>{{ team.city }}</td>
+            <td>
+              <edit-button (onClick)="editTeam(team)"></edit-button>
+              <delete-button (onClick)="deleteTeam(team)"></delete-button>
+            </td>
+          </tr>
+        }
       </tbody>
     </table>
     <add-button label="Add new team" routerLink="addTeam"></add-button>
