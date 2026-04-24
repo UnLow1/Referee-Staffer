@@ -66,10 +66,13 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 
 **Karma config gotcha:** `src/main/webapp/src/karma.conf.js` previously required `karma-coverage-istanbul-reporter`, which was removed in the Angular 15 → 20 migration, so `ng test` errored on startup. Now uses `karma-coverage` and defines a `ChromeHeadlessNoSandbox` custom launcher (base: `ChromeHeadless`, flags: `--no-sandbox --disable-gpu`) for CI. A duplicate `src/main/webapp/karma.conf.js` at the webapp root was dead (not referenced by `angular.json`) and was deleted.
 
-**Modernized 2026-04-23 (backend / CodeQL):**
+**Action versions (as of 2026-04-24):**
 
-- `maven.yml`: bumped to `actions/checkout@v4`, `actions/setup-java@v4` (`distribution: temurin`, `java-version: 25`, `cache: maven`), `actions/upload-artifact@v4`.
-- `codeql-analysis.yml`: bumped CodeQL actions from v1 to v3 (`init@v3`, `autobuild@v3`, `analyze@v3`) — previously deprecated and rejected by GitHub. Also `actions/checkout@v4`, `actions/setup-java@v4` on Temurin 25.
+- All workflows: `actions/checkout@v6`.
+- Backend + CodeQL: `actions/setup-java@v5` on `distribution: temurin`, `java-version: 25`, `cache: maven`.
+- `frontend.yml`: `actions/setup-node@v6`.
+- `maven.yml`: `actions/upload-artifact@v4`, `cicirello/jacoco-badge-generator@v2`.
+- `codeql-analysis.yml`: `github/codeql-action/{init,autobuild,analyze}@v3` (v1 was deprecated and rejected by GitHub during the 2026-04-23 modernization pass).
 
 ## Dependabot
 
@@ -101,6 +104,10 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 - Test files are named `*Spec.groovy`.
 - The Swagger UI is available (springdoc-openapi-ui) when the app is running.
 - Admin panel tip (from README): in the running app's browser DevTools, set `admin.hidden=false` to reveal the admin panel.
+
+## Domain notes
+
+- **"S C" referee sentinel** — in `RefereeService.getAvailableRefereesForQueue` matches assigned to a referee with `firstName="S"`, `lastName="C"` are filtered out of the auto-staffing pool. "S C" stands for **"Sędzia z Centrali"** (central-level referee assigned top-down by PZPN). The imported CSV (`data/import data file.csv`) marks such matches this way to signal the staffer must not overwrite the assignment. This is a string-based sentinel — not a great model. A future refactor should represent "do not reassign" as an explicit flag on `Match` (e.g. `centralAssignment: boolean`) or as a separate `Referee` type, so the filter isn't tied to a magic name.
 
 ## Repo layout (top level)
 

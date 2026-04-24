@@ -32,7 +32,7 @@ public class ImporterService {
     private static final Logger log = LoggerFactory.getLogger(ImporterService.class);
 
     private static final String CREATED = "Created ";
-    private static final String DATE_FORMAT = "dd.MM.yyy HH:mm";
+    private static final String DATE_FORMAT = "dd.MM.yyyy HH:mm";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
     private final TeamRepository teamRepository;

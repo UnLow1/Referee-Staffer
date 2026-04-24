@@ -17,7 +17,7 @@ class RefereeServiceSpec extends Specification {
     RefereeRepository refereeRepository = Mock()
     MatchRepository matchRepository = Mock()
 
-    def "setup"() {
+    def setup() {
         refereeService = new RefereeService(refereeRepository, matchRepository)
     }
 
