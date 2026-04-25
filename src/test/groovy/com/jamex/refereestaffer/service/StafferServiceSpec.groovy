@@ -58,11 +58,13 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [ref1, ref2]
         1 * matchService.getMatchesToAssignInQueue(queue) >> matches
         1 * matchConverter.convertFromEntities(matches) >> matchesDtos
-        3 * configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER) >> [value: gradeMultiplier]
-        3 * configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER) >> [value: expMultiplier]
-        3 * configurationRepository.findByName(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER) >> [value: noOfMatchesMultiplier]
-        3 * configurationRepository.findByName(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER) >> [value: homeTeamMultiplier]
-        3 * configurationRepository.findByName(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER) >> [value: awayTeamMultiplier]
+        1 * configurationRepository.findAll() >> [
+                new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, gradeMultiplier as Double),
+                new Config(ConfigName.EXPERIENCE_MULTIPLIER, expMultiplier as Double),
+                new Config(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER, noOfMatchesMultiplier as Double),
+                new Config(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER, homeTeamMultiplier as Double),
+                new Config(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER, awayTeamMultiplier as Double)
+        ]
 
         where:
         gradeMultiplier | expMultiplier | noOfMatchesMultiplier | homeTeamMultiplier | awayTeamMultiplier
@@ -107,6 +109,12 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.calculateStats(referees)
         1 * matchService.getMatchesToAssignInQueue(_) >> matches
         1 * matchConverter.convertFromEntities(matches)
-        15 * configurationRepository.findByName(_) >> [value: 1]
+        1 * configurationRepository.findAll() >> [
+                new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, 1.0d),
+                new Config(ConfigName.EXPERIENCE_MULTIPLIER, 1.0d),
+                new Config(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER, 1.0d),
+                new Config(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER, 1.0d),
+                new Config(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER, 1.0d)
+        ]
     }
 }
