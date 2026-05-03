@@ -1,25 +1,25 @@
-import {Component} from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {ImporterService} from "../../service/importer.service";
 import {ImportResponse} from "../../request/importResonse";
 import { saveAs } from 'file-saver';
+import { FormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-importer',
     templateUrl: './importer.component.html',
     styleUrls: ['./importer.component.scss'],
-    standalone: false
+    imports: [FormsModule]
 })
 export class ImporterComponent {
+  private importerService = inject(ImporterService);
+
 
   fileToUpload: File = null
   importResult: ImportResponse
   numberOfQueuesToImport: number
 
-  constructor(private importerService: ImporterService) {
-  }
-
   handleFileInput(event) {
-    let files = event.target.files
+    const files = event.target.files
     this.fileToUpload = files.item(0)
   }
 

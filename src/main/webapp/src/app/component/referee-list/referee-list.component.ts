@@ -1,20 +1,23 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {RefereeService} from "../../service/referee.service";
 import {Referee} from "../../model/referee";
-import {Router} from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
+import { EditButtonComponent } from '../common/button/edit-button/edit-button.component';
+import { DeleteButtonComponent } from '../common/button/delete-button/delete-button.component';
+import { AddButtonComponent } from '../common/button/add-button/add-button.component';
 
 @Component({
     selector: 'app-referee-list',
     templateUrl: './referee-list.component.html',
     styleUrls: ['./referee-list.component.scss'],
-    standalone: false
+    imports: [EditButtonComponent, DeleteButtonComponent, AddButtonComponent, RouterLink]
 })
 export class RefereeListComponent implements OnInit {
+  private router = inject(Router);
+  private refereeService = inject(RefereeService);
+
 
   referees: Referee[]
-
-  constructor(private router: Router, private refereeService: RefereeService) {
-  }
 
   ngOnInit() {
     this.refereeService.findAll().subscribe(referees => this.referees = referees)

@@ -13,8 +13,7 @@
           <th scope="col">Actions</th>
         </tr>
       </thead>
-      <!-- TODO https://github.com/angular/angular/issues/42490 if resolved then change asIsOrder to null -->
-      @for (groupedMatch of groupedMatches | keyvalue: asIsOrder; track groupedMatch) {
+      @for (groupedMatch of groupedMatches | keyvalue: null; track groupedMatch) {
         <tbody>
           <tr>
             <th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th>
@@ -28,14 +27,14 @@
               <td>{{ match.homeScore }} - {{match.awayScore}}</td>
               <td>{{ getGrade(match.gradeId)?.value }}</td>
               <td>
-                <edit-button (onClick)="editMatch(match)"></edit-button>
-                <delete-button (onClick)="deleteMatch(match)"></delete-button>
+                <app-edit-button (clicked)="editMatch(match)"></app-edit-button>
+                <app-delete-button (clicked)="deleteMatch(match)"></app-delete-button>
               </td>
             </tr>
           }
         </tbody>
       }
     </table>
-    <add-button label="Add new match" routerLink="addMatch"></add-button>
+    <app-add-button label="Add new match" routerLink="addMatch"></app-add-button>
   </div>
 </div>

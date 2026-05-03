@@ -1,12 +1,7 @@
-# Frontend CI: builds and tests the Angular app under src/main/webapp.
+# Frontend CI: builds, lints, and tests the Angular app under src/main/webapp.
 #
 # Triggers only when frontend-relevant paths change. Backend changes go
 # through maven.yml.
-#
-# Note on lint: `npm run lint` currently surfaces ~134 pre-existing errors
-# (mostly @angular-eslint/prefer-inject after the Angular 15 -> 20 jump).
-# Leaving lint OUT of the required steps for now — re-enable once the code
-# is cleaned up (e.g. by running `ng generate @angular/core:inject`).
 
 name: Frontend CI (Angular)
 
@@ -40,6 +35,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build

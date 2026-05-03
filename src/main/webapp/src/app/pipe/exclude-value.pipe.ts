@@ -1,14 +1,9 @@
 import {Pipe, PipeTransform} from '@angular/core';
 
-@Pipe({
-    name: 'excludeValue',
-    standalone: false
-})
+@Pipe({ name: 'excludeValue' })
 export class ExcludeValuePipe implements PipeTransform {
 
-  transform(value: any, args?: any): any {
-    return value?.filter(function (item) {
-      return item.id != args;
-    });
+  transform<T extends { id: number | string }>(value: T[] | null | undefined, args?: number | string): T[] | undefined {
+    return value?.filter(item => item.id !== args);
   }
 }

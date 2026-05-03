@@ -1,21 +1,16 @@
 import {Component, EventEmitter, Output} from '@angular/core';
 
 @Component({
-    selector: 'edit-button',
+    selector: 'app-edit-button',
     templateUrl: './edit-button.component.html',
-    styleUrls: ['./edit-button.component.scss'],
-    standalone: false
+    styleUrls: ['./edit-button.component.scss']
 })
 export class EditButtonComponent {
 
-  label: string;
-  @Output() onClick = new EventEmitter<any>();
+  label = 'Edit';
+  @Output() clicked = new EventEmitter<MouseEvent>();
 
-  constructor() {
-    this.label = 'Edit'
-  }
-
-  onClickButton(event) {
-    this.onClick.emit(event);
+  onClickButton(event: MouseEvent) {
+    this.clicked.emit(event);
   }
 }

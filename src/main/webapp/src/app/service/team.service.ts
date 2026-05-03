@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Team} from "../model/team";
@@ -7,6 +7,8 @@ import {Team} from "../model/team";
   providedIn: 'root'
 })
 export class TeamService {
+  private http = inject(HttpClient);
+
 
   private readonly teamsUrl: string
   private httpOptions = {
@@ -15,7 +17,7 @@ export class TeamService {
     })
   };
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.teamsUrl = 'api/teams'
   }
 

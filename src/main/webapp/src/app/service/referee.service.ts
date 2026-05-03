@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Referee} from "../model/referee";
@@ -7,6 +7,8 @@ import {Referee} from "../model/referee";
   providedIn: 'root'
 })
 export class RefereeService {
+  private http = inject(HttpClient);
+
 
   private readonly refereesUrl: string
   private httpOptions = {
@@ -15,7 +17,7 @@ export class RefereeService {
     })
   };
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.refereesUrl = 'api/referees'
   }
 

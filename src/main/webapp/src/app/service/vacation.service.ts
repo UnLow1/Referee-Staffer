@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Vacation} from "../model/vacation";
@@ -7,6 +7,8 @@ import {Vacation} from "../model/vacation";
   providedIn: 'root'
 })
 export class VacationService {
+  private http = inject(HttpClient);
+
 
   private readonly vacationsUrl: string
   private httpOptions = {
@@ -15,7 +17,7 @@ export class VacationService {
     })
   };
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.vacationsUrl = 'api/vacations'
   }
 

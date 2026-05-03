@@ -1,10 +1,11 @@
 import {Component, Input} from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 @Component({
-    selector: 'add-button',
+    selector: 'app-add-button',
     templateUrl: './add-button.component.html',
     styleUrls: ['./add-button.component.scss'],
-    standalone: false
+    imports: [RouterLink]
 })
 export class AddButtonComponent {
 

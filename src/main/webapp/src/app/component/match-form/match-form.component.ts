@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {Referee} from "../../model/referee";
 import {ActivatedRoute, ParamMap, Router} from "@angular/router";
 import {RefereeService} from "../../service/referee.service";
@@ -8,25 +8,29 @@ import {TeamService} from "../../service/team.service";
 import {Team} from "../../model/team";
 import {Grade} from "../../model/grade";
 import {GradeService} from "../../service/grade.service";
+import { FormsModule } from '@angular/forms';
+import { ExcludeValuePipe } from '../../pipe/exclude-value.pipe';
 
 @Component({
     selector: 'app-match-form',
     templateUrl: './match-form.component.html',
     styleUrls: ['./match-form.component.scss'],
-    standalone: false
+    imports: [FormsModule, ExcludeValuePipe]
 })
 export class MatchFormComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private matchService = inject(MatchService);
+  private teamService = inject(TeamService);
+  private refereeService = inject(RefereeService);
+  private gradeService = inject(GradeService);
+
 
   match: Match = new Match()
   grade: Grade = new Grade()
   teams: Team[]
   referees: Referee[]
   editMode: boolean
-
-  constructor(private route: ActivatedRoute, private router: Router, private matchService: MatchService,
-              private teamService: TeamService, private refereeService: RefereeService,
-              private gradeService: GradeService) {
-  }
 
   ngOnInit() {
     this.teamService.findAll().subscribe(data => {
@@ -37,7 +41,7 @@ export class MatchFormComponent implements OnInit {
     })
     this.route.paramMap.subscribe(
       (params: ParamMap) => {
-        let id = Number(params.get('id'))
+        const id = Number(params.get('id'))
         if (id) {
           this.editMode = true
           this.matchService.findById(id).subscribe(match => {

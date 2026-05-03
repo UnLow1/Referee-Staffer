@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {Observable} from "rxjs";
 import { HttpClient } from "@angular/common/http";
 import {Match} from "../model/match";
@@ -7,10 +7,12 @@ import {Match} from "../model/match";
   providedIn: 'root'
 })
 export class StafferService {
+  private http = inject(HttpClient);
+
 
   private readonly stafferUrl: string
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.stafferUrl = 'api/staffer'
   }
 

@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from "@angular/common/http";
 import {ImportResponse} from "../request/importResonse";
 import {Observable} from "rxjs";
@@ -7,10 +7,12 @@ import {Observable} from "rxjs";
   providedIn: 'root'
 })
 export class ImporterService {
+  private http = inject(HttpClient);
+
 
   private readonly importerUrl: string
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.importerUrl = 'api/importer'
   }
 

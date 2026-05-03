@@ -15,13 +15,13 @@
             <td>{{ team.name }}</td>
             <td>{{ team.city }}</td>
             <td>
-              <edit-button (onClick)="editTeam(team)"></edit-button>
-              <delete-button (onClick)="deleteTeam(team)"></delete-button>
+              <app-edit-button (clicked)="editTeam(team)"></app-edit-button>
+              <app-delete-button (clicked)="deleteTeam(team)"></app-delete-button>
             </td>
           </tr>
         }
       </tbody>
     </table>
-    <add-button label="Add new team" routerLink="addTeam"></add-button>
+    <app-add-button label="Add new team" routerLink="addTeam"></app-add-button>
   </div>
 </div>

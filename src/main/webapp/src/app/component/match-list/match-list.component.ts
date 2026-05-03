@@ -1,4 +1,4 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {Match} from "../../model/match";
 import {MatchService} from "../../service/match.service";
 import {TeamService} from "../../service/team.service";
@@ -7,22 +7,28 @@ import {Team} from "../../model/team";
 import {Referee} from "../../model/referee";
 import {GradeService} from "../../service/grade.service";
 import {Grade} from "../../model/grade";
-import {Router} from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import {groupBy} from 'lodash-es';
+import { EditButtonComponent } from '../common/button/edit-button/edit-button.component';
+import { DeleteButtonComponent } from '../common/button/delete-button/delete-button.component';
+import { AddButtonComponent } from '../common/button/add-button/add-button.component';
+import { DatePipe, KeyValuePipe } from '@angular/common';
 
 @Component({
     selector: 'app-match-list',
     templateUrl: './match-list.component.html',
     styleUrls: ['./match-list.component.scss'],
-    standalone: false
+    imports: [EditButtonComponent, DeleteButtonComponent, AddButtonComponent, RouterLink, DatePipe, KeyValuePipe]
 })
 export class MatchListComponent implements OnInit {
+  private router = inject(Router);
+  private matchService = inject(MatchService);
+  private teamService = inject(TeamService);
+  private refereeService = inject(RefereeService);
+  private gradeService = inject(GradeService);
 
-  constructor(private router: Router, private matchService: MatchService, private teamService: TeamService,
-              private refereeService: RefereeService, private gradeService: GradeService) {
-  }
 
-  groupedMatches: { [queue: number]: Array<Match> }
+  groupedMatches: Record<number, Match[]>
   teams: Team[]
   referees: Referee[]
   grades: Grade[]
@@ -30,13 +36,13 @@ export class MatchListComponent implements OnInit {
   ngOnInit() {
     this.matchService.findAll().subscribe(matches => {
       this.groupedMatches = groupBy(matches, (match) => match.queue);
-      let teamIds = matches.map(match => match.homeTeamId)
+      const teamIds = matches.map(match => match.homeTeamId)
         .concat(matches.map(match => match.awayTeamId))
         .filter((item, i, ar) => ar.indexOf(item) === i)
-      let refereeIds = matches.map(match => match.refereeId)
+      const refereeIds = matches.map(match => match.refereeId)
         .filter(this.notEmpty)
         .filter((item, i, ar) => ar.indexOf(item) === i)
-      let gradeIds = matches.map(match => match.gradeId)
+      const gradeIds = matches.map(match => match.gradeId)
         .filter(this.notEmpty)
         .filter((item, i, ar) => ar.indexOf(item) === i)
 
@@ -69,9 +75,5 @@ export class MatchListComponent implements OnInit {
   deleteMatch(matchToDelete: Match) {
     this.matchService.delete(matchToDelete.id).subscribe(() =>
       this.groupedMatches[matchToDelete.queue] = this.groupedMatches[matchToDelete.queue].filter((match: Match) => match.id !== matchToDelete.id))
-  }
-
-  asIsOrder(a, b) {
-    return 1;
   }
 }

@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Grade} from "../model/grade";
@@ -8,6 +8,8 @@ import {Match} from "../model/match";
   providedIn: 'root'
 })
 export class GradeService {
+  private http = inject(HttpClient);
+
 
   private readonly gradesUrls: string
   private httpOptions = {
@@ -16,7 +18,7 @@ export class GradeService {
     })
   };
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.gradesUrls = 'api/grades'
   }
 

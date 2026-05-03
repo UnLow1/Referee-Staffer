@@ -1,15 +1,14 @@
-import {Component, Inject} from '@angular/core';
-import {MAT_DIALOG_DATA} from '@angular/material/dialog';
+import { Component, inject } from '@angular/core';
+import { MAT_DIALOG_DATA, MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose } from '@angular/material/dialog';
 import {ModalData} from "../../../model/modalData";
+import { CdkScrollable } from '@angular/cdk/scrolling';
 
 @Component({
     selector: 'app-info-modal',
     templateUrl: './info-modal.component.html',
     styleUrls: ['./info-modal.component.scss'],
-    standalone: false
+    imports: [MatDialogTitle, CdkScrollable, MatDialogContent, MatDialogActions, MatDialogClose]
 })
-export class InfoModalComponent {
+export class InfoModalComponent {  data = inject<ModalData>(MAT_DIALOG_DATA);
 
-  constructor(@Inject(MAT_DIALOG_DATA) public data: ModalData) {
-  }
 }

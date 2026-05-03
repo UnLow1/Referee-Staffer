@@ -1,20 +1,23 @@
-import {Component, OnInit} from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {TeamService} from "../../service/team.service";
 import {Team} from "../../model/team";
-import {Router} from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
+import { EditButtonComponent } from '../common/button/edit-button/edit-button.component';
+import { DeleteButtonComponent } from '../common/button/delete-button/delete-button.component';
+import { AddButtonComponent } from '../common/button/add-button/add-button.component';
 
 @Component({
     selector: 'app-team-list',
     templateUrl: './team-list.component.html',
     styleUrls: ['./team-list.component.scss'],
-    standalone: false
+    imports: [EditButtonComponent, DeleteButtonComponent, AddButtonComponent, RouterLink]
 })
 export class TeamListComponent implements OnInit {
+  private router = inject(Router);
+  private teamService = inject(TeamService);
+
 
   teams: Team[]
-
-  constructor(private router: Router, private teamService: TeamService) {
-  }
 
   ngOnInit(): void {
     this.teamService.findAll().subscribe(teams => this.teams = teams)

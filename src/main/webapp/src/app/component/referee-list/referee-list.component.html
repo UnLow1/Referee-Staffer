@@ -19,13 +19,13 @@
             <td><a href="mailto:{{ referee.email }}">{{ referee.email }}</a></td>
             <td>{{ referee.experience }}</td>
             <td>
-              <edit-button (onClick)="editReferee(referee)"></edit-button>
-              <delete-button (onClick)="deleteReferee(referee)"></delete-button>
+              <app-edit-button (clicked)="editReferee(referee)"></app-edit-button>
+              <app-delete-button (clicked)="deleteReferee(referee)"></app-delete-button>
             </td>
           </tr>
         }
       </tbody>
     </table>
-    <add-button label="Add new referee" routerLink="addReferee"></add-button>
+    <app-add-button label="Add new referee" routerLink="addReferee"></app-add-button>
   </div>
 </div>

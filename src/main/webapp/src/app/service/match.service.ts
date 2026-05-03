@@ -1,4 +1,4 @@
-import {Injectable} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Match} from "../model/match";
@@ -7,10 +7,12 @@ import {Match} from "../model/match";
   providedIn: 'root'
 })
 export class MatchService {
+  private http = inject(HttpClient);
+
 
   private readonly matchesUrl: string
 
-  constructor(private http: HttpClient) {
+  constructor() {
     this.matchesUrl = 'api/matches'
   }
 

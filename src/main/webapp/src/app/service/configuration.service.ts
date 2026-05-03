@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Config} from "../model/config";
@@ -7,6 +7,8 @@ import {Config} from "../model/config";
   providedIn: 'root'
 })
 export class ConfigurationService {
+  private http = inject(HttpClient);
+
 
   private readonly configurationUrl: string = `api/configuration`
   private httpOptions = {
@@ -14,8 +16,6 @@ export class ConfigurationService {
       'Content-Type': 'application/json'
     })
   };
-
-  constructor(private http: HttpClient) { }
 
   public update(config: Config[]): Observable<Config[]> {
     return this.http.put<Config[]>(this.configurationUrl, config)
