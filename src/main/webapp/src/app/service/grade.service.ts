@@ -11,7 +11,7 @@ export class GradeService {
   private http = inject(HttpClient);
 
 
-  private readonly gradesUrls: string
+  private readonly gradesUrl: string
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'
@@ -19,34 +19,34 @@ export class GradeService {
   };
 
   constructor() {
-    this.gradesUrls = 'api/grades'
+    this.gradesUrl = 'api/grades'
   }
 
   public update(grade: Grade): Observable<Grade> {
-    return this.http.put<Grade>(this.gradesUrls, grade, this.httpOptions)
+    return this.http.put<Grade>(this.gradesUrl, grade, this.httpOptions)
   }
 
   public findById(id: number): Observable<Grade> {
-    return this.http.get<Grade>(`${this.gradesUrls}/${id}`)
+    return this.http.get<Grade>(`${this.gradesUrl}/${id}`)
   }
 
   public findAll(): Observable<Grade[]> {
-    return this.http.get<Grade[]>(this.gradesUrls)
+    return this.http.get<Grade[]>(this.gradesUrl)
   }
 
   public findByIds(ids: number[]): Observable<Grade[]> {
-    return this.http.post<Grade[]>(`${this.gradesUrls}/byIds`, {ids}, this.httpOptions);
+    return this.http.post<Grade[]>(`${this.gradesUrl}/byIds`, {ids}, this.httpOptions);
   }
 
   public save(match: Match, grade: Grade): Observable<Grade> {
-    return this.http.post<Grade>(`${this.gradesUrls}/${match.id}`, grade)
+    return this.http.post<Grade>(`${this.gradesUrl}/${match.id}`, grade)
   }
 
   public delete(grade: Grade): Observable<void> {
-    return this.http.delete<void>(`${this.gradesUrls}/${grade.id}`)
+    return this.http.delete<void>(`${this.gradesUrl}/${grade.id}`)
   }
 
   public deleteAll(): Observable<void> {
-    return this.http.delete<void>(`${this.gradesUrls}`)
+    return this.http.delete<void>(`${this.gradesUrl}`)
   }
 }

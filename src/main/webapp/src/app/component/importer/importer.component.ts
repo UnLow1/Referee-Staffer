@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import {ImporterService} from "../../service/importer.service";
-import {ImportResponse} from "../../request/importResonse";
+import {ImportResponse} from "../../request/importResponse";
 import { saveAs } from 'file-saver';
 import { FormsModule } from '@angular/forms';
 
