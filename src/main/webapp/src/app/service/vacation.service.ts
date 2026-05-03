@@ -29,19 +29,19 @@ export class VacationService {
     return this.http.get<Vacation>(`${this.vacationsUrl}/${id}`, this.httpOptions);
   }
 
-  public save(vacation: Vacation) {
-    return this.http.post(this.vacationsUrl, vacation)
+  public save(vacation: Vacation): Observable<Vacation> {
+    return this.http.post<Vacation>(this.vacationsUrl, vacation)
   }
 
-  public update(vacation: Vacation) {
-    return this.http.put(this.vacationsUrl, vacation)
+  public update(vacation: Vacation): Observable<Vacation> {
+    return this.http.put<Vacation>(this.vacationsUrl, vacation)
   }
 
-  public delete(id: number) {
-    return this.http.delete(`${this.vacationsUrl}/${id}`)
+  public delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.vacationsUrl}/${id}`)
   }
 
-  public deleteAll() {
-    return this.http.delete(`${this.vacationsUrl}`)
+  public deleteAll(): Observable<void> {
+    return this.http.delete<void>(`${this.vacationsUrl}`)
   }
 }

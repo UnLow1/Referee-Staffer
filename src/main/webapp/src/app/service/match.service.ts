@@ -32,15 +32,15 @@ export class MatchService {
     return this.http.put<Match>(`${this.matchesUrl}/${match.id}`, match)
   }
 
-  public updateList(matches: Match[]) {
-    return this.http.put(this.matchesUrl, matches)
+  public updateList(matches: Match[]): Observable<void> {
+    return this.http.put<void>(this.matchesUrl, matches)
   }
 
-  public delete(id: number) {
-    return this.http.delete(`${this.matchesUrl}/${id}`)
+  public delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.matchesUrl}/${id}`)
   }
 
-  public deleteAll() {
-    return this.http.delete(`${this.matchesUrl}`)
+  public deleteAll(): Observable<void> {
+    return this.http.delete<void>(`${this.matchesUrl}`)
   }
 }

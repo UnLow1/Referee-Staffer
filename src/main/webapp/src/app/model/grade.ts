@@ -1,4 +1,4 @@
-export class Grade {
-  id: number
-  value: number
+export interface Grade {
+  id: number;
+  value: number;
 }

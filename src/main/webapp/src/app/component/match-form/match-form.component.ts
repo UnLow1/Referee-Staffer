@@ -26,11 +26,11 @@ export class MatchFormComponent implements OnInit {
   private gradeService = inject(GradeService);
 
 
-  match: Match = new Match()
-  grade: Grade = new Grade()
-  teams: Team[]
-  referees: Referee[]
-  editMode: boolean
+  match: Match = {} as Match
+  grade: Grade = {} as Grade
+  teams: Team[] = []
+  referees: Referee[] = []
+  editMode = false
 
   ngOnInit() {
     this.teamService.findAll().subscribe(data => {

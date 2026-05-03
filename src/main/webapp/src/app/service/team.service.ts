@@ -33,23 +33,23 @@ export class TeamService {
     return this.http.post<Team[]>(`${this.teamsUrl}/byIds`, {ids}, this.httpOptions);
   }
 
-  public save(team: Team) {
-    return this.http.post(this.teamsUrl, team)
+  public save(team: Team): Observable<Team> {
+    return this.http.post<Team>(this.teamsUrl, team)
   }
 
-  public update(team: Team) {
-    return this.http.put(this.teamsUrl, team)
+  public update(team: Team): Observable<Team> {
+    return this.http.put<Team>(this.teamsUrl, team)
   }
 
   public getStandings(): Observable<Team[]> {
     return this.http.get<Team[]>(`${this.teamsUrl}/standings`)
   }
 
-  public delete(id: number) {
-    return this.http.delete(`${this.teamsUrl}/${id}`)
+  public delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.teamsUrl}/${id}`)
   }
 
-  public deleteAll() {
-    return this.http.delete(`${this.teamsUrl}`)
+  public deleteAll(): Observable<void> {
+    return this.http.delete<void>(`${this.teamsUrl}`)
   }
 }

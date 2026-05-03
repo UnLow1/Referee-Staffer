@@ -19,9 +19,9 @@ export class VacationFormComponent implements OnInit {
   private refereeService = inject(RefereeService);
 
 
-  vacation: Vacation = new Vacation()
-  editMode: boolean
-  referees: Referee[];
+  vacation: Vacation = {} as Vacation
+  editMode = false
+  referees: Referee[] = []
 
   ngOnInit(): void {
     this.refereeService.findAll().subscribe(data => {

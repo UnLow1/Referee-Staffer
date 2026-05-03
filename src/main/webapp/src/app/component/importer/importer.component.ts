@@ -14,22 +14,24 @@ export class ImporterComponent {
   private importerService = inject(ImporterService);
 
 
-  fileToUpload: File = null
-  importResult: ImportResponse
-  numberOfQueuesToImport: number
+  fileToUpload: File | null = null
+  importResult: ImportResponse | null = null
+  numberOfQueuesToImport: number | null = null
 
-  handleFileInput(event) {
-    const files = event.target.files
-    this.fileToUpload = files.item(0)
+  handleFileInput(event: Event) {
+    const input = event.target as HTMLInputElement
+    this.fileToUpload = input.files?.item(0) ?? null
   }
 
   uploadFileToActivity() {
+    // Template binds the Save button's `[disabled]` to these being non-null, but the type
+    // system can't verify that — guard explicitly so postFile's signature stays strict.
+    if (this.fileToUpload === null || this.numberOfQueuesToImport === null) return
     this.importerService.postFile(this.fileToUpload, this.numberOfQueuesToImport).subscribe(result => this.importResult = result)
   }
 
   downloadExampleFile() {
     this.importerService.downloadExampleFile().subscribe(blob => {
-      console.log(blob)
       saveAs(blob, "example import file.csv")
     })
   }

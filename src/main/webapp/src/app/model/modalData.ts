@@ -1,4 +1,4 @@
-export class ModalData {
-  header: string
-  message: string
+export interface ModalData {
+  header: string;
+  message: string;
 }

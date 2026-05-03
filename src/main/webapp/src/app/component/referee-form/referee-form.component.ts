@@ -16,8 +16,8 @@ export class RefereeFormComponent implements OnInit {
   private refereeService = inject(RefereeService);
 
 
-  referee: Referee = new Referee()
-  editMode: boolean
+  referee: Referee = {} as Referee
+  editMode = false
 
   ngOnInit() {
     this.route.paramMap.subscribe(

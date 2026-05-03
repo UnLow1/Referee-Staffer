@@ -29,12 +29,12 @@ export class RefereeService {
     return this.http.get<Referee>(`${this.refereesUrl}/${id}`)
   }
 
-  public update(referee: Referee) {
-    return this.http.put(this.refereesUrl, referee)
+  public update(referee: Referee): Observable<Referee> {
+    return this.http.put<Referee>(this.refereesUrl, referee)
   }
 
-  public save(referee: Referee) {
-    return this.http.post(this.refereesUrl, referee)
+  public save(referee: Referee): Observable<Referee> {
+    return this.http.post<Referee>(this.refereesUrl, referee)
   }
 
   public findByIds(ids: number[]): Observable<Referee[]> {
@@ -45,11 +45,11 @@ export class RefereeService {
     return this.http.get<Referee[]>(`${this.refereesUrl}/available/${queue}`, this.httpOptions);
   }
 
-  public delete(id: number) {
-    return this.http.delete(`${this.refereesUrl}/${id}`)
+  public delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.refereesUrl}/${id}`)
   }
 
-  public deleteAll() {
-    return this.http.delete(`${this.refereesUrl}`)
+  public deleteAll(): Observable<void> {
+    return this.http.delete<void>(`${this.refereesUrl}`)
   }
 }

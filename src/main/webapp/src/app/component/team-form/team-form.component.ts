@@ -16,8 +16,8 @@ export class TeamFormComponent implements OnInit {
   private teamService = inject(TeamService);
 
 
-  team: Team = new Team()
-  editMode: boolean
+  team: Team = {} as Team
+  editMode = false
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(
