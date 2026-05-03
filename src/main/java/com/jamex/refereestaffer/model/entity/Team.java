@@ -70,8 +70,12 @@ public class Team {
         this.place = place;
     }
 
-    public void addPoints(int points) {
-        this.points += points;
+    public void addPoints(short points) {
+        // Explicit cast to silence CodeQL "implicit narrowing in compound assignment".
+        // `short + short` evaluates as int in Java; without the cast `this.points += points`
+        // would silently truncate. Football match points cap at ~114/season, well under
+        // Short.MAX_VALUE (32767), so the cast is purely defensive.
+        this.points = (short) (this.points + points);
     }
 
     @Override
