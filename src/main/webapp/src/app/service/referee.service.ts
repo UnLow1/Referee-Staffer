@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Referee} from "../model/referee";
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root'
@@ -10,16 +11,12 @@ export class RefereeService {
   private http = inject(HttpClient);
 
 
-  private readonly refereesUrl: string
+  private readonly refereesUrl = `${environment.apiBaseUrl}/api/referees`
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'
     })
   };
-
-  constructor() {
-    this.refereesUrl = 'api/referees'
-  }
 
   public findAll(): Observable<Referee[]> {
     return this.http.get<Referee[]>(this.refereesUrl)

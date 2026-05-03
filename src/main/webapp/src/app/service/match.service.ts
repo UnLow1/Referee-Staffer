@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Match} from "../model/match";
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root'
@@ -10,11 +11,7 @@ export class MatchService {
   private http = inject(HttpClient);
 
 
-  private readonly matchesUrl: string
-
-  constructor() {
-    this.matchesUrl = 'api/matches'
-  }
+  private readonly matchesUrl = `${environment.apiBaseUrl}/api/matches`
 
   public findById(id: number): Observable<Match> {
     return this.http.get<Match>(`${this.matchesUrl}/${id}`)

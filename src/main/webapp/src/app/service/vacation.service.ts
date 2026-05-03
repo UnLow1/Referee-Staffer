@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Vacation} from "../model/vacation";
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root'
@@ -10,16 +11,12 @@ export class VacationService {
   private http = inject(HttpClient);
 
 
-  private readonly vacationsUrl: string
+  private readonly vacationsUrl = `${environment.apiBaseUrl}/api/vacations`
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'
     })
   };
-
-  constructor() {
-    this.vacationsUrl = 'api/vacations'
-  }
 
   public findAll(): Observable<Vacation[]> {
     return this.http.get<Vacation[]>(this.vacationsUrl)

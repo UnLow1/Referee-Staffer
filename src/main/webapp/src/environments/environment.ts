@@ -3,7 +3,10 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false
+  production: false,
+  // Empty string keeps service URLs relative — proxy.conf.json forwards /api/* to the
+  // local Spring Boot backend on :8080 during `ng serve`.
+  apiBaseUrl: ''
 };
 
 /*

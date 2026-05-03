@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Config} from "../model/config";
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root'
@@ -10,7 +11,7 @@ export class ConfigurationService {
   private http = inject(HttpClient);
 
 
-  private readonly configurationUrl: string = `api/configuration`
+  private readonly configurationUrl = `${environment.apiBaseUrl}/api/configuration`
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'

@@ -1,6 +1,6 @@
 <div class="container">
   <app-header [title]="title"></app-header>
   <router-outlet></router-outlet>
-  <app-footer [copyright]="copyright" [facebookUrl]="facebookUrl" [linkedInUrl]="linkedInUrl" [email]="email"
-              [steamUrl]="steamUrl"></app-footer>
+  <app-footer [copyright]="copyright" [facebookUrl]="author.facebookUrl" [linkedInUrl]="author.linkedInUrl"
+              [email]="author.email" [steamUrl]="author.steamUrl"></app-footer>
 </div>

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Team} from "../model/team";
+import {environment} from "../../environments/environment";
 
 @Injectable({
   providedIn: 'root'
@@ -10,16 +11,12 @@ export class TeamService {
   private http = inject(HttpClient);
 
 
-  private readonly teamsUrl: string
+  private readonly teamsUrl = `${environment.apiBaseUrl}/api/teams`
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'
     })
   };
-
-  constructor() {
-    this.teamsUrl = 'api/teams'
-  }
 
   public findAll(): Observable<Team[]> {
     return this.http.get<Team[]>(this.teamsUrl)

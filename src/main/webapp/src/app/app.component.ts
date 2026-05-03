@@ -2,6 +2,7 @@ import {Component} from '@angular/core';
 import { HeaderComponent } from './component/common/header/header.component';
 import { RouterOutlet } from '@angular/router';
 import { FooterComponent } from './component/common/footer/footer.component';
+import { AUTHOR } from './config/author.config';
 
 @Component({
     selector: 'app-root',
@@ -11,19 +12,7 @@ import { FooterComponent } from './component/common/footer/footer.component';
 })
 export class AppComponent {
 
-  title: string;
-  facebookUrl: string;
-  linkedInUrl: string;
-  email: string;
-  steamUrl: string;
-  copyright: string;
-
-  constructor() {
-    this.title = 'Referee Staffer';
-    this.facebookUrl = 'https://www.facebook.com/UnLow1/';
-    this.linkedInUrl = 'https://www.linkedin.com/in/adam-jamka-273289145/';
-    this.email = 'mailto: adam.jamka.1995@gmail.com';
-    this.steamUrl = 'https://steamcommunity.com/id/UnLow/';
-    this.copyright = `© ${new Date().getFullYear()} Copyright: Jamka Solutions`;
-  }
+  readonly title = 'Referee Staffer';
+  readonly author = AUTHOR;
+  readonly copyright = `© ${new Date().getFullYear()} Copyright: Jamka Solutions`;
 }
