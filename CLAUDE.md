@@ -27,7 +27,7 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 - Spock specs live under `src/test/groovy/com/jamex/refereestaffer/` (controllers, services, model converters).
 - File naming convention: `*Spec.groovy` (not `*Test.java`).
 - Parallel execution is enabled via `SpockConfig.groovy`.
-- JaCoCo generates coverage reports to `target/site/jacoco/`. A coverage badge is auto-committed to `.github/badges/jacoco.svg` by the GitHub Actions workflow.
+- JaCoCo generates coverage reports to `target/site/jacoco/`. CI uploads `jacoco.xml` to Codecov (badge in README, PR comments). The full HTML report is also archived as a CI artifact.
 
 ## Spring profiles and database
 
@@ -56,7 +56,7 @@ Seed data: `src/main/resources/data.sql` runs in **every** profile, but via diff
 
 GitHub Actions workflows under `.github/workflows/`, split by concern:
 
-- `maven.yml` — **Backend only**. Builds Spring Boot with Maven, runs Spock specs, generates + commits the JaCoCo badge, uploads the coverage report. Triggers only on backend paths (`pom.xml`, `src/main/java/**`, `src/main/resources/**`, `src/test/**`). Builds with `-DskipFrontend=true` so the frontend-maven-plugin doesn't run.
+- `maven.yml` — **Backend only**. Builds Spring Boot with Maven, runs Spock specs, uploads `jacoco.xml` to Codecov, archives the full HTML JaCoCo report as an artifact. Triggers only on backend paths (`pom.xml`, `src/main/java/**`, `src/main/resources/**`, `src/test/**`). Builds with `-DskipFrontend=true` so the frontend-maven-plugin doesn't run.
 - `frontend.yml` — **Frontend only**. Runs `npm ci`, `npm run build`, and `npm test` (Angular/Karma) on Node 24.15.0. Triggers only on `src/main/webapp/**`. Lint is **not** run — `npm run lint` currently surfaces ~134 pre-existing `@angular-eslint/prefer-inject` errors; re-enable once cleaned up.
 - `codeql-analysis.yml` — GitHub CodeQL security scanning (Java + JavaScript).
 
@@ -71,7 +71,7 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 - All workflows: `actions/checkout@v6`.
 - Backend + CodeQL: `actions/setup-java@v5` on `distribution: temurin`, `java-version: 25`, `cache: maven`.
 - `frontend.yml`: `actions/setup-node@v6`.
-- `maven.yml`: `actions/upload-artifact@v4`, `cicirello/jacoco-badge-generator@v2`.
+- `maven.yml`: `actions/upload-artifact@v7`, `codecov/codecov-action@v5`.
 - `codeql-analysis.yml`: `github/codeql-action/{init,autobuild,analyze}@v3` (v1 was deprecated and rejected by GitHub during the 2026-04-23 modernization pass).
 
 ## Dependabot
@@ -118,4 +118,3 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 - `src/test/resources/` — `SpockConfig.groovy`, `test file.csv`
 - `data/` — `import data file.csv` plus `screenshots/` referenced from `README.md`. Committed to the repo (not generated).
 - `.github/workflows/` — CI workflows
-- `.github/badges/jacoco.svg` — auto-committed coverage badge

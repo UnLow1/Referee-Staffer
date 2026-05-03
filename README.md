@@ -1,6 +1,6 @@
 # Referee Staffer
 
-![Coverage](.github/badges/jacoco.svg)
+[![codecov](https://codecov.io/gh/UnLow1/Referee-Staffer/branch/master/graph/badge.svg)](https://codecov.io/gh/UnLow1/Referee-Staffer)
 [![Snyk.io vulnerabilities](https://snyk.io/test/github/UnLow1/Referee-Staffer/badge.svg)](https://app.snyk.io/org/unlow1/projects)
 [![codeclimate](https://codeclimate.com/github/UnLow1/Referee-Staffer/badges/gpa.svg)](https://codeclimate.com/github/UnLow1/Referee-Staffer)
 
