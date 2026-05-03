@@ -27,7 +27,7 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 - Spock specs live under `src/test/groovy/com/jamex/refereestaffer/` (controllers, services, model converters).
 - File naming convention: `*Spec.groovy` (not `*Test.java`).
 - Parallel execution is enabled via `SpockConfig.groovy`.
-- JaCoCo generates coverage reports to `target/site/jacoco/`. CI uploads `jacoco.xml` to Codecov (badge in README, PR comments). The full HTML report is also archived as a CI artifact.
+- JaCoCo generates coverage reports to `target/site/jacoco/`. CI uploads `jacoco.xml` to Codecov (badge in README, PR comments). The full HTML report is also archived as a CI artifact. The Codecov upload uses `CODECOV_TOKEN` (GitHub repository secret) — public repo so tokenless mode also works, but the token avoids Codecov's tokenless rate-limiting/rejection. Rotate via Codecov repo settings → Reset Repository Upload Token, then update the GH Secret.
 
 ## Spring profiles and database
 

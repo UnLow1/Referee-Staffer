@@ -48,6 +48,7 @@ jobs:
         with:
           files: ./target/site/jacoco/jacoco.xml
           fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload JaCoCo coverage report
         uses: actions/upload-artifact@v7
