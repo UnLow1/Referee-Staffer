@@ -3,6 +3,7 @@ package com.jamex.refereestaffer.service
 import com.jamex.refereestaffer.model.converter.MatchConverter
 import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.*
+import com.jamex.refereestaffer.model.exception.StafferException
 import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.VacationRepository
 import spock.lang.Specification
@@ -119,5 +120,57 @@ class StafferServiceSpec extends Specification {
                 new Config(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER, 1.0d),
                 new Config(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER, 1.0d)
         ]
+    }
+
+    def "should throw StafferException when no referees are available for queue"() {
+        given:
+        short queue = 5
+        def match = Match.builder()
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .date(LocalDateTime.of(2026, 5, 4, 15, 0))
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> []
+        1 * refereeService.calculateStats([])
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * configurationRepository.findAll() >> []
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        0 * matchConverter.convertFromEntities(_)
+        thrown(StafferException)
+    }
+
+    def "should throw StafferException when all available referees are on vacation for match date"() {
+        given:
+        short queue = 5
+        def referee = [averageGrade: 8.0d, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        def matchDate = matchDateTime.toLocalDate()
+        def match = Match.builder()
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .date(matchDateTime)
+                .build()
+        def vacation = Vacation.builder()
+                .referee(referee)
+                .startDate(matchDate)
+                .endDate(matchDate)
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [referee]
+        1 * refereeService.calculateStats([referee])
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * configurationRepository.findAll() >> []
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> [vacation]
+        0 * matchConverter.convertFromEntities(_)
+        thrown(StafferException)
     }
 }
