@@ -7,4 +7,8 @@ public class ImportException extends RuntimeException {
     public ImportException(String name) {
         super(String.format(ERROR_MESSAGE, name));
     }
+
+    public ImportException(String name, Throwable cause) {
+        super(String.format(ERROR_MESSAGE, name), cause);
+    }
 }

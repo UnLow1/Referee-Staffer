@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -68,8 +69,13 @@ public class ImporterService {
             var noOfTeams = teamRepository.findAll().size();
 
             return new ImportResponse(noOfMatches, noOfReferees, noOfGrades, noOfTeams);
-        } catch (IOException e) {
-            throw new ImportException(file.getOriginalFilename());
+        } catch (IOException | DateTimeParseException | ArrayIndexOutOfBoundsException | NumberFormatException e) {
+            // Wrap parse-time failures (malformed CSV: missing columns, bad dates, non-numeric
+            // scores/queue/grade) so the caller gets a 400 via RestExceptionHandler instead of a
+            // 500 with stacktrace. Domain exceptions (TeamNotFoundException,
+            // RefereeNotFoundException) intentionally fall through — they have their own 404
+            // mapping and the message already identifies which entity is missing.
+            throw new ImportException(file.getOriginalFilename(), e);
         }
     }
 
