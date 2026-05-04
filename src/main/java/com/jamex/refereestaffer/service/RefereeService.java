@@ -16,6 +16,13 @@ import java.util.Objects;
 @Service
 public class RefereeService {
 
+    // Fallback used when a referee has no graded matches yet (rookies, future-only schedule,
+    // matches where Grade hasn't been entered post-game). Treating "no track record" as the
+    // league-average score lets the staffer still rank such a referee against others rather
+    // than letting NaN propagate through the potential calculation. Package-private so tests
+    // can reference it without hardcoding 8.3.
+    static final double DEFAULT_GRADE = 8.3;
+
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
 
@@ -53,6 +60,11 @@ public class RefereeService {
                 .map(Match::getGrade)
                 .filter(Objects::nonNull)
                 .toList();
+        if (matchesWithGrade.isEmpty()) {
+            // Without this guard the next line evaluates to 0.0 / 0 = NaN, which then
+            // poisons every potential calculation that touches this referee.
+            return DEFAULT_GRADE;
+        }
         var refereeGrades = matchesWithGrade.stream()
                 .map(Grade::getValue)
                 .reduce(0.0, Double::sum);

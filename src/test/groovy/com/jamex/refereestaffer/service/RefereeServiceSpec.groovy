@@ -34,6 +34,44 @@ class RefereeServiceSpec extends Specification {
         result.size() == 2
     }
 
+    def "should fall back to default grade when referee has no matches"() {
+        given:
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .build()
+
+        when:
+        refereeService.calculateStats([referee])
+
+        then:
+        1 * matchRepository.findAllByReferee(referee) >> []
+        referee.averageGrade == RefereeService.DEFAULT_GRADE
+        referee.numberOfMatchesInRound == (short) 0
+    }
+
+    def "should fall back to default grade when referee's matches have no grades yet"() {
+        given:
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .build()
+        def team1 = Team.builder().name("team1").build()
+        def team2 = Team.builder().name("team2").build()
+        def matchesWithoutGrades = [
+                Match.builder().home(team1).away(team2).grade(null).build(),
+                Match.builder().home(team2).away(team1).grade(null).build()
+        ]
+
+        when:
+        refereeService.calculateStats([referee])
+
+        then:
+        1 * matchRepository.findAllByReferee(referee) >> matchesWithoutGrades
+        referee.averageGrade == RefereeService.DEFAULT_GRADE
+        referee.numberOfMatchesInRound == (short) 2
+    }
+
     def "should calculate referees stats"() {
         given:
         def referees = createReferees()

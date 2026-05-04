@@ -21,15 +21,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class StafferService {
 
     private static final Logger log = LoggerFactory.getLogger(StafferService.class);
-
-    private static final double DEFAULT_AVERAGE_GRADE = 8.3;
 
     private final ConfigurationRepository configurationRepository;
     private final VacationRepository vacationRepository;
@@ -102,8 +99,9 @@ public class StafferService {
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
 
-        var averageGrade = Optional.ofNullable(referee.getAverageGrade())
-                .orElse(DEFAULT_AVERAGE_GRADE);
+        // After RefereeService.calculateStats this is always non-null — the no-grades fallback
+        // (DEFAULT_GRADE) is applied there.
+        var averageGrade = referee.getAverageGrade();
 
         return config.get(ConfigName.AVERAGE_GRADE_MULTIPLIER) * averageGrade +
                 config.get(ConfigName.EXPERIENCE_MULTIPLIER) * referee.getExperience() -

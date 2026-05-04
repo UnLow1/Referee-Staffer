@@ -34,8 +34,11 @@ class StafferServiceSpec extends Specification {
         def team2 = Team.builder()
                 .name("test team 123213")
                 .build()
-        def ref1 = [averageGrade: 8.1, teamsRefereed: Map.of(team1, (short) 1, team2, (short) 1), numberOfMatchesInRound: 7] as Referee
-        def ref2 = [experience: 100, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        // After RefereeService.calculateStats, averageGrade is always non-null — the
+        // no-grades fallback (DEFAULT_GRADE = 8.3) is applied there. Setting it
+        // explicitly here mirrors the real invariant.
+        def ref1 = [averageGrade: 8.1d, teamsRefereed: Map.of(team1, (short) 1, team2, (short) 1), numberOfMatchesInRound: 7] as Referee
+        def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, experience: 100, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
         def match1 = Match.builder()
                 .home(team1)
                 .away(team2)
@@ -78,12 +81,12 @@ class StafferServiceSpec extends Specification {
 
     def "should not assign referees to matches if referee has vacation"() {
         given:
-        def ref1 = [averageGrade: 8.6] as Referee
-        def ref2 = [teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
-        def ref3 = [teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
-        def ref4 = [averageGrade: 8.6] as Referee
-        def ref5 = [averageGrade: 8.6] as Referee
-        def ref6 = [averageGrade: 8.6] as Referee
+        def ref1 = [averageGrade: 8.6d] as Referee
+        def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def ref3 = [averageGrade: RefereeService.DEFAULT_GRADE, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def ref4 = [averageGrade: 8.6d] as Referee
+        def ref5 = [averageGrade: 8.6d] as Referee
+        def ref6 = [averageGrade: 8.6d] as Referee
         def referees = [ref1, ref2, ref3, ref4, ref5, ref6]
         def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def matchDate = matchDateTime.toLocalDate()
