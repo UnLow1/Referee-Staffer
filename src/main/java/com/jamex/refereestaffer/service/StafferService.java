@@ -14,6 +14,7 @@ import com.jamex.refereestaffer.repository.VacationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -43,6 +44,7 @@ public class StafferService {
         this.refereeService = refereeService;
     }
 
+    @Transactional
     public Collection<MatchDto> staffReferees(short queue) {
         var referees = refereeService.getAvailableRefereesForQueue(queue);
         refereeService.calculateStats(referees);

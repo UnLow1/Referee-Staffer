@@ -74,6 +74,15 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <!-- Enables @Autowired field injection in Spock specs and lets @SpringBootTest
+                 actually load a Spring context for our test classes. Without it Spock's own
+                 lifecycle ignores Spring annotations and autowired fields stay null. -->
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-spring</artifactId>
+            <version>${spock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
