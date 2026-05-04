@@ -106,6 +106,13 @@ public class MatchService {
     }
 
     private double calculateHardnessLvlForEdgeMatch(Team homeTeam, Team awayTeam) {
+        // place is a @Transient field defaulting to 0 for any team that hasn't appeared in
+        // a finished match yet (calculatePointsForTeams only ranks teams from the finished set).
+        // Without this guard, place=0 satisfies `place <= numberOfTeamsOnEdge` (0 <= 3 by default),
+        // so a fresh team's match would be classified as a top-of-table fixture by accident.
+        if (homeTeam.getPlace() == 0 || awayTeam.getPlace() == 0) {
+            return 0;
+        }
         var numberOfTeamsOnEdgeConfig = configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS);
         var numberOfTeamsOnEdge = numberOfTeamsOnEdgeConfig.getValue().longValue();
         var numberOfTeams = teamRepository.count();

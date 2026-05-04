@@ -86,6 +86,37 @@ class MatchServiceSpec extends Specification {
         team3.place == (short) 1
     }
 
+    def "should not apply edge-match bonus when at least one team is unranked"() {
+        given:
+        short queue = 2
+        def homeTeam = [points: homePoints, place: homePlace, city: "city1"] as Team
+        def awayTeam = [points: awayPoints, place: awayPlace, city: "city2"] as Team
+        def matches = [Match.builder().home(homeTeam).away(awayTeam).build()]
+        def matchHardnessLvlMultiplier = [value: 1.0] as Config
+        def matchHardnessIncrementer = [value: 100] as Config
+
+        when:
+        def result = matchService.getMatchesToAssignInQueue(queue)
+
+        then:
+        def expectedHardness = (matchHardnessIncrementer.value - Math.abs(awayTeam.points - homeTeam.points)) * matchHardnessLvlMultiplier.value
+        result.get(0).hardnessLvl == expectedHardness
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
+        1 * matchRepository.findAllByQueueAndRefereeIsNull(queue) >> matches
+        1 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) >> matchHardnessLvlMultiplier
+        1 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_INCREMENTER) >> matchHardnessIncrementer
+        0 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER)
+        0 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER)
+        0 * configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS)
+        0 * teamRepository.count()
+
+        where:
+        homePoints | homePlace | awayPoints | awayPlace
+        0          | 0         | 0          | 0
+        0          | 0         | 30         | 1
+        30         | 1         | 0          | 0
+    }
+
     def "should get matches to assign for given queue and set hardness level FULL"() {
         given:
         short queue = 2
