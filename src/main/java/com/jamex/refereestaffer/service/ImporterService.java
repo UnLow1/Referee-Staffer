@@ -15,6 +15,7 @@ import com.jamex.refereestaffer.repository.TeamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -49,6 +50,7 @@ public class ImporterService {
         this.gradeRepository = gradeRepository;
     }
 
+    @Transactional
     public ImportResponse importData(MultipartFile file, Short numberOfQueuesToImport) {
         List<String> result = new ArrayList<>();
         try (var is = file.getInputStream()) {

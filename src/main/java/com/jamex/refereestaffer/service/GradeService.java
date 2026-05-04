@@ -6,8 +6,10 @@ import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class GradeService {
 
     private final GradeRepository gradeRepository;
