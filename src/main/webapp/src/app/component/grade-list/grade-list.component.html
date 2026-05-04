@@ -10,7 +10,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (referee of referees; track referee) {
+        @for (referee of referees; track referee.id) {
           <tr>
             <td>{{ referee.firstName }} {{ referee.lastName }}</td>
             <td>{{ getGradesForReferee(referee)?.join(", ") }}</td>

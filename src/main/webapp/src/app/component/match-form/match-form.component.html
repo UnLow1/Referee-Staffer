@@ -38,7 +38,7 @@
               <select class="custom-select" id="homeTeam" name="homeTeam" [(ngModel)]="match.homeTeamId" required
                 #homeTeam="ngModel">
                 <option hidden value="undefined" selected>Choose home team</option>
-                @for (team of teams | excludeValue: match.awayTeamId; track team) {
+                @for (team of teams | excludeValue: match.awayTeamId; track team.id) {
                   <option
                   [ngValue]="team.id">{{team.name}} {{team.city}}</option>
                 }
@@ -50,7 +50,7 @@
               <select class="custom-select" id="awayTeam" name="awayTeam" [(ngModel)]="match.awayTeamId" required
                 #awayTeam="ngModel">
                 <option hidden value="undefined" selected>Choose away team</option>
-                @for (team of teams | excludeValue: match.homeTeamId; track team) {
+                @for (team of teams | excludeValue: match.homeTeamId; track team.id) {
                   <option
                   [ngValue]="team.id">{{team.name}} {{team.city}}</option>
                 }
@@ -64,7 +64,7 @@
               <select class="custom-select" id="referee" name="referee" [(ngModel)]="match.refereeId">
                 <option hidden [ngValue]="null" selected>Choose referee</option>
                 <option [ngValue]="undefined" selected>Choose referee</option>
-                @for (referee of referees; track referee) {
+                @for (referee of referees; track referee.id) {
                   <option
                   [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
                 }

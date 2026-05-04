@@ -8,7 +8,6 @@ import {Referee} from "../../model/referee";
 import {GradeService} from "../../service/grade.service";
 import {Grade} from "../../model/grade";
 import { Router, RouterLink } from "@angular/router";
-import {groupBy} from 'lodash-es';
 import { EditButtonComponent } from '../common/button/edit-button/edit-button.component';
 import { DeleteButtonComponent } from '../common/button/delete-button/delete-button.component';
 import { AddButtonComponent } from '../common/button/add-button/add-button.component';
@@ -35,7 +34,10 @@ export class MatchListComponent implements OnInit {
 
   ngOnInit() {
     this.matchService.findAll().subscribe(matches => {
-      this.groupedMatches = groupBy(matches, (match) => match.queue);
+      this.groupedMatches = matches.reduce<Record<number, Match[]>>((acc, match) => {
+        (acc[match.queue] ??= []).push(match);
+        return acc;
+      }, {});
       const teamIds = matches.map(match => match.homeTeamId)
         .concat(matches.map(match => match.awayTeamId))
         .filter((item, i, ar) => ar.indexOf(item) === i)

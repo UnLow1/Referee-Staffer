@@ -10,7 +10,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (team of teams; track team) {
+        @for (team of teams; track team.id) {
           <tr>
             <td>{{ team.name }}</td>
             <td>{{ team.city }}</td>

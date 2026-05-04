@@ -13,12 +13,12 @@
           <th scope="col">Actions</th>
         </tr>
       </thead>
-      @for (groupedMatch of groupedMatches | keyvalue: null; track groupedMatch) {
+      @for (groupedMatch of groupedMatches | keyvalue: null; track groupedMatch.key) {
         <tbody>
           <tr>
             <th colspan="100%" class="text-center table-dark" scope="rowgroup">Queue {{groupedMatch.key}}</th>
           </tr>
-          @for (match of groupedMatch.value; track match) {
+          @for (match of groupedMatch.value; track match.id) {
             <tr>
               <td>{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
               <td>{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>

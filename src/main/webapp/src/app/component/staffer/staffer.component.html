@@ -15,13 +15,13 @@
           </tr>
         </thead>
         <tbody>
-          @for (match of matches; track match) {
+          @for (match of matches; track match.id) {
             <tr [class.accepted]="acceptedMatches.includes(match)">
               <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
               <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
               <td>
                 <select class="custom-select" [(ngModel)]="match.refereeId">
-                  @for (referee of referees; track referee) {
+                  @for (referee of referees; track referee.id) {
                     <option [ngValue]="referee.id">{{ getRefereeName(referee) }} </option>
                   }
                 </select>

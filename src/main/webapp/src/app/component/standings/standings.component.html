@@ -11,7 +11,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (team of teams; track team; let i = $index) {
+        @for (team of teams; track team.id; let i = $index) {
           <tr>
             <td>{{ i + 1 }}</td>
             <td>{{ team.name }}</td>

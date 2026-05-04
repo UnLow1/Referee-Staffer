@@ -13,7 +13,7 @@
           <select class="custom-select" id="referee" name="referee" [(ngModel)]="vacation.refereeId" required
             #referee="ngModel">
             <option hidden [ngValue]="undefined" selected>Choose referee</option>
-            @for (referee of referees; track referee) {
+            @for (referee of referees; track referee.id) {
               <option
               [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
             }

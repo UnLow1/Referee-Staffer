@@ -12,7 +12,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (referee of referees; track referee) {
+        @for (referee of referees; track referee.id) {
           <tr>
             <td>{{ referee.firstName }}</td>
             <td>{{ referee.lastName }}</td>
