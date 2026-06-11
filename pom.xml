@@ -19,7 +19,7 @@
         <openapi.version>3.0.3</openapi.version>
         <groovy.version>4.0.31</groovy.version>
         <spock.version>2.4-groovy-4.0</spock.version>
-        <jacoco.version>0.8.14</jacoco.version>
+        <jacoco.version>0.8.15</jacoco.version>
         <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
              Override with -DskipFrontend=true. -->
         <skipFrontend>false</skipFrontend>
