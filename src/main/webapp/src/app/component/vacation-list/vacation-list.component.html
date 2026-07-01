@@ -1,29 +1,84 @@
-<div class="card my-5">
-  <h2 id="header" class="text-center my-3">List of vacations</h2>
-  <div class="card-body">
-    <table aria-describedby="header" class="table table-bordered table-striped">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">Referee name</th>
-          <th scope="col">Start date</th>
-          <th scope="col">End date</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (vacation of vacations; track vacation.id) {
-          <tr>
-            <td>{{getRefereeName(vacation.refereeId)}}</td>
-            <td>{{ vacation.startDate | date: 'dd.MM.yyyy'}}</td>
-            <td>{{ vacation.endDate | date: 'dd.MM.yyyy'}}</td>
-            <td>
-              <app-edit-button (clicked)="editVacation(vacation)"></app-edit-button>
-              <app-delete-button (clicked)="deleteVacation(vacation)"></app-delete-button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    <app-add-button label="Add new vacation" routerLink="addVacation"></app-add-button>
+<div class="page-head">
+  <div>
+    <h1>Vacations</h1>
+    <div class="page-head__sub">Referee unavailability — windows the staffer must work around.</div>
+  </div>
+  <div class="page-head__actions">
+    <button type="button" class="btn btn--primary" (click)="addVacation()">
+      <app-icon name="plus" [size]="12"></app-icon>Add vacation
+    </button>
   </div>
 </div>
+
+<div class="panel">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Referee</th>
+        <th class="col-date">Start</th>
+        <th class="col-date">End</th>
+        <th class="num right col-days">Days</th>
+        <th class="col-status">Status</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (vacation of sortedVacations(); track vacation.id) {
+        <tr>
+          <td>
+            @if (getReferee(vacation.refereeId); as ref) {
+              <app-ref-avatar [referee]="ref"></app-ref-avatar>
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+          <td class="mono date-cell">{{ vacation.startDate | date: 'dd MMM y' }}</td>
+          <td class="mono date-cell">{{ vacation.endDate | date: 'dd MMM y' }}</td>
+          <td class="num right">{{ days(vacation) }}</td>
+          <td>
+            @switch (status(vacation)) {
+              @case ('active') { <app-chip variant="warn" [dot]="true">Active now</app-chip> }
+              @case ('upcoming') { <app-chip>Upcoming</app-chip> }
+              @case ('past') { <app-chip variant="ghost">Past</app-chip> }
+            }
+          </td>
+          <td class="col-actions">
+            <div class="row-actions">
+              <button type="button" class="btn btn--ghost btn--sm"
+                      (click)="editVacation(vacation)" title="Edit vacation">
+                <app-icon name="edit" [size]="12"></app-icon>
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm btn--danger"
+                      (click)="askDelete(vacation)" title="Delete vacation">
+                <app-icon name="trash" [size]="12"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="empty-row">
+            <span class="muted">No vacations recorded.</span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (formOpen()) {
+  <app-vacation-form [vacation]="editingVacation()" (saved)="onSaved()" (closed)="closeForm()"></app-vacation-form>
+}
+
+<app-confirm-dialog [open]="deleteTarget() !== null" [data]="deleteGuard()"
+                    (confirmed)="confirmDelete()" (cancelled)="deleteTarget.set(null)">
+  @if (deleteTarget(); as target) {
+    This will permanently remove
+    @if (getReferee(target.refereeId); as ref) {
+      <strong>{{ ref.firstName }} {{ ref.lastName }}</strong>'s vacation ({{ target.startDate | date: 'dd MMM y' }}).
+    } @else {
+      this vacation ({{ target.startDate | date: 'dd MMM y' }}).
+    }
+    This action cannot be undone.
+  }
+</app-confirm-dialog>

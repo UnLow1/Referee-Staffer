@@ -1,42 +1,53 @@
-import {NgModule} from '@angular/core';
-import {RouterModule, Routes} from '@angular/router';
+import {Routes} from '@angular/router';
+import {ShellComponent} from './component/common/shell/shell.component';
+import {DashboardComponent} from './component/dashboard/dashboard.component';
 import {RefereeListComponent} from './component/referee-list/referee-list.component';
-import {RefereeFormComponent} from './component/referee-form/referee-form.component';
-import {MatchListComponent} from "./component/match-list/match-list.component";
-import {MatchFormComponent} from "./component/match-form/match-form.component";
-import {GradeListComponent} from "./component/grade-list/grade-list.component";
-import {TeamListComponent} from "./component/team-list/team-list.component";
-import {TeamFormComponent} from "./component/team-form/team-form.component";
-import {StafferComponent} from "./component/staffer/staffer.component";
-import {ImporterComponent} from "./component/importer/importer.component";
-import {StandingsComponent} from "./component/standings/standings.component";
-import {ConfigurationComponent} from "./component/configuration/configuration.component";
-import {VacationListComponent} from "./component/vacation-list/vacation-list.component";
-import {VacationFormComponent} from "./component/vacation-form/vacation-form.component";
+import {RefereeProfileComponent} from './component/referee-profile/referee-profile.component';
+import {MatchListComponent} from './component/match-list/match-list.component';
+import {MatchDetailComponent} from './component/match-detail/match-detail.component';
+import {GradeListComponent} from './component/grade-list/grade-list.component';
+import {TeamListComponent} from './component/team-list/team-list.component';
+import {StafferComponent} from './component/staffer/staffer.component';
+import {ImporterComponent} from './component/importer/importer.component';
+import {StandingsComponent} from './component/standings/standings.component';
+import {ConfigurationComponent} from './component/configuration/configuration.component';
+import {VacationListComponent} from './component/vacation-list/vacation-list.component';
 
-const routes: Routes = [
-  {path: 'referees', component: RefereeListComponent},
-  {path: 'addReferee/:id', component: RefereeFormComponent},
-  {path: 'addReferee', component: RefereeFormComponent},
-  {path: 'matches', component: MatchListComponent},
-  {path: 'addMatch/:id', component: MatchFormComponent},
-  {path: 'addMatch', component: MatchFormComponent},
-  {path: 'grades', component: GradeListComponent},
-  {path: 'teams', component: TeamListComponent},
-  {path: 'addTeam/:id', component: TeamFormComponent},
-  {path: 'addTeam', component: TeamFormComponent},
-  {path: 'staffer', component: StafferComponent},
-  {path: 'importer', component: ImporterComponent},
-  {path: "standings", component: StandingsComponent},
-  {path: "configuration", component: ConfigurationComponent},
-  {path: "vacations", component: VacationListComponent},
-  {path: "addVacation/:id", component: VacationFormComponent},
-  {path: "addVacation", component: VacationFormComponent}
+// All app screens live as children of the shell so the sidebar + topbar + main grid is
+// rendered once and the router-outlet inside the shell swaps the screen body.
+//
+// Admin-only routes (teams, standings, vacations) live in the shell's Admin nav group,
+// rendered only when the `admin.hidden` flag is cleared (see ShellComponent.showAdmin);
+// their direct URLs always resolve.
+export const routes: Routes = [
+  {
+    path: '',
+    component: ShellComponent,
+    children: [
+      {path: '', pathMatch: 'full', redirectTo: 'dashboard'},
+      {path: 'dashboard', component: DashboardComponent},
+      {path: 'staffer', component: StafferComponent},
+      {path: 'matches', component: MatchListComponent},
+      {path: 'matches/:id', component: MatchDetailComponent},
+      // Legacy form deep-links — the list opens the add/edit drawer on load.
+      {path: 'addMatch', component: MatchListComponent},
+      {path: 'addMatch/:id', component: MatchListComponent},
+      {path: 'referees', component: RefereeListComponent},
+      {path: 'referees/:id', component: RefereeProfileComponent},
+      // Legacy form deep-links — the list opens the add/edit drawer on load.
+      {path: 'addReferee', component: RefereeListComponent},
+      {path: 'addReferee/:id', component: RefereeListComponent},
+      {path: 'grades', component: GradeListComponent},
+      {path: 'import', component: ImporterComponent},
+      {path: 'configuration', component: ConfigurationComponent},
+      // Admin (not in nav)
+      {path: 'teams', component: TeamListComponent},
+      {path: 'addTeam', component: TeamListComponent},
+      {path: 'addTeam/:id', component: TeamListComponent},
+      {path: 'standings', component: StandingsComponent},
+      {path: 'vacations', component: VacationListComponent},
+      {path: 'addVacation', component: VacationListComponent},
+      {path: 'addVacation/:id', component: VacationListComponent},
+    ]
+  }
 ];
-
-@NgModule({
-  imports: [RouterModule.forRoot(routes, {})],
-  exports: [RouterModule]
-})
-export class AppRoutingModule {
-}

@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.entity.Referee
 import com.jamex.refereestaffer.model.entity.Team
+import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
 import spock.lang.Specification
@@ -16,9 +17,10 @@ class RefereeServiceSpec extends Specification {
 
     RefereeRepository refereeRepository = Mock()
     MatchRepository matchRepository = Mock()
+    ConfigurationRepository configurationRepository = Mock()
 
     def setup() {
-        refereeService = new RefereeService(refereeRepository, matchRepository)
+        refereeService = new RefereeService(refereeRepository, matchRepository, configurationRepository)
     }
 
     def "should return available referees"() {

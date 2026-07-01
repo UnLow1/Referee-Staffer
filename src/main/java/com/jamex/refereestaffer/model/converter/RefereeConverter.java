@@ -14,7 +14,12 @@ public class RefereeConverter implements BaseConverter<Referee, RefereeDto> {
                 entity.getFirstName(),
                 entity.getLastName(),
                 entity.getEmail(),
-                entity.getExperience());
+                entity.getExperience(),
+                entity.getAverageGrade(),
+                entity.getLastQueue(),
+                entity.getPotential(),
+                entity.getHomeWins(),
+                entity.getAwayWins());
     }
 
     @Override

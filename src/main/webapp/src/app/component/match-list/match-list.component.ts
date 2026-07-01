@@ -1,81 +1,198 @@
-import { Component, OnInit, inject } from '@angular/core';
-import {Match} from "../../model/match";
-import {MatchService} from "../../service/match.service";
-import {TeamService} from "../../service/team.service";
-import {RefereeService} from "../../service/referee.service";
-import {Team} from "../../model/team";
-import {Referee} from "../../model/referee";
-import {GradeService} from "../../service/grade.service";
-import {Grade} from "../../model/grade";
-import { Router, RouterLink } from "@angular/router";
-import { EditButtonComponent } from '../common/button/edit-button/edit-button.component';
-import { DeleteButtonComponent } from '../common/button/delete-button/delete-button.component';
-import { AddButtonComponent } from '../common/button/add-button/add-button.component';
-import { DatePipe, KeyValuePipe } from '@angular/common';
+import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {ActivatedRoute, Router} from '@angular/router';
+import {forkJoin} from 'rxjs';
+import {Match} from '../../model/match';
+import {Team} from '../../model/team';
+import {Referee} from '../../model/referee';
+import {Grade} from '../../model/grade';
+import {MatchService} from '../../service/match.service';
+import {TeamService} from '../../service/team.service';
+import {RefereeService} from '../../service/referee.service';
+import {GradeService} from '../../service/grade.service';
+import {IconComponent} from '../common/icon/icon.component';
+import {TeamPillComponent} from '../common/team-pill/team-pill.component';
+import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
+import {MeterComponent} from '../common/meter/meter.component';
+import {MatchFormComponent} from '../match-form/match-form.component';
 
+/**
+ * Match list — browse fixtures by queue, search by team name, edit / delete inline.
+ *
+ * Data fetch is a single forkJoin so all four dependencies (matches, teams, referees,
+ * grades) land together — replaces the previous nested subscribe chain.
+ */
 @Component({
-    selector: 'app-match-list',
-    templateUrl: './match-list.component.html',
-    styleUrls: ['./match-list.component.scss'],
-    imports: [EditButtonComponent, DeleteButtonComponent, AddButtonComponent, RouterLink, DatePipe, KeyValuePipe]
+  selector: 'app-match-list',
+  templateUrl: './match-list.component.html',
+  styleUrl: './match-list.component.scss',
+  imports: [
+    IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent, MatchFormComponent
+  ]
 })
 export class MatchListComponent implements OnInit {
-  private router = inject(Router);
-  private matchService = inject(MatchService);
-  private teamService = inject(TeamService);
-  private refereeService = inject(RefereeService);
-  private gradeService = inject(GradeService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly matchService = inject(MatchService);
+  private readonly teamService = inject(TeamService);
+  private readonly refereeService = inject(RefereeService);
+  private readonly gradeService = inject(GradeService);
 
+  readonly matches = signal<Match[]>([]);
+  readonly teamsById = signal<Map<number, Team>>(new Map());
+  readonly refereesById = signal<Map<number, Referee>>(new Map());
+  readonly gradesById = signal<Map<number, Grade>>(new Map());
 
-  groupedMatches: Record<number, Match[]>
-  teams: Team[]
-  referees: Referee[]
-  grades: Grade[]
+  readonly selectedQueue = signal<number | null>(null);
+  readonly searchTerm = signal('');
 
-  ngOnInit() {
+  /** Add/edit drawer state — the list owns it (repo forms convention, see CLAUDE.md). */
+  readonly formOpen = signal(false);
+  readonly editingMatch = signal<Match | null>(null);
+
+  /** All queues that have at least one match, sorted desc so the latest is first. */
+  readonly availableQueues = computed(() => {
+    const set = new Set<number>();
+    this.matches().forEach(m => set.add(m.queue));
+    return [...set].sort((a, b) => b - a);
+  });
+
+  readonly visibleMatches = computed(() => {
+    const queue = this.selectedQueue();
+    const term = this.searchTerm().trim().toLowerCase();
+    return this.matches()
+      .filter(m => queue == null || m.queue === queue)
+      .filter(m => {
+        if (!term) return true;
+        const home = this.getTeam(m.homeTeamId)?.name?.toLowerCase() ?? '';
+        const away = this.getTeam(m.awayTeamId)?.name?.toLowerCase() ?? '';
+        return home.includes(term) || away.includes(term);
+      });
+  });
+
+  ngOnInit(): void {
+    this.load();
+
+    // Deep-link support: /addMatch and /addMatch/:id route here and open the drawer on
+    // load, so the legacy form URLs keep working.
+    if (this.route.snapshot.url[0]?.path === 'addMatch') {
+      const id = Number(this.route.snapshot.paramMap.get('id'));
+      if (id) {
+        this.matchService.findById(id).subscribe(match => {
+          this.editingMatch.set(match);
+          this.formOpen.set(true);
+        });
+      } else {
+        this.formOpen.set(true);
+      }
+    }
+  }
+
+  private load(): void {
     this.matchService.findAll().subscribe(matches => {
-      this.groupedMatches = matches.reduce<Record<number, Match[]>>((acc, match) => {
-        (acc[match.queue] ??= []).push(match);
-        return acc;
-      }, {});
-      const teamIds = matches.map(match => match.homeTeamId)
-        .concat(matches.map(match => match.awayTeamId))
-        .filter((item, i, ar) => ar.indexOf(item) === i)
-      const refereeIds = matches.map(match => match.refereeId)
-        .filter(this.notEmpty)
-        .filter((item, i, ar) => ar.indexOf(item) === i)
-      const gradeIds = matches.map(match => match.gradeId)
-        .filter(this.notEmpty)
-        .filter((item, i, ar) => ar.indexOf(item) === i)
+      const teamIds = unique(matches.flatMap(m => [m.homeTeamId, m.awayTeamId]));
+      const refereeIds = unique(matches.map(m => m.refereeId).filter(notEmpty));
+      const gradeIds = unique(matches.map(m => m.gradeId).filter(notEmpty));
 
-      this.teamService.findByIds(teamIds).subscribe(teams => this.teams = teams)
-      this.refereeService.findByIds(refereeIds).subscribe(referees => this.referees = referees)
-      this.gradeService.findByIds(gradeIds).subscribe(grades => this.grades = grades)
-    })
+      forkJoin({
+        teams: this.teamService.findByIds(teamIds),
+        referees: refereeIds.length > 0 ? this.refereeService.findByIds(refereeIds) : Promise.resolve([] as Referee[]),
+        grades: gradeIds.length > 0 ? this.gradeService.findByIds(gradeIds) : Promise.resolve([] as Grade[])
+      }).subscribe(({teams, referees, grades}) => {
+        this.matches.set(matches);
+        this.teamsById.set(toMap(teams));
+        this.refereesById.set(toMap(referees));
+        this.gradesById.set(toMap(grades));
+
+        // Default to the latest queue with matches so the user lands on something.
+        const queues = this.availableQueues();
+        if (queues.length > 0 && this.selectedQueue() == null) {
+          this.selectedQueue.set(queues[0]);
+        }
+      });
+    });
   }
 
-  notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-    return value !== null && value !== undefined;
+  selectQueue(q: number): void {
+    this.selectedQueue.set(q);
   }
 
-  getTeam(teamId: number): Team {
-    return this.teams?.find(team => team.id === teamId)
+  setSearch(value: string): void {
+    this.searchTerm.set(value);
   }
 
-  getReferee(refereeId: number): Referee {
-    return this.referees?.find(referee => referee.id === refereeId)
+  openDetail(match: Match): void {
+    this.router.navigate(['/matches', match.id]);
   }
 
-  getGrade(gradeId: number): Grade {
-    return this.grades?.find(grade => grade.id === gradeId)
+  addMatch(): void {
+    this.editingMatch.set(null);
+    this.formOpen.set(true);
   }
 
-  editMatch(match: Match) {
-    this.router.navigate(['addMatch', match.id])
+  editMatch(match: Match, event: Event): void {
+    event.stopPropagation();
+    this.editingMatch.set(match);
+    this.formOpen.set(true);
   }
 
-  deleteMatch(matchToDelete: Match) {
-    this.matchService.delete(matchToDelete.id).subscribe(() =>
-      this.groupedMatches[matchToDelete.queue] = this.groupedMatches[matchToDelete.queue].filter((match: Match) => match.id !== matchToDelete.id))
+  closeForm(): void {
+    this.formOpen.set(false);
+    this.editingMatch.set(null);
+    // A deep-linked drawer leaves /addMatch in the URL — normalize back to the list.
+    if (this.route.snapshot.url[0]?.path === 'addMatch') {
+      this.router.navigate(['/matches']);
+    }
   }
+
+  onSaved(): void {
+    // Re-fetch the full join: a save can touch teams/referees/grades the list joins on.
+    this.load();
+    this.closeForm();
+  }
+
+  deleteMatch(match: Match, event: Event): void {
+    event.stopPropagation();
+    this.matchService.delete(match.id).subscribe(() => {
+      this.matches.update(prev => prev.filter(m => m.id !== match.id));
+    });
+  }
+
+  // ——— Helpers ———
+
+  getTeam(teamId: number | undefined): Team | undefined {
+    if (teamId == null) return undefined;
+    return this.teamsById().get(teamId);
+  }
+
+  getReferee(refereeId: number | null | undefined): Referee | undefined {
+    if (refereeId == null) return undefined;
+    return this.refereesById().get(refereeId);
+  }
+
+  getGrade(gradeId: number | null | undefined): Grade | undefined {
+    if (gradeId == null) return undefined;
+    return this.gradesById().get(gradeId);
+  }
+
+  scoreOrPlaceholder(match: Match): string | null {
+    if (match.homeScore == null || match.awayScore == null) return null;
+    return `${match.homeScore} – ${match.awayScore}`;
+  }
+
+  /** Grade values are 1..10 — scale to 0..100 for the Meter atom (max=100). */
+  gradeAsMeter(grade: Grade | undefined): number {
+    return (grade?.value ?? 0) * 10;
+  }
+}
+
+function unique<T>(arr: T[]): T[] {
+  return [...new Set(arr)];
+}
+
+function notEmpty<T>(v: T | null | undefined): v is T {
+  return v != null;
+}
+
+function toMap<T extends {id: number}>(items: T[]): Map<number, T> {
+  return new Map(items.map(t => [t.id, t]));
 }

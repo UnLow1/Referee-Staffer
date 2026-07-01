@@ -41,7 +41,8 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
                 referee.orElse(null),
                 entity.getHomeScore(),
                 entity.getAwayScore(),
-                grade.orElse(null));
+                grade.orElse(null),
+                entity.getHardnessLvl());
     }
 
     @Override

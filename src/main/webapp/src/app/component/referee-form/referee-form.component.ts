@@ -1,44 +1,66 @@
-import { Component, OnInit, inject } from '@angular/core';
-import {Referee} from "../../model/referee";
-import {ActivatedRoute, ParamMap, Router} from "@angular/router";
-import {RefereeService} from "../../service/referee.service";
-import { FormsModule } from '@angular/forms';
+import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {FormsModule, NgForm} from '@angular/forms';
+import {Referee} from '../../model/referee';
+import {RefereeService} from '../../service/referee.service';
+import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
+import {IconComponent} from '../common/icon/icon.component';
 
+/**
+ * Referee add/edit form — a right-side drawer opened from the referee list (no longer a
+ * routed full page).
+ *
+ * The host renders this component behind an @if, so it is recreated per open and the
+ * working copy can be taken once in ngOnInit. Editable fields only — the enriched stats
+ * (averageGrade, potential, lastQueue, homeWins, awayWins) never appear in the form;
+ * they survive an edit because the original referee is spread into the payload.
+ */
 @Component({
-    selector: 'app-referee-form',
-    templateUrl: './referee-form.component.html',
-    styleUrls: ['./referee-form.component.scss'],
-    imports: [FormsModule]
+  selector: 'app-referee-form',
+  templateUrl: './referee-form.component.html',
+  imports: [FormsModule, FormDrawerComponent, IconComponent]
 })
 export class RefereeFormComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private refereeService = inject(RefereeService);
+  private readonly refereeService = inject(RefereeService);
 
+  /** Referee being edited, or null to add a new one. */
+  @Input() referee: Referee | null = null;
+  @Output() saved = new EventEmitter<Referee>();
+  @Output() closed = new EventEmitter<void>();
 
-  referee: Referee = {} as Referee
-  editMode = false
+  // README §Validation rules: Angular's `email` validator accepts addresses without a
+  // TLD dot, so the prototype's stricter regex rides in via `pattern`.
+  readonly emailPattern = '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$';
 
-  ngOnInit() {
-    this.route.paramMap.subscribe(
-      (params: ParamMap) => {
-        const id = Number(params.get('id'))
-        if (id) {
-          this.editMode = true
-          this.refereeService.findById(id).subscribe(referee => this.referee = referee)
-        }
-      }
-    )
+  model: Pick<Referee, 'firstName' | 'lastName' | 'email' | 'experience'> = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    experience: undefined as unknown as number
+  };
+
+  get editMode(): boolean {
+    return this.referee != null;
   }
 
-  onSubmit() {
-    if (this.editMode)
-      this.refereeService.update(this.referee).subscribe(() => this.gotoRefereesList())
-    else
-      this.refereeService.save(this.referee).subscribe(() => this.gotoRefereesList())
+  get subtitle(): string {
+    return this.editMode
+      ? `${this.referee!.firstName} ${this.referee!.lastName}`
+      : 'New official in the pool';
   }
 
-  gotoRefereesList() {
-    this.router.navigate(['referees'])
+  ngOnInit(): void {
+    if (this.referee) {
+      const {firstName, lastName, email, experience} = this.referee;
+      this.model = {firstName, lastName, email, experience};
+    }
+  }
+
+  onSubmit(form: NgForm): void {
+    if (!form.valid) return;
+    const payload: Referee = {...(this.referee ?? {} as Referee), ...this.model};
+    const request = this.editMode
+      ? this.refereeService.update(payload)
+      : this.refereeService.save(payload);
+    request.subscribe(saved => this.saved.emit(saved));
   }
 }

@@ -1,0 +1,37 @@
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.page-head__actions .input {
+  width: 220px;
+}
+
+.tbl .col-played  { width: 90px; }
+.tbl .col-points  { width: 90px; }
+.tbl .col-form    { width: 160px; }
+.tbl .col-actions { width: 100px; }
+
+.city-cell {
+  color: var(--ink-2);
+}
+
+.points-cell {
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 32px 14px !important;
+}

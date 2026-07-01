@@ -1,31 +1,73 @@
-<div class="card my-5">
-  <h2 id="header" class="text-center my-3">List of referees</h2>
-  <div class="card-body">
-    <table aria-describedby="header" class="table table-bordered table-striped">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">First name</th>
-          <th scope="col">Last name</th>
-          <th scope="col">Email</th>
-          <th scope="col">Experience</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (referee of referees; track referee.id) {
-          <tr>
-            <td>{{ referee.firstName }}</td>
-            <td>{{ referee.lastName }}</td>
-            <td><a href="mailto:{{ referee.email }}">{{ referee.email }}</a></td>
-            <td>{{ referee.experience }}</td>
-            <td>
-              <app-edit-button (clicked)="editReferee(referee)"></app-edit-button>
-              <app-delete-button (clicked)="deleteReferee(referee)"></app-delete-button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    <app-add-button label="Add new referee" routerLink="addReferee"></app-add-button>
+<div class="page-head">
+  <div>
+    <h1>Referees</h1>
+    <div class="page-head__sub">{{ referees().length }} active referees in the pool.</div>
+  </div>
+  <div class="page-head__actions">
+    <input type="text" class="input" placeholder="Search referee…"
+           [value]="searchTerm()" (input)="setSearch($any($event.target).value)">
+    <button type="button" class="btn btn--primary" (click)="addReferee()">
+      <app-icon name="plus" [size]="12"></app-icon>Add referee
+    </button>
   </div>
 </div>
+
+<div class="panel">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Referee</th>
+        <th>Email</th>
+        <th class="num right col-avg">Avg grade</th>
+        <th class="num right col-experience">Experience</th>
+        <th class="col-potential">Potential</th>
+        <th class="num right col-lastq">Last queue</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (referee of visibleReferees(); track referee.id) {
+        <tr class="referee-row" (click)="openProfile(referee)">
+          <td><app-ref-avatar [referee]="referee"></app-ref-avatar></td>
+          <td class="email-cell mono">{{ referee.email }}</td>
+          <td class="num right">{{ formatGrade(referee.averageGrade) }}</td>
+          <td class="num right">{{ referee.experience }}</td>
+          <td>
+            @if (hasPotential(referee)) {
+              <app-meter [value]="potentialPct(referee)" [max]="100"></app-meter>
+            } @else {
+              <span class="muted">—</span>
+            }
+          </td>
+          <td class="num right">{{ referee.lastQueue ?? '—' }}</td>
+          <td class="col-actions">
+            <div class="row-actions">
+              <button type="button" class="btn btn--ghost btn--sm"
+                      (click)="editReferee(referee, $event)" title="Edit referee">
+                <app-icon name="edit" [size]="12"></app-icon>
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm btn--danger"
+                      (click)="deleteReferee(referee, $event)" title="Delete referee">
+                <app-icon name="trash" [size]="12"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="7" class="empty-row">
+            @if (searchTerm()) {
+              <span class="muted">No referees match "{{ searchTerm() }}".</span>
+            } @else {
+              <span class="muted">No referees in the pool yet.</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (formOpen()) {
+  <app-referee-form [referee]="editingReferee()" (saved)="onSaved()" (closed)="closeForm()"></app-referee-form>
+}

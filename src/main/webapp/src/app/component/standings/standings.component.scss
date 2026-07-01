@@ -1,0 +1,59 @@
+.tbl .col-pos   { width: 44px; }
+.tbl .col-stat  { width: 44px; }
+.tbl .col-goals { width: 52px; }
+.tbl .col-pts   { width: 60px; }
+.tbl .col-form  { width: 160px; }
+
+.pos-cell {
+  color: var(--ink-3);
+  font-family: var(--mono);
+}
+
+.team-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.city-cell {
+  color: var(--ink-3);
+}
+
+.pts-cell {
+  font-weight: 600;
+}
+
+.gd-positive { color: var(--accent-ink); }
+.gd-negative { color: var(--danger); }
+.gd-zero { color: var(--ink-3); }
+
+// Zone-tinted form bar: accent is the .bar default; relegation rows go danger,
+// mid-table rows neutral. min-width keeps the bar visible when the 12-column
+// table runs out of room on narrow viewports (auto layout collapses the only
+// width-less column to zero otherwise).
+.tbl .bar { min-width: 90px; }
+.bar > i.bar--danger { background: var(--danger); }
+.bar > i.bar--neutral { background: var(--ink-3); }
+
+.legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.empty-row {
+  text-align: center;
+  padding: 32px 14px !important;
+}

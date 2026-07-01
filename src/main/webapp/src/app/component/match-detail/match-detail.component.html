@@ -1,0 +1,199 @@
+@if (match(); as m) {
+  <div class="back-row">
+    <a class="btn btn--ghost btn--sm" routerLink="/matches">‹ Back</a>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1>Match #{{ m.id }}</h1>
+      <div class="page-head__sub">Queue {{ m.queue }}</div>
+    </div>
+    <div class="page-head__actions">
+      <a class="btn" [routerLink]="['/addMatch', m.id]">
+        <app-icon name="edit" [size]="12"></app-icon>Edit
+      </a>
+    </div>
+  </div>
+
+  <!-- Hero panel -->
+  <div class="panel hero-panel">
+    <div class="hero-grid">
+      <div class="hero-team hero-team--home">
+        <div class="hero-team__label">Home</div>
+        <div class="hero-team__name">{{ home()?.name ?? '—' }}</div>
+        <div class="hero-team__meta">
+          @if (homePlace() !== null) {
+            <span class="mono">#{{ homePlace() }}</span>
+          }
+          @if (home(); as h) {
+            <span>{{ h.points }} pts</span>
+            <span>·</span>
+            <span>{{ h.city }}</span>
+          }
+        </div>
+      </div>
+      <div class="hero-score">
+        <div class="hero-score__label">vs</div>
+        @if (scoreLine(); as score) {
+          <div class="hero-score__value">{{ score }}</div>
+          <div class="hero-score__sub">final score</div>
+        } @else {
+          <div class="hero-score__value hero-score__value--placeholder">—</div>
+          <div class="hero-score__sub">not played</div>
+        }
+      </div>
+      <div class="hero-team hero-team--away">
+        <div class="hero-team__label">Away</div>
+        <div class="hero-team__name">{{ away()?.name ?? '—' }}</div>
+        <div class="hero-team__meta">
+          @if (awayPlace() !== null) {
+            <span class="mono">#{{ awayPlace() }}</span>
+          }
+          @if (away(); as a) {
+            <span>{{ a.points }} pts</span>
+            <span>·</span>
+            <span>{{ a.city }}</span>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="hero-flags">
+      @if (sameCity()) { <app-chip variant="warn">derby — same city</app-chip> }
+      @if (isTopMatch()) { <app-chip variant="accent">top-3 match</app-chip> }
+      @if (isRelegationMatch()) { <app-chip variant="danger">relegation match</app-chip> }
+      <app-chip>Δ pts {{ pointsDiff() }}</app-chip>
+      @if (m.hardnessLvl !== null) {
+        <app-chip>difficulty {{ round(m.hardnessLvl) }}</app-chip>
+      }
+    </div>
+  </div>
+
+  <!-- Two-column body -->
+  <div class="detail-grid">
+    <div class="panel">
+      <div class="panel__head">
+        <div>
+          <div class="panel__title">Difficulty breakdown</div>
+          <div class="panel__sub">
+            Total <span class="mono total-value">{{ breakdown() ? round(breakdown()!.total) : (m.hardnessLvl !== null ? round(m.hardnessLvl) : '—') }}</span> of 150
+          </div>
+        </div>
+      </div>
+      <table class="tbl">
+        <tbody>
+          @if (breakdown(); as b) {
+            <tr>
+              <td>Base — closeness in table</td>
+              <td class="num right muted">Δ {{ b.flags.pointsDiff }} pts</td>
+              <td class="num right">+{{ round(b.parts.base) }}</td>
+            </tr>
+            <tr>
+              <td>Same city {{ b.flags.sameCity ? '(derby)' : '' }}</td>
+              <td class="num right muted">{{ b.flags.sameCity ? 'active' : 'inactive' }}</td>
+              <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
+            </tr>
+            <tr>
+              <td>Top-3 match</td>
+              <td class="num right muted">{{ b.flags.isTop ? 'active' : 'inactive' }}</td>
+              <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
+            </tr>
+            <tr>
+              <td>Relegation match</td>
+              <td class="num right muted">{{ b.flags.isBot ? 'active' : 'inactive' }}</td>
+              <td class="num right" [class.danger-text]="b.flags.isBot" [class.muted]="!b.flags.isBot">+{{ round(b.parts.bottom) }}</td>
+            </tr>
+            <tr class="total-row">
+              <td><strong>Total difficulty</strong></td>
+              <td></td>
+              <td class="num right"><strong>{{ round(b.total) }}</strong></td>
+            </tr>
+          } @else {
+            <tr>
+              <td>Total difficulty</td>
+              <td class="num right">{{ m.hardnessLvl !== null ? round(m.hardnessLvl) : '—' }}</td>
+            </tr>
+            <tr><td colspan="2" class="muted">Loading breakdown…</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel__head">
+        <div>
+          <div class="panel__title">Team comparison</div>
+          <div class="panel__sub">After the latest finished queue</div>
+        </div>
+      </div>
+      <div class="panel__body">
+        @for (row of compareRows(); track row.label; let last = $last) {
+          <div class="compare-row" [class.compare-row--last]="last">
+            <div class="compare-row__home">
+              <span class="mono">{{ row.home }}</span>
+              @if (row.bar && isNumber(row.home) && isNumber(row.away)) {
+                <div class="bar bar--mirrored"><i [style.width]="barWidth(asNumber(row.home), asNumber(row.away))"></i></div>
+              }
+            </div>
+            <div class="compare-row__label">{{ row.label }}</div>
+            <div class="compare-row__away">
+              @if (row.bar && isNumber(row.home) && isNumber(row.away)) {
+                <div class="bar"><i [style.width]="barWidth(asNumber(row.away), asNumber(row.home))"></i></div>
+              }
+              <span class="mono">{{ row.away }}</span>
+            </div>
+          </div>
+        }
+        <div class="muted compare-todo">
+          Wins / draws / losses / goals require a per-team season-stats endpoint —
+          a planned backend addition.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Candidates -->
+  <div class="panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">Top referee candidates</div>
+        <div class="panel__sub">
+          Sorted by potential (P = α·avg + β·experience). Bias-aware Fit % is a planned backend addition.
+        </div>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="col-idx">#</th>
+          <th>Referee</th>
+          <th class="num right col-avg">Avg</th>
+          <th class="num right col-experience">Experience</th>
+          <th class="num right col-potential">Potential</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of candidates(); track c.referee.id; let i = $index) {
+          <tr [class.candidate-row--assigned]="c.isAssigned">
+            <td class="num idx-cell">{{ i + 1 }}</td>
+            <td><app-ref-avatar [referee]="c.referee"></app-ref-avatar></td>
+            <td class="num right">{{ c.referee.averageGrade !== null && c.referee.averageGrade !== undefined ? c.referee.averageGrade.toFixed(1) : '—' }}</td>
+            <td class="num right">{{ c.referee.experience }}</td>
+            <td class="num right">{{ c.referee.potential !== null && c.referee.potential !== undefined ? round(c.referee.potential) : '—' }}</td>
+            <td class="col-actions">
+              <div class="row-actions">
+                @if (c.isAssigned) {
+                  <app-chip variant="accent">assigned</app-chip>
+                } @else {
+                  <button type="button" class="btn btn--sm" (click)="assign(c.referee)">Assign</button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <div class="panel"><div class="panel__body muted">Loading match…</div></div>
+}

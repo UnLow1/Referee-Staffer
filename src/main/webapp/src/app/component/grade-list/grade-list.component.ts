@@ -1,71 +1,134 @@
-import { Component, OnInit, inject } from '@angular/core';
-import {ActivatedRoute, Router} from "@angular/router";
-import {GradeService} from "../../service/grade.service";
-import {RefereeService} from "../../service/referee.service";
-import {Referee} from "../../model/referee";
-import {Grade} from "../../model/grade";
-import {MatchService} from "../../service/match.service";
-import {Match} from "../../model/match";
+import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Router} from '@angular/router';
+import {forkJoin} from 'rxjs';
+import {Match} from '../../model/match';
+import {Referee} from '../../model/referee';
+import {Team} from '../../model/team';
+import {Grade} from '../../model/grade';
+import {MatchService} from '../../service/match.service';
+import {RefereeService} from '../../service/referee.service';
+import {TeamService} from '../../service/team.service';
+import {GradeService} from '../../service/grade.service';
+import {IconComponent} from '../common/icon/icon.component';
+import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
+import {MeterComponent} from '../common/meter/meter.component';
 
+interface GradeRow {
+  match: Match;
+  referee?: Referee;
+  home?: Team;
+  away?: Team;
+  grade: Grade;
+}
+
+/**
+ * Grades view — every observer grade in the system, joined with the match it scored
+ * and the referee being scored.
+ *
+ * Backend exposes Grade as just (id, value) — there's no "find grades for referee" or
+ * "find grade-with-context" endpoint. We fetch matches + grades + referees + teams in
+ * one forkJoin and build the rows client-side. RefereeService's win counters could let
+ * us also surface per-referee aggregates, but that's deferred.
+ */
 @Component({
-    selector: 'app-grade-list',
-    templateUrl: './grade-list.component.html',
-    styleUrls: ['./grade-list.component.scss']
+  selector: 'app-grade-list',
+  templateUrl: './grade-list.component.html',
+  styleUrl: './grade-list.component.scss',
+  imports: [IconComponent, RefAvatarComponent, MeterComponent]
 })
 export class GradeListComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private refereeService = inject(RefereeService);
-  private gradeService = inject(GradeService);
-  private matchService = inject(MatchService);
+  private readonly router = inject(Router);
+  private readonly matchService = inject(MatchService);
+  private readonly refereeService = inject(RefereeService);
+  private readonly teamService = inject(TeamService);
+  private readonly gradeService = inject(GradeService);
 
+  readonly matches = signal<Match[]>([]);
+  readonly refereesById = signal<Map<number, Referee>>(new Map());
+  readonly teamsById = signal<Map<number, Team>>(new Map());
+  readonly gradesById = signal<Map<number, Grade>>(new Map());
 
-  matches: Match[]
-  referees: Referee[]
-  grades: Grade[]
-  sortedByGradesDesc: boolean
-  sortedByNameAsc: boolean
+  readonly rows = computed<GradeRow[]>(() => {
+    const grades = this.gradesById();
+    const refs = this.refereesById();
+    const teams = this.teamsById();
+    return this.matches()
+      .filter(m => m.gradeId != null)
+      .map<GradeRow>(m => ({
+        match: m,
+        referee: m.refereeId != null ? refs.get(m.refereeId) : undefined,
+        home: teams.get(m.homeTeamId),
+        away: teams.get(m.awayTeamId),
+        grade: grades.get(m.gradeId)!
+      }))
+      .filter(r => r.grade != null)
+      .sort((a, b) => (b.match.queue ?? 0) - (a.match.queue ?? 0));
+  });
 
   ngOnInit(): void {
     this.matchService.findAll().subscribe(matches => {
-      this.matches = matches
-      const gradeIds = matches.map(match => match.gradeId).filter((item, i, ar) => ar.indexOf(item) === i)
-      this.gradeService.findByIds(gradeIds).subscribe(grades => this.grades = grades)
-    })
-    this.refereeService.findAll().subscribe(referees => this.referees = referees)
+      const teamIds = unique(matches.flatMap(m => [m.homeTeamId, m.awayTeamId]));
+      const refereeIds = unique(matches.map(m => m.refereeId).filter(notEmpty));
+      const gradeIds = unique(matches.map(m => m.gradeId).filter(notEmpty));
+
+      forkJoin({
+        teams: teamIds.length > 0 ? this.teamService.findByIds(teamIds) : Promise.resolve([] as Team[]),
+        referees: refereeIds.length > 0 ? this.refereeService.findByIds(refereeIds) : Promise.resolve([] as Referee[]),
+        grades: gradeIds.length > 0 ? this.gradeService.findByIds(gradeIds) : Promise.resolve([] as Grade[])
+      }).subscribe(({teams, referees, grades}) => {
+        this.matches.set(matches);
+        this.teamsById.set(toMap(teams));
+        this.refereesById.set(toMap(referees));
+        this.gradesById.set(toMap(grades));
+      });
+    });
   }
 
-  getGradesForReferee(referee: Referee): number[] {
-    const gradeIds = this.matches?.filter(match => match.refereeId === referee.id).map(match => match.gradeId)
-    return this.grades?.filter(grade => gradeIds.includes(grade.id)).map(grade => grade.value)
+  shortCode(team: Team | undefined): string {
+    if (!team) return '';
+    return team.short ?? team.name?.slice(0, 3).toUpperCase() ?? '';
   }
 
-  countAverageForReferee(referee: Referee): number {
-    const grades = this.getGradesForReferee(referee)
-    return grades?.reduce((a, b) => a + b, 0) / grades?.length
+  gradeAsMeter(grade: Grade): number {
+    return grade.value * 10;
   }
 
-  sortTableByGrade() {
-    this.referees = this.referees.sort(this.gradeComparator())
-    this.sortedByGradesDesc = !this.sortedByGradesDesc
+  gradeKind(grade: Grade): 'default' | 'warn' {
+    return grade.value >= 7 ? 'default' : 'warn';
   }
 
-  sortTableByName() {
-    this.referees = this.referees.sort(this.nameComparator())
-    this.sortedByNameAsc = !this.sortedByNameAsc
+  editGrade(row: GradeRow, event: Event): void {
+    event.stopPropagation();
+    /*
+     * No dedicated "edit grade" form yet — grades are managed via the match form
+     * (which has the grade input). Route there for now.
+     */
+    this.router.navigate(['/addMatch', row.match.id]);
   }
 
-  private gradeComparator() {
-    if (this.sortedByGradesDesc)
-      return (a, b) => this.countAverageForReferee(a) - this.countAverageForReferee(b);
-    else
-      return (a, b) => this.countAverageForReferee(b) - this.countAverageForReferee(a);
+  deleteGrade(row: GradeRow, event: Event): void {
+    event.stopPropagation();
+    this.gradeService.delete(row.grade).subscribe(() => {
+      this.matches.update(prev => prev.map(m =>
+        m.id === row.match.id ? {...m, gradeId: undefined as unknown as number} : m
+      ));
+      this.gradesById.update(prev => {
+        const next = new Map(prev);
+        next.delete(row.grade.id);
+        return next;
+      });
+    });
   }
+}
 
-  private nameComparator() {
-    if (this.sortedByNameAsc)
-      return (a, b) => b.lastName.localeCompare(a.lastName);
-    else
-      return (a, b) => a.lastName.localeCompare(b.lastName);
-  }
+function unique<T>(arr: T[]): T[] {
+  return [...new Set(arr)];
+}
+
+function notEmpty<T>(v: T | null | undefined): v is T {
+  return v != null;
+}
+
+function toMap<T extends {id: number}>(items: T[]): Map<number, T> {
+  return new Map(items.map(t => [t.id, t]));
 }

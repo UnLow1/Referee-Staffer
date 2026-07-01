@@ -1,18 +1,11 @@
 import {Component} from '@angular/core';
-import { HeaderComponent } from './component/common/header/header.component';
-import { RouterOutlet } from '@angular/router';
-import { FooterComponent } from './component/common/footer/footer.component';
-import { AUTHOR } from './config/author.config';
+import {RouterOutlet} from '@angular/router';
 
+// AppComponent is now just the bootstrap host — the shell (sidebar + topbar + main) lives
+// inside ShellComponent, which is the layout for every routed screen. See app.routes.ts.
 @Component({
-    selector: 'app-root',
-    templateUrl: './app.component.html',
-    styleUrls: ['./app.component.css'],
-    imports: [HeaderComponent, RouterOutlet, FooterComponent]
+  selector: 'app-root',
+  template: '<router-outlet></router-outlet>',
+  imports: [RouterOutlet]
 })
-export class AppComponent {
-
-  readonly title = 'Referee Staffer';
-  readonly author = AUTHOR;
-  readonly copyright = `© ${new Date().getFullYear()} Copyright: Jamka Solutions`;
-}
+export class AppComponent {}

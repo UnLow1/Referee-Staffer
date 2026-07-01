@@ -1,27 +1,50 @@
-<div class="card my-5">
-  <h2 class="text-center my-3">Configuration</h2>
-  <div class="card-body">
-    <form (ngSubmit)="onSubmit()" #configurationForm="ngForm">
-      @for (setting of config; track setting.id) {
-        <div>
-          <div class="form-group row">
-            <label for="{{setting.id}}" class="col-5 col-form-label text-right">{{setting.name}}</label>
-            <div class="col-2">
-              <input type=number [(ngModel)]="setting.value"
-                step=any
-                class="form-control"
-                id="{{setting.id}}"
-                placeholder="Enter {{setting.name}}"
-                name="{{setting.name}}"
-                required #settingInput="ngModel"/>
-              </div>
-            </div>
-            <div [hidden]="settingInput.valid" class="alert alert-danger">Setting {{setting.name}} is required</div>
-          </div>
-        }
-        <button type="submit" [disabled]="!configurationForm.form.valid" class="btn btn-success">
-          <em class="fa fa-check mr-2"></em>Submit
-        </button>
-      </form>
+<div class="page-head">
+  <div>
+    <h1>Configuration</h1>
+    <div class="page-head__sub">
+      Tune the constants that drive potential, difficulty, and effective value.
     </div>
   </div>
+  <div class="page-head__actions">
+    <button type="button" class="btn" (click)="reset()">Reset to defaults</button>
+    <button type="button" class="btn btn--primary" (click)="save()" [disabled]="saving()">
+      <app-icon name="check" [size]="12"></app-icon>
+      {{ saving() ? 'Saving…' : 'Save' }}
+    </button>
+  </div>
+</div>
+
+@for (group of groups; track group.id) {
+  <div class="panel config-panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">{{ group.title }}</div>
+        <div class="panel__sub">{{ group.description }}</div>
+      </div>
+    </div>
+    <div class="panel__body">
+      <div class="config-grid">
+        @for (config of configsFor(group.id); track config.name) {
+          <label class="field config-field">
+            <div class="config-field__head">
+              <span class="mono config-field__key">{{ config.name }}</span>
+              <span class="mono config-field__default">default {{ defaultFor(config.name) }}</span>
+            </div>
+            <input type="number" class="input num"
+                   [ngModel]="valueFor(config.name)"
+                   (ngModelChange)="setValue(config.name, $event)"
+                   step="any">
+            <div class="config-field__desc">{{ config.description }}</div>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+@if (savedAt(); as t) {
+  <div class="saved-row">
+    <app-icon name="check" [size]="12"></app-icon>
+    Saved {{ formatTime(t) }}
+  </div>
+}

@@ -1,0 +1,63 @@
+<div class="shell">
+  <!-- Brand block: 24x24 dark circle with offset whistle hole + "Referee Staffer" wordmark.
+       Geometry comes from styles.scss .brand__mark / ::after — no DOM trickery needed. -->
+  <div class="brand">
+    <div class="brand__mark"></div>
+    <div class="brand__name">Referee<span class="light"> Staffer</span></div>
+  </div>
+
+  <div class="topbar">
+    <div class="topbar__left">
+      <span class="topbar__crumb">Ekstraklasa 2025/26</span>
+      <span class="topbar__sep">/</span>
+      <!-- TODO: bind topbar__title to active route via Router.events / RouteData when more
+           screens land. For now the brand+breadcrumb already orient the user. -->
+      <span class="topbar__title"></span>
+    </div>
+    <div class="topbar__actions">
+      <span class="topbar__round">Round 30 · 4 May 2026</span>
+      <span class="topbar__divider"></span>
+      <span class="avatar" title="Jamex">JX</span>
+    </div>
+  </div>
+
+  <nav class="sidenav">
+    <div class="nav-group">Workspace</div>
+    @for (item of workspaceNav; track item.path) {
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+        <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+
+    <div class="nav-group">Data</div>
+    @for (item of dataNav; track item.path) {
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+        <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+
+    @if (showAdmin) {
+      <div class="nav-group nav-group--admin">Admin<app-icon name="lock" [size]="11"></app-icon></div>
+      @for (item of adminNav; track item.path) {
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+          <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    }
+
+    <div class="nav-group">Setup</div>
+    @for (item of setupNav; track item.path) {
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+        <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <main class="main">
+    <router-outlet></router-outlet>
+  </main>
+</div>

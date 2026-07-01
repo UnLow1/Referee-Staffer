@@ -21,12 +21,47 @@ public class RefereeDto {
     @NotNull
     private final Integer experience;
 
+    /**
+     * Average observer grade across the referee's match history. Null until at least one
+     * graded match exists — frontend treats null as "no grades yet". Populated by
+     * {@link com.jamex.refereestaffer.service.RefereeService#enrichWithStats} for the
+     * read-only endpoints; create/update flow leaves it null.
+     */
+    private final Double averageGrade;
+
+    /** Highest queue this referee has ever been assigned to. Null when never assigned. */
+    private final Short lastQueue;
+
+    /** Computed potential: α·avg + β·experience. Null when not enriched. */
+    private final Double potential;
+
+    /**
+     * Number of past matches officiated by this referee where the home team won.
+     * Together with {@link #awayWins} this is the fairness signal rendered as a
+     * side-by-side bar on the redesigned Profile screen. Null until enrichment runs.
+     */
+    private final Short homeWins;
+
+    /** Number of past matches officiated where the away team won. See {@link #homeWins}. */
+    private final Short awayWins;
+
     public RefereeDto(Long id, String firstName, String lastName, String email, Integer experience) {
+        this(id, firstName, lastName, email, experience, null, null, null, null, null);
+    }
+
+    public RefereeDto(Long id, String firstName, String lastName, String email, Integer experience,
+                      Double averageGrade, Short lastQueue, Double potential,
+                      Short homeWins, Short awayWins) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.experience = experience;
+        this.averageGrade = averageGrade;
+        this.lastQueue = lastQueue;
+        this.potential = potential;
+        this.homeWins = homeWins;
+        this.awayWins = awayWins;
     }
 
     public Long getId() {
@@ -49,6 +84,26 @@ public class RefereeDto {
         return experience;
     }
 
+    public Double getAverageGrade() {
+        return averageGrade;
+    }
+
+    public Short getLastQueue() {
+        return lastQueue;
+    }
+
+    public Double getPotential() {
+        return potential;
+    }
+
+    public Short getHomeWins() {
+        return homeWins;
+    }
+
+    public Short getAwayWins() {
+        return awayWins;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -59,6 +114,11 @@ public class RefereeDto {
         private String lastName;
         private String email;
         private Integer experience;
+        private Double averageGrade;
+        private Short lastQueue;
+        private Double potential;
+        private Short homeWins;
+        private Short awayWins;
 
         public Builder id(Long id) {
             this.id = id;
@@ -85,8 +145,34 @@ public class RefereeDto {
             return this;
         }
 
+        public Builder averageGrade(Double averageGrade) {
+            this.averageGrade = averageGrade;
+            return this;
+        }
+
+        public Builder lastQueue(Short lastQueue) {
+            this.lastQueue = lastQueue;
+            return this;
+        }
+
+        public Builder potential(Double potential) {
+            this.potential = potential;
+            return this;
+        }
+
+        public Builder homeWins(Short homeWins) {
+            this.homeWins = homeWins;
+            return this;
+        }
+
+        public Builder awayWins(Short awayWins) {
+            this.awayWins = awayWins;
+            return this;
+        }
+
         public RefereeDto build() {
-            return new RefereeDto(id, firstName, lastName, email, experience);
+            return new RefereeDto(id, firstName, lastName, email, experience,
+                    averageGrade, lastQueue, potential, homeWins, awayWins);
         }
     }
 }

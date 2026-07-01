@@ -1,0 +1,142 @@
+<div class="page-head">
+  <div>
+    <h1>Overview</h1>
+    <div class="page-head__sub">Season summary at a glance.</div>
+  </div>
+  <div class="page-head__actions">
+    <a class="btn btn--primary" routerLink="/staffer">
+      <app-icon name="play" [size]="12"></app-icon>Run staffer
+    </a>
+  </div>
+</div>
+
+<!-- KPI strip -->
+<div class="panel kpi-strip">
+  <div class="kpi-strip-grid">
+    <app-kpi label="Active referees" [value]="referees().length"
+             [delta]="referees().length > 0 ? 'In the pool' : 'No referees yet'"></app-kpi>
+    <app-kpi label="Teams" [value]="standings().length"
+             delta="In the league table"></app-kpi>
+    <app-kpi label="Upcoming difficulty"
+             [value]="upcomingQueue() !== null ? upcomingDifficulty() : '—'"
+             [delta]="upcomingQueue() !== null
+                        ? ('Σ across ' + upcomingMatches().length + ' matches in queue ' + upcomingQueue())
+                        : 'No upcoming matches'"></app-kpi>
+    <app-kpi label="Avg observer grade"
+             [value]="formatAvg(avgObserverGrade())"
+             [delta]="avgObserverGrade() !== null ? 'Across the referee pool' : 'No graded matches yet'"></app-kpi>
+  </div>
+</div>
+
+<!-- 2-column split: upcoming + top referees -->
+<div class="split-grid">
+  <div class="panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">
+          @if (upcomingQueue() !== null) {
+            Upcoming · Queue {{ upcomingQueue() }}
+          } @else {
+            Upcoming fixtures
+          }
+        </div>
+        <div class="panel__sub">{{ upcomingMatches().length }} matches</div>
+      </div>
+      <a class="btn btn--ghost btn--sm" routerLink="/staffer">
+        Open staffer <app-icon name="arrowRight" [size]="12"></app-icon>
+      </a>
+    </div>
+    <table class="tbl">
+      <tbody>
+        @for (match of upcomingMatches(); track match.id) {
+          <tr>
+            <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
+            <td class="vs-cell muted mono">vs</td>
+            <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
+            <td class="num right col-difficulty">
+              @if (match.hardnessLvl !== null) {
+                <app-meter [value]="match.hardnessLvl" [max]="150" [kind]="difficultyKind(match.hardnessLvl)"></app-meter>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="empty-row muted">No upcoming matches.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">Top referees</div>
+        <div class="panel__sub">By potential (P = α·avg + β·experience)</div>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Referee</th>
+          <th class="num right col-experience">Matches</th>
+          <th class="col-meter">Potential</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (referee of topReferees(); track referee.id) {
+          <tr>
+            <td><app-ref-avatar [referee]="referee"></app-ref-avatar></td>
+            <td class="num right">{{ referee.experience }}</td>
+            <td><app-meter [value]="potentialPct(referee)" [max]="100"></app-meter></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="empty-row muted">No referees yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Standings -->
+<div class="panel">
+  <div class="panel__head">
+    <div>
+      <div class="panel__title">Standings</div>
+      <div class="panel__sub">After the latest finished queue</div>
+    </div>
+  </div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th class="col-pos">#</th>
+        <th>Team</th>
+        <th class="num right col-pts">Pts</th>
+        <th class="col-form">Form bar</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (team of standings(); track team.id; let i = $index) {
+        <tr>
+          <td class="num pos-cell mono">{{ i + 1 }}</td>
+          <td>
+            <span class="team-cell">
+              @if (zoneFor(i); as zone) {
+                <span class="dot" [class.dot--accent]="zone === 'top'" [class.dot--danger]="zone === 'relegation'"></span>
+              }
+              <app-team-pill [team]="team"></app-team-pill>
+            </span>
+          </td>
+          <td class="num right pts-cell">{{ team.points }}</td>
+          <td>
+            <div class="bar form-bar"><i [style.width.%]="pointsBarPct(team)"></i></div>
+          </td>
+        </tr>
+      } @empty {
+        <tr><td colspan="4" class="empty-row muted">No teams yet.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

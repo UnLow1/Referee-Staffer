@@ -39,6 +39,9 @@ public class RefereeController {
     public Collection<RefereeDto> getReferees() {
         log.info("Getting all referees");
         var referees = refereeRepository.findAll();
+        // Enrich with averages, last queue, and potential so the redesigned Referee list /
+        // Profile / Dashboard screens get the fields they show without a second round-trip.
+        refereeService.enrichWithStats(referees);
         return refereeConverter.convertFromEntities(referees);
     }
 
@@ -47,6 +50,7 @@ public class RefereeController {
         log.info("Getting referee with id " + id);
         var referee = refereeRepository.findById(id)
                 .orElseThrow(() -> new RefereeNotFoundException(id));
+        refereeService.enrichWithStats(java.util.List.of(referee));
         return refereeConverter.convertFromEntity(referee);
     }
 
@@ -54,6 +58,8 @@ public class RefereeController {
     public Collection<RefereeDto> getRefereesAvailableForQueue(@PathVariable Short queue) {
         log.info("Getting referees available for queue " + queue);
         var referees = refereeService.getAvailableRefereesForQueue(queue);
+        // Staffer drawer ranks candidates by potential — enrich so the DTO carries it.
+        refereeService.enrichWithStats(referees);
         return refereeConverter.convertFromEntities(referees);
     }
 

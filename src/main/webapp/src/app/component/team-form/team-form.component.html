@@ -1,37 +1,30 @@
-<div class="card my-5">
-  @if (!editMode) {
-    <h2 class="text-center my-3">Add new team</h2>
-  }
-  @if (editMode) {
-    <h2 class="text-center my-3">Edit team</h2>
-  }
-  <div class="card-body">
-    <form (ngSubmit)="onSubmit()" #teamForm="ngForm">
-      <div class="row">
-        <div class="form-group col-4">
-          <label for="name">Name(*)</label>
-          <input type="text" [(ngModel)]="team.name"
-            class="form-control"
-            id="name"
-            name="name"
-            placeholder="Enter name of team"
-            required #name="ngModel">
-            <div [hidden]="name.valid || name.untouched" class="alert alert-danger">Name of team is required</div>
-          </div>
-          <div class="form-group col-4">
-            <label for="city">City(*)</label>
-            <input type="text" [(ngModel)]="team.city"
-              class="form-control"
-              id="city"
-              name="city"
-              placeholder="Enter city of team"
-              required #city="ngModel">
-              <div [hidden]="city.valid || city.untouched" class="alert alert-danger">City of team is required</div>
-            </div>
-          </div>
-          <button type="submit" [disabled]="!teamForm.form.valid" class="btn btn-success">
-            <em class="fa fa-check mr-2"></em>Submit
-          </button>
-        </form>
-      </div>
+<app-form-drawer [open]="true"
+                 [title]="editMode ? 'Edit team' : 'Add team'"
+                 [subtitle]="subtitle"
+                 [submitLabel]="editMode ? 'Save changes' : 'Add team'"
+                 formId="team-form"
+                 [valid]="!!f.valid"
+                 [dirty]="!!f.dirty"
+                 (closed)="closed.emit()">
+  <form id="team-form" #f="ngForm" (ngSubmit)="onSubmit(f)" class="form-stack">
+    <div class="field-block" [class.invalid]="name.invalid && (name.touched || name.dirty)">
+      <label class="lbl" for="name">Team name<span class="req">*</span></label>
+      <input class="input" type="text" id="name" name="name" placeholder="Legia Warszawa"
+             [(ngModel)]="model.name" required #name="ngModel">
+      @if (name.invalid && (name.touched || name.dirty)) {
+        <span class="err"><app-icon name="info" [size]="12"></app-icon>Team name is required</span>
+      }
     </div>
+
+    <div class="field-block" [class.invalid]="city.invalid && (city.touched || city.dirty)">
+      <label class="lbl" for="city">City<span class="req">*</span></label>
+      <input class="input" type="text" id="city" name="city" placeholder="Warszawa"
+             [(ngModel)]="model.city" required #city="ngModel">
+      @if (city.invalid && (city.touched || city.dirty)) {
+        <span class="err"><app-icon name="info" [size]="12"></app-icon>City is required</span>
+      } @else {
+        <span class="hint">Used to detect same-city derbies in match difficulty.</span>
+      }
+    </div>
+  </form>
+</app-form-drawer>

@@ -1,0 +1,64 @@
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ——— KPI strip ——— */
+.kpi-strip {
+  margin-bottom: 20px;
+}
+.kpi-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ——— 2-col split ——— */
+.split-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.vs-cell {
+  width: 24px;
+  font-size: 11px;
+}
+
+.tbl .col-difficulty { width: 160px; }
+.tbl .col-experience { width: 100px; }
+.tbl .col-meter      { width: 120px; }
+
+.muted {
+  color: var(--ink-3);
+}
+
+/* ——— Standings ——— */
+.tbl .col-pos  { width: 36px; }
+.tbl .col-pts  { width: 60px; }
+.tbl .col-form { width: 140px; }
+
+.pos-cell {
+  color: var(--ink-3);
+  font-family: var(--mono);
+}
+
+.team-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pts-cell {
+  font-weight: 600;
+}
+
+.form-bar {
+  width: 100%;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 32px 14px !important;
+}

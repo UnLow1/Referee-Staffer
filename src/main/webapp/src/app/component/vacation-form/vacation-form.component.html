@@ -1,53 +1,48 @@
-<div class="card my-5">
-  @if (!editMode) {
-    <h2 class="text-center my-3">Add new vacation</h2>
-  }
-  @if (editMode) {
-    <h2 class="text-center my-3">Edit vacation</h2>
-  }
-  <div class="card-body">
-    <form (ngSubmit)="onSubmit()" #vacationForm="ngForm">
-      <div class="form-group row col-6">
-        <label for="referee" class="col-form-label">Referee(*)</label>
-        <div class="col-8">
-          <select class="custom-select" id="referee" name="referee" [(ngModel)]="vacation.refereeId" required
-            #referee="ngModel">
-            <option hidden [ngValue]="undefined" selected>Choose referee</option>
-            @for (referee of referees; track referee.id) {
-              <option
-              [ngValue]="referee.id">{{referee.firstName}} {{referee.lastName}}</option>
-            }
-          </select>
-          <div [hidden]="referee.valid || referee.untouched" class="alert alert-danger">Referee is required</div>
-        </div>
+<app-form-drawer [open]="true"
+                 [title]="editMode ? 'Edit vacation' : 'Add vacation'"
+                 subtitle="Referee unavailability window"
+                 [submitLabel]="editMode ? 'Save changes' : 'Add vacation'"
+                 formId="vacation-form"
+                 [valid]="!!f.valid && !endBeforeStart"
+                 [dirty]="!!f.dirty"
+                 (closed)="closed.emit()">
+  <form id="vacation-form" #f="ngForm" (ngSubmit)="onSubmit(f)" class="form-stack">
+    <div class="field-block" [class.invalid]="referee.invalid && (referee.touched || referee.dirty)">
+      <label class="lbl" for="referee">Referee<span class="req">*</span></label>
+      <select class="select" id="referee" name="referee" [(ngModel)]="model.refereeId" required #referee="ngModel">
+        <option [ngValue]="undefined" disabled hidden>Choose referee</option>
+        @for (ref of referees; track ref.id) {
+          <option [ngValue]="ref.id">{{ ref.firstName }} {{ ref.lastName }}</option>
+        }
+      </select>
+      @if (referee.invalid && (referee.touched || referee.dirty)) {
+        <span class="err"><app-icon name="info" [size]="12"></app-icon>Referee is required</span>
+      }
+    </div>
+
+    <div class="form-row cols-2">
+      <div class="field-block" [class.invalid]="startDate.invalid && (startDate.touched || startDate.dirty)">
+        <label class="lbl" for="startDate">Start date<span class="req">*</span></label>
+        <input class="input" type="date" id="startDate" name="startDate"
+               [(ngModel)]="model.startDate" [max]="model.endDate" required #startDate="ngModel">
+        @if (startDate.invalid && (startDate.touched || startDate.dirty)) {
+          <span class="err"><app-icon name="info" [size]="12"></app-icon>Start date is required</span>
+        }
       </div>
-      <div class="row">
-        <div class="form-group col-3">
-          <label for="startDate">Start date(*)</label>
-          <input type="date" [(ngModel)]="vacation.startDate"
-            [max]="vacation.endDate"
-            class="form-control"
-            id="startDate"
-            name="startDate"
-            placeholder="Enter start date"
-            required #startDate="ngModel">
-            <div [hidden]="startDate.valid || startDate.untouched" class="alert alert-danger">Start date is required</div>
-          </div>
-          <div class="form-group col-3">
-            <label for="endDate">End date(*)</label>
-            <input type="date" [(ngModel)]="vacation.endDate"
-              [min]="vacation.startDate"
-              class="form-control"
-              id="endDate"
-              name="endDate"
-              placeholder="Enter end date"
-              required #endDate="ngModel">
-              <div [hidden]="endDate.valid || endDate.untouched" class="alert alert-danger">End date is required</div>
-            </div>
-          </div>
-          <button type="submit" [disabled]="!vacationForm.form.valid" class="btn btn-success">
-            <em class="fa fa-check mr-2"></em>Submit
-          </button>
-        </form>
+      <div class="field-block"
+           [class.invalid]="(endDate.invalid || endBeforeStart) && (endDate.touched || endDate.dirty)">
+        <label class="lbl" for="endDate">End date<span class="req">*</span></label>
+        <input class="input" type="date" id="endDate" name="endDate"
+               [(ngModel)]="model.endDate" [min]="model.startDate" required #endDate="ngModel">
+        @if ((endDate.invalid || endBeforeStart) && (endDate.touched || endDate.dirty)) {
+          <span class="err">
+            <app-icon name="info" [size]="12"></app-icon>
+            {{ endDate.errors?.['required'] ? 'End date is required' : 'End date must be after start' }}
+          </span>
+        }
       </div>
     </div>
+
+    <span class="hint">The staffer excludes a referee from any queue that overlaps this window.</span>
+  </form>
+</app-form-drawer>

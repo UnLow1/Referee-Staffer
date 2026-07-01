@@ -1,3 +1,96 @@
-input[type="file"] {
+.drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  height: 180px;
+  cursor: pointer;
+}
+
+.drop-zone__title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.drop-zone__sub {
+  font-size: 12px;
+}
+
+/* Hide the native file input — the surrounding <label> is the click target. */
+.drop-zone__input {
   display: none;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.upload-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: end;
+  margin-top: 18px;
+}
+
+.upload-controls__queues {
+  max-width: 220px;
+}
+
+.upload-controls__label {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.upload-controls__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.import-error {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: var(--danger-tint);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--r);
+  font-size: 13px;
+}
+
+.import-result {
+  margin-top: 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent-tint);
+  border-radius: var(--r);
+  padding: 14px 16px;
+}
+
+.import-result__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.import-result__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.import-result__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.import-result__value {
+  font-size: 18px;
+  font-weight: 600;
 }

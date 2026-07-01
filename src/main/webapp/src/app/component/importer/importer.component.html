@@ -1,44 +1,87 @@
-<div class="card my-5">
-  <h2 class="text-center my-3">Import file with data</h2>
-  <div class="card-body">
-    <div>
-      <span>Example file which can be used while importing</span>
-      <button class="btn btn-primary ml-2" (click)="downloadExampleFile()">
-        <em class="fa fa-download mr-2"></em>Download
-      </button>
-    </div>
-    <div class="form-group">
-      <div>
-        <label for="file-upload" class="btn btn-primary">
-          <em class="fa fa-cloud-upload mr-2"></em>Upload file
-        </label>
-        <input type="file" id="file-upload" (change)="handleFileInput($event)"/> {{fileToUpload?.name}}
-      </div>
-      <div class="my-2 row">
-        <label class="col-3 col-form-label" for="numberOfQueuesToImportInput">Number of queues to import</label>
-        <div class="col-2">
-          <input type="number" [(ngModel)]="numberOfQueuesToImport"
-            min="0"
-            class="form-control"
-            id="numberOfQueuesToImportInput"
-            placeholder="No of queues"/>
-          </div>
-        </div>
-        <button (click)="uploadFileToActivity()" class="btn btn-success"
-          [disabled]="fileToUpload===null ||(numberOfQueuesToImport === undefined || numberOfQueuesToImport === null)">
-          <em class="fa fa-check mr-2"></em>Save
-        </button>
-      </div>
-      @if (importResult) {
-        <div>
-          <h4>Imported data:</h4>
-          <div>
-            Referees: {{importResult.referees}}<br>
-            Grades: {{importResult.grades}}<br>
-            Teams: {{importResult.teams}}<br>
-            Matches: {{importResult.matches}}
-          </div>
-        </div>
-      }
+<div class="page-head">
+  <div>
+    <h1>Import data</h1>
+    <div class="page-head__sub">
+      Bulk-load referees, teams, matches and grades from a single CSV.
     </div>
   </div>
+</div>
+
+<div class="panel">
+  <div class="panel__body">
+    <!-- Drop-zone — striped placeholder turns into a "click to browse" affordance.
+         Native <input type=file> is hidden behind the label so the browse dialog opens
+         when the user clicks anywhere in the zone. -->
+    <label for="importerFile" class="stripe-ph drop-zone">
+      <app-icon name="upload" [size]="28"></app-icon>
+      <div class="drop-zone__title">
+        @if (fileToUpload(); as file) {
+          {{ file.name }}
+        } @else {
+          Drop a CSV file here
+        }
+      </div>
+      <div class="muted drop-zone__sub">
+        @if (fileToUpload()) {
+          Click to choose a different file
+        } @else {
+          or click to browse
+        }
+      </div>
+      <input id="importerFile" type="file" accept=".csv,text/csv"
+             class="drop-zone__input" (change)="handleFileInput($event)">
+    </label>
+
+    <!-- Backend needs `numberOfQueuesToImport` alongside the file — kept as a small
+         secondary control so the contract stays satisfied. -->
+    <div class="upload-controls">
+      <label class="field upload-controls__queues">
+        <span class="upload-controls__label">Number of queues to import</span>
+        <input type="number" class="input num" min="0"
+               [value]="numberOfQueuesToImport() ?? ''"
+               (input)="setNumberOfQueues($any($event.target).valueAsNumber)">
+      </label>
+      <div class="upload-controls__actions">
+        <button type="button" class="btn" (click)="downloadExample()">
+          <app-icon name="download" [size]="12"></app-icon>Download example
+        </button>
+        <button type="button" class="btn btn--primary"
+                [disabled]="!fileToUpload() || numberOfQueuesToImport() === null || uploading()"
+                (click)="upload()">
+          <app-icon name="check" [size]="12"></app-icon>
+          {{ uploading() ? 'Importing…' : 'Import' }}
+        </button>
+      </div>
+    </div>
+
+    @if (importError(); as err) {
+      <div class="import-error">{{ err }}</div>
+    }
+
+    @if (importResult(); as result) {
+      <div class="import-result">
+        <div class="import-result__title">
+          <app-icon name="check" [size]="12"></app-icon>Import successful
+        </div>
+        <div class="import-result__grid">
+          <div class="import-result__cell">
+            <div class="muted">Referees</div>
+            <div class="mono import-result__value">{{ result.referees }}</div>
+          </div>
+          <div class="import-result__cell">
+            <div class="muted">Teams</div>
+            <div class="mono import-result__value">{{ result.teams }}</div>
+          </div>
+          <div class="import-result__cell">
+            <div class="muted">Matches</div>
+            <div class="mono import-result__value">{{ result.matches }}</div>
+          </div>
+          <div class="import-result__cell">
+            <div class="muted">Grades</div>
+            <div class="mono import-result__value">{{ result.grades }}</div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>

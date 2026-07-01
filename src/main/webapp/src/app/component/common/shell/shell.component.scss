@@ -1,0 +1,31 @@
+// Most of the shell's layout/colour rules live in the global styles.scss so that the
+// design tokens stay centralized. The styles below are shell-specific extras that the
+// prototype expressed as inline JSX styles — they don't have a home in the global file.
+
+.topbar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__sep {
+  color: var(--ink-3);
+}
+
+.topbar__round {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.topbar__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}
+
+// `.nav-item` is styled as a div in styles.scss; using <a> here for routing semantics.
+// Strip the default anchor underline + colour so the global rules win.
+.nav-item {
+  text-decoration: none;
+  color: inherit;
+}

@@ -1,13 +1,16 @@
 package com.jamex.refereestaffer.service;
 
+import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +28,13 @@ public class RefereeService {
 
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
+    private final ConfigurationRepository configurationRepository;
 
-    public RefereeService(RefereeRepository refereeRepository, MatchRepository matchRepository) {
+    public RefereeService(RefereeRepository refereeRepository, MatchRepository matchRepository,
+                          ConfigurationRepository configurationRepository) {
         this.refereeRepository = refereeRepository;
         this.matchRepository = matchRepository;
+        this.configurationRepository = configurationRepository;
     }
 
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
@@ -48,10 +54,51 @@ public class RefereeService {
 
             var averageGrade = countAverageGrade(matchesForReferee);
             var teamsRefereedMap = createTeamsRefereedMap(matchesForReferee);
+            var lastQueue = matchesForReferee.stream()
+                    .map(Match::getQueue)
+                    .filter(Objects::nonNull)
+                    .max(Comparator.naturalOrder())
+                    .orElse(null);
+
+            // Win-distribution counters: split played matches by who won. Draws and
+            // unfinished matches contribute to neither — they don't tell us anything about
+            // home/away balance. The redesign's profile screen renders these as a
+            // side-by-side bar (fairness signal: lopsided counts can flag a referee worth
+            // a closer look, though they don't prove bias on their own).
+            short homeWins = 0;
+            short awayWins = 0;
+            for (var m : matchesForReferee) {
+                if (m.getHomeScore() == null || m.getAwayScore() == null) continue;
+                if (m.getHomeScore() > m.getAwayScore()) homeWins++;
+                else if (m.getAwayScore() > m.getHomeScore()) awayWins++;
+            }
 
             referee.setAverageGrade(averageGrade);
             referee.setTeamsRefereed(teamsRefereedMap);
             referee.setNumberOfMatchesInRound((short) matchesForReferee.size());
+            referee.setLastQueue(lastQueue);
+            referee.setHomeWins(homeWins);
+            referee.setAwayWins(awayWins);
+        }
+    }
+
+    /**
+     * Populates everything the redesigned Referee list / Profile / Dashboard screens need:
+     * averages, last queue, and computed potential. Use for read-only endpoints that serve
+     * the UI (`GET /api/referees`, `GET /api/referees/{id}`).
+     *
+     * <p>The potential formula matches the design's prototype: {@code P = α·avg + β·experience},
+     * where α = AVERAGE_GRADE_MULTIPLIER and β = EXPERIENCE_MULTIPLIER. This is a simpler
+     * variant than {@link StafferService#staffReferees} uses internally — staffer's score
+     * subtracts fairness penalties that depend on the candidate match.
+     */
+    public void enrichWithStats(List<Referee> referees) {
+        calculateStats(referees);
+        var avgMultiplier = configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER).getValue();
+        var expMultiplier = configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER).getValue();
+        for (var referee : referees) {
+            var avg = referee.getAverageGrade() != null ? referee.getAverageGrade() : DEFAULT_GRADE;
+            referee.setPotential(avgMultiplier * avg + expMultiplier * referee.getExperience());
         }
     }
 

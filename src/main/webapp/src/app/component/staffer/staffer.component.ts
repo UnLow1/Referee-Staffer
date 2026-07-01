@@ -1,65 +1,265 @@
-import { Component, inject } from '@angular/core';
-import {StafferService} from "../../service/staffer.service";
-import {ActivatedRoute, Router} from "@angular/router";
-import {Match} from "../../model/match";
-import {Team} from "../../model/team";
-import {Referee} from "../../model/referee";
-import {TeamService} from "../../service/team.service";
-import {RefereeService} from "../../service/referee.service";
-import {MatchService} from "../../service/match.service";
-import { FormsModule } from '@angular/forms';
+import {Component, computed, inject, signal} from '@angular/core';
+import {forkJoin} from 'rxjs';
+import {StafferService} from '../../service/staffer.service';
+import {TeamService} from '../../service/team.service';
+import {RefereeService} from '../../service/referee.service';
+import {MatchService} from '../../service/match.service';
+import {Match} from '../../model/match';
+import {Team} from '../../model/team';
+import {Referee} from '../../model/referee';
+import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {IconComponent} from '../common/icon/icon.component';
+import {TeamPillComponent} from '../common/team-pill/team-pill.component';
+import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
+import {MeterComponent} from '../common/meter/meter.component';
+import {ChipComponent} from '../common/chip/chip.component';
+import {KpiComponent} from '../common/kpi/kpi.component';
+import {DrawerComponent} from '../common/drawer/drawer.component';
 
+interface MatchFlags {
+  sameCity: boolean;
+  isTop: boolean;
+  isBot: boolean;
+}
+
+interface Candidate {
+  referee: Referee;
+  isAssigned: boolean;
+  isUsedElsewhere: boolean;
+}
+
+const NUMBER_OF_EDGE_TEAMS = 3;
+
+/**
+ * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
+ * swap individual rows, then save.
+ *
+ * Referee potential and the difficulty breakdown come from the backend; the one open
+ * backend follow-up is lock-aware regenerate (see the `locks` field comment).
+ */
 @Component({
-    selector: 'app-staffer',
-    templateUrl: './staffer.component.html',
-    styleUrls: ['./staffer.component.scss'],
-    imports: [FormsModule]
+  selector: 'app-staffer',
+  templateUrl: './staffer.component.html',
+  styleUrl: './staffer.component.scss',
+  imports: [
+    IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent,
+    ChipComponent, KpiComponent, DrawerComponent
+  ]
 })
 export class StafferComponent {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private stafferService = inject(StafferService);
-  private teamService = inject(TeamService);
-  private refereeService = inject(RefereeService);
-  private matchService = inject(MatchService);
+  private readonly stafferService = inject(StafferService);
+  private readonly teamService = inject(TeamService);
+  private readonly refereeService = inject(RefereeService);
+  private readonly matchService = inject(MatchService);
 
+  readonly queue = signal(1);
+  readonly matches = signal<Match[] | null>(null);
+  readonly referees = signal<Referee[]>([]);
+  /** Map<teamId, Team> — populated from /api/teams/standings so `place` (== index+1) is meaningful. */
+  readonly teamsById = signal<Map<number, Team>>(new Map());
+  /** Map<teamId, place> — derived from standings sort order. */
+  readonly placeById = signal<Map<number, number>>(new Map());
+  readonly totalTeams = signal(0);
 
-  queue: number
-  matches: Match[]
-  teams: Team[]
-  referees: Referee[]
-  acceptedMatches: Match[] = []
+  /**
+   * UI-only lock map. A planned backend addition turns this into a backend-aware
+   * concept where `staffReferees(queue, locks)` accepts a list of pre-pinned
+   * (matchId, refereeId) pairs. For now, locks are visual flags only; clicking
+   * Generate cast re-staffs the whole queue without preserving them.
+   */
+  readonly locks = signal<Map<number, number>>(new Map());
+  readonly drawerMatchId = signal<number | null>(null);
+  /** Lazy-loaded breakdown for the currently-open drawer. Null while pending or absent. */
+  readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
+  readonly savedAt = signal<Date | null>(null);
+  readonly loading = signal(false);
 
-  onSubmit() {
-    this.stafferService.staffReferees(this.queue).subscribe(matches => {
-      this.matches = matches
+  // ——— Derived state ———
 
-      const teamIds = matches.map(match => match.homeTeamId)
-        .concat(matches.map(match => match.awayTeamId))
-        .filter((item, i, ar) => ar.indexOf(item) === i)
+  readonly sortedMatches = computed(() => {
+    const ms = this.matches();
+    if (!ms) return [];
+    return [...ms].sort((a, b) => (b.hardnessLvl ?? 0) - (a.hardnessLvl ?? 0));
+  });
 
-      this.teamService.findByIds(teamIds).subscribe(teams => this.teams = teams)
-      this.refereeService.findRefereesAvailableForQueue(this.queue).subscribe(referees => this.referees = referees)
-    })
+  readonly totalDifficulty = computed(() =>
+    Math.round((this.matches() ?? []).reduce((sum, m) => sum + (m.hardnessLvl ?? 0), 0))
+  );
+
+  readonly lockCount = computed(() => this.locks().size);
+
+  readonly drawerMatch = computed<Match | null>(() => {
+    const id = this.drawerMatchId();
+    if (id == null) return null;
+    return this.matches()?.find(m => m.id === id) ?? null;
+  });
+
+  // ——— Public actions ———
+
+  incQueue(): void {
+    this.queue.update(q => q + 1);
   }
 
-  getTeam(teamId: number): Team {
-    return this.teams?.find(team => team.id === teamId)
+  decQueue(): void {
+    this.queue.update(q => Math.max(1, q - 1));
   }
 
-  getRefereeName(referee: Referee): string {
-    return referee.firstName + " " + referee.lastName
+  clearLocks(): void {
+    this.locks.set(new Map());
   }
 
-  updateMatches() {
-    this.matchService.updateList(this.matches).subscribe(() => this.gotoMatchesList())
+  generate(): void {
+    this.loading.set(true);
+    this.savedAt.set(null);
+    forkJoin({
+      matches: this.stafferService.staffReferees(this.queue()),
+      standings: this.teamService.getStandings(),
+      referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
+    }).subscribe({
+      next: ({matches, standings, referees}) => {
+        // standings is sorted by points desc; index 0 = first place. Build place lookup
+        // so flag derivation (top/bottom) doesn't need re-sorting on every cell render.
+        const teamsMap = new Map<number, Team>();
+        const placeMap = new Map<number, number>();
+        standings.forEach((t, i) => {
+          teamsMap.set(t.id, t);
+          placeMap.set(t.id, i + 1);
+        });
+        this.teamsById.set(teamsMap);
+        this.placeById.set(placeMap);
+        this.totalTeams.set(standings.length);
+        this.referees.set(referees);
+        this.matches.set([...matches]);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
   }
 
-  gotoMatchesList() {
-    this.router.navigate(['matches'])
+  toggleLock(match: Match): void {
+    this.locks.update(prev => {
+      const next = new Map(prev);
+      if (next.has(match.id)) {
+        next.delete(match.id);
+      } else if (match.refereeId != null) {
+        next.set(match.id, match.refereeId);
+      }
+      return next;
+    });
   }
 
-  updateMatch(match: Match) {
-    this.matchService.update(match).subscribe(() => this.acceptedMatches.push(match))
+  openDrawer(match: Match): void {
+    this.drawerMatchId.set(match.id);
+    this.drawerBreakdown.set(null);
+    this.matchService.getDifficultyBreakdown(match.id)
+      .subscribe(breakdown => {
+        // Guard against a race: another row may have been clicked before the response landed.
+        if (this.drawerMatchId() === match.id) {
+          this.drawerBreakdown.set(breakdown);
+        }
+      });
+  }
+
+  closeDrawer(): void {
+    this.drawerMatchId.set(null);
+    this.drawerBreakdown.set(null);
+  }
+
+  swap(match: Match, refereeId: number): void {
+    this.matches.update(ms => {
+      if (!ms) return ms;
+      return ms.map(m => m.id === match.id ? {...m, refereeId} : m);
+    });
+    // Swapping in the drawer counts as locking — the user's intent is "use this referee".
+    this.locks.update(prev => {
+      const next = new Map(prev);
+      next.set(match.id, refereeId);
+      return next;
+    });
+    this.savedAt.set(null);
+  }
+
+  save(): void {
+    const ms = this.matches();
+    if (!ms) return;
+    this.matchService.updateList(ms).subscribe(() => this.savedAt.set(new Date()));
+  }
+
+  // ——— Read helpers used by the template ———
+
+  getTeam(teamId: number | undefined): Team | undefined {
+    if (teamId == null) return undefined;
+    return this.teamsById().get(teamId);
+  }
+
+  getReferee(refereeId: number | null | undefined): Referee | undefined {
+    if (refereeId == null) return undefined;
+    return this.referees().find(r => r.id === refereeId);
+  }
+
+  isLocked(match: Match): boolean {
+    return this.locks().has(match.id);
+  }
+
+  flags(match: Match): MatchFlags {
+    const home = this.getTeam(match.homeTeamId);
+    const away = this.getTeam(match.awayTeamId);
+    const homePlace = this.placeById().get(match.homeTeamId);
+    const awayPlace = this.placeById().get(match.awayTeamId);
+    const total = this.totalTeams();
+
+    const sameCity = !!(home?.city && away?.city && home.city === away.city);
+    const isTop = !!(homePlace && awayPlace && homePlace <= NUMBER_OF_EDGE_TEAMS && awayPlace <= NUMBER_OF_EDGE_TEAMS);
+    const isBot = !!(homePlace && awayPlace && total > 0
+      && homePlace > total - NUMBER_OF_EDGE_TEAMS && awayPlace > total - NUMBER_OF_EDGE_TEAMS);
+    return {sameCity, isTop, isBot};
+  }
+
+  hasNoFlags(match: Match): boolean {
+    const f = this.flags(match);
+    return !f.sameCity && !f.isTop && !f.isBot;
+  }
+
+  /** Difficulty meter intensity: warn when a match is in the upper third of the scale. */
+  difficultyKind(value: number | null | undefined): 'default' | 'warn' {
+    return (value ?? 0) >= 100 ? 'warn' : 'default';
+  }
+
+  /**
+   * Drawer candidate list: every available referee, with per-row flags so the template
+   * can dim the ones already used by another match in this queue and highlight the
+   * currently-assigned one. Sorted by potential desc; falls back to experience for
+   * un-enriched responses.
+   */
+  candidatesFor(match: Match): Candidate[] {
+    const used = new Set(
+      (this.matches() ?? [])
+        .filter(m => m.id !== match.id)
+        .map(m => m.refereeId)
+        .filter((id): id is number => id != null)
+    );
+    return [...this.referees()]
+      .sort((a, b) => {
+        const ap = a.potential ?? a.experience ?? 0;
+        const bp = b.potential ?? b.experience ?? 0;
+        return bp - ap;
+      })
+      .map<Candidate>(r => ({
+        referee: r,
+        isAssigned: r.id === match.refereeId,
+        isUsedElsewhere: used.has(r.id)
+      }));
+  }
+
+  formatTime(d: Date): string {
+    return d.toLocaleTimeString();
+  }
+
+  round(value: number | null | undefined): number {
+    return Math.round(value ?? 0);
+  }
+
+  pad2(n: number): string {
+    return n.toString().padStart(2, '0');
   }
 }

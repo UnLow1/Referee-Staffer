@@ -1,6 +1,7 @@
 package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
+import com.jamex.refereestaffer.model.dto.DifficultyBreakdownDto;
 import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.repository.MatchRepository;
@@ -48,6 +49,16 @@ public class MatchController {
         var match = matchRepository.findById(id)
                 .orElseThrow(() -> new MatchNotFoundException(id));
         return matchConverter.convertFromEntity(match);
+    }
+
+    /**
+     * Per-component difficulty for a single match. Powers the Staffer drawer breakdown
+     * table and the Match detail "Difficulty breakdown" panel.
+     */
+    @GetMapping("/{id}/difficulty")
+    public DifficultyBreakdownDto getMatchDifficulty(@PathVariable Long id) {
+        log.info("Computing difficulty breakdown for match {}", id);
+        return matchService.computeDifficultyBreakdown(id);
     }
 
     @PostMapping

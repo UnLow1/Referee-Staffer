@@ -1,62 +1,234 @@
-<div class="card my-5">
-  <h2 id="header" class="text-center my-3">Create cast</h2>
-  <div class="card-body">
-    @if (matches) {
-      <table aria-describedby="header" class="table table-bordered table-striped">
-        <thead class="thead-dark">
-          <tr>
-            <th id="queueHeader" [colSpan]="4" class="text-center">Queue {{queue}}</th>
-          </tr>
-          <tr>
-            <th scope="col">Home team</th>
-            <th scope="col">Away name</th>
-            <th scope="col">Referee</th>
-            <th scope="col">&nbsp;</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (match of matches; track match.id) {
-            <tr [class.accepted]="acceptedMatches.includes(match)">
-              <td headers="queueHeader">{{ getTeam(match.homeTeamId)?.name }} {{ getTeam(match.homeTeamId)?.city }} </td>
-              <td headers="queueHeader">{{ getTeam(match.awayTeamId)?.name }} {{ getTeam(match.awayTeamId)?.city }} </td>
-              <td>
-                <select class="custom-select" [(ngModel)]="match.refereeId">
-                  @for (referee of referees; track referee.id) {
-                    <option [ngValue]="referee.id">{{ getRefereeName(referee) }} </option>
-                  }
-                </select>
-              </td>
-              <td>
-                <button type="button" class="btn btn-success" (click)="updateMatch(match)"
-                  [disabled]="acceptedMatches.includes(match)">
-                  <em class="fa fa-check mr-2"></em>Accept
-                </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
-    <form (ngSubmit)="onSubmit()" #stafferForm="ngForm">
-      <div class="form-group row">
-        <label class="col-1 col-form-label" for="queueInput">Queue</label>
-        <div class="col-2">
-          <input type="number" [(ngModel)]="queue"
-            class="form-control"
-            min="1"
-            id="queueInput"
-            name="queueInput"
-            placeholder="Enter queue"
-            required #queueInput="ngModel">
-          </div>
-        </div>
-        <div [hidden]="queueInput.valid || queueInput.untouched" class="col-3 alert alert-danger">Queue is required</div>
-        <button type="submit" [disabled]="!stafferForm.form.valid" class="btn btn-primary">
-          <em class="fa fa-cogs mr-2"></em>Generate cast
-        </button>
-        <button type="button" (click)="updateMatches()" [hidden]="!matches" class="btn btn-success float-right">
-          <em class="fa fa-check mr-2"></em>Save cast
-        </button>
-      </form>
+<!-- Page header — title + actions row -->
+<div class="page-head">
+  <div>
+    <h1>Staffer</h1>
+    <div class="page-head__sub">
+      Auto-assign referees to matches in queue {{ queue() }}.
+      Algorithm pairs high-difficulty matches with high-potential referees.
     </div>
   </div>
+  <div class="page-head__actions">
+    <div class="seg seg--stepper">
+      <button type="button" (click)="decQueue()" aria-label="Previous queue">‹</button>
+      <button type="button" class="active">Queue {{ queue() }}</button>
+      <button type="button" (click)="incQueue()" aria-label="Next queue">›</button>
+    </div>
+    <button type="button" class="btn" (click)="clearLocks()" [disabled]="lockCount() === 0">
+      Clear locks
+    </button>
+    <button type="button" class="btn btn--primary" (click)="generate()" [disabled]="loading()">
+      <app-icon name="play" [size]="12"></app-icon>
+      {{ loading() ? 'Generating…' : 'Generate cast' }}
+    </button>
+  </div>
+</div>
+
+<!-- KPI strip — shows once a cast has been generated -->
+@if (matches(); as ms) {
+  <div class="panel panel--kpi-strip">
+    <div class="kpi-strip-grid">
+      <app-kpi label="Matches in queue" [value]="ms.length"></app-kpi>
+      <app-kpi label="Available referees" [value]="referees().length"
+               [delta]="ms.length > referees().length ? 'Below match count' : 'Pool covers queue'"></app-kpi>
+      <app-kpi label="Total difficulty" [value]="totalDifficulty()"
+               [delta]="'Σ across ' + ms.length + ' matches'"></app-kpi>
+      <app-kpi label="Locked assignments"
+               [value]="lockCount() + '/' + ms.length"
+               [delta]="lockCount() > 0 ? 'Not yet preserved on regenerate' : 'All flexible'"></app-kpi>
+    </div>
+  </div>
+
+  <!-- Cast table -->
+  <div class="panel cast-panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">Cast for queue {{ queue() }}</div>
+        <div class="panel__sub">Sorted by match difficulty, descending. Click a row to inspect.</div>
+      </div>
+      <div class="legend">
+        <span class="chip"><span class="dot dot--accent"></span>auto</span>
+        <span class="chip"><app-icon name="lock" [size]="11"></app-icon>locked</span>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="col-idx"></th>
+          <th>Match</th>
+          <th class="col-flags">Flags</th>
+          <th class="num right col-difficulty">Difficulty</th>
+          <th class="col-referee">Assigned referee</th>
+          <th class="num right col-fit">Fit</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (match of sortedMatches(); track match.id; let i = $index) {
+          <tr class="cast-row" (click)="openDrawer(match)">
+            <td class="num cast-row__idx">{{ pad2(i + 1) }}</td>
+            <td>
+              <div class="match-cell">
+                <app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill>
+                <span class="match-cell__vs">vs</span>
+                <app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill>
+              </div>
+            </td>
+            <td>
+              @let f = flags(match);
+              <div class="flag-cell">
+                @if (f.sameCity) { <app-chip variant="warn">derby</app-chip> }
+                @if (f.isTop) { <app-chip variant="accent">top-3</app-chip> }
+                @if (f.isBot) { <app-chip variant="danger">relegation</app-chip> }
+                @if (hasNoFlags(match)) { <span class="muted">—</span> }
+              </div>
+            </td>
+            <td class="right">
+              <app-meter [value]="round(match.hardnessLvl)"
+                         [max]="150"
+                         [kind]="difficultyKind(match.hardnessLvl)"></app-meter>
+            </td>
+            <td>
+              <div class="referee-cell">
+                @if (isLocked(match)) {
+                  <span class="referee-cell__lock"><app-icon name="lock" [size]="12"></app-icon></span>
+                }
+                @if (getReferee(match.refereeId); as ref) {
+                  <app-ref-avatar [referee]="ref"></app-ref-avatar>
+                } @else {
+                  <span class="muted">unassigned</span>
+                }
+              </div>
+            </td>
+            <!-- Bias-aware Fit % is a planned backend addition. Placeholder until then. -->
+            <td class="num right muted">—</td>
+            <td class="col-actions" (click)="$event.stopPropagation()">
+              <div class="row-actions">
+                <button type="button" class="btn btn--ghost btn--sm"
+                        (click)="toggleLock(match)"
+                        [attr.title]="isLocked(match) ? 'Unlock' : 'Lock assignment'">
+                  <app-icon [name]="isLocked(match) ? 'lock' : 'unlock'" [size]="12"></app-icon>
+                </button>
+                <button type="button" class="btn btn--ghost btn--sm"
+                        (click)="openDrawer(match)"
+                        title="Swap referee">
+                  <app-icon name="swap" [size]="12"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <div class="panel__foot">
+      <div class="muted">
+        @if (savedAt(); as t) {
+          <span class="saved-at"><app-icon name="check" [size]="12"></app-icon>Saved {{ formatTime(t) }}</span>
+        } @else {
+          Unsaved changes will be lost on page refresh
+        }
+      </div>
+      <div class="foot-actions">
+        <button type="button" class="btn btn--primary" (click)="save()">
+          <app-icon name="check" [size]="12"></app-icon>Save cast
+        </button>
+      </div>
+    </div>
+  </div>
+} @else {
+  <!-- Empty state — pre-generation -->
+  <div class="panel empty-state">
+    <div class="panel__body empty-state__body">
+      <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
+    </div>
+  </div>
+}
+
+<!-- Inspect / swap drawer -->
+@if (drawerMatch(); as match) {
+  <app-drawer
+    [open]="true"
+    [title]="(getTeam(match.homeTeamId)?.name ?? 'Home') + ' vs ' + (getTeam(match.awayTeamId)?.name ?? 'Away')"
+    (closed)="closeDrawer()">
+
+    <!-- Match summary -->
+    <div class="drawer-section drawer-teams">
+      <app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill>
+      <app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill>
+    </div>
+
+    <!-- Difficulty breakdown -->
+    <div class="drawer-section">
+      <div class="drawer-section__label">Difficulty breakdown</div>
+      <div class="panel">
+        <table class="tbl">
+          <tbody>
+            @if (drawerBreakdown(); as b) {
+              <tr>
+                <td>Base — closeness in table (Δ {{ b.flags.pointsDiff }})</td>
+                <td class="num right">+{{ round(b.parts.base) }}</td>
+              </tr>
+              <tr>
+                <td>Same city {{ b.flags.sameCity ? '(derby)' : '' }}</td>
+                <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
+              </tr>
+              <tr>
+                <td>Top-3 match</td>
+                <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
+              </tr>
+              <tr>
+                <td>Relegation match</td>
+                <td class="num right" [class.danger-text]="b.flags.isBot" [class.muted]="!b.flags.isBot">+{{ round(b.parts.bottom) }}</td>
+              </tr>
+              <tr class="total-row">
+                <td><strong>Total difficulty</strong></td>
+                <td class="num right"><strong>{{ round(b.total) }}</strong></td>
+              </tr>
+            } @else {
+              <tr>
+                <td>Total difficulty</td>
+                <td class="num right">{{ round(match.hardnessLvl) }}</td>
+              </tr>
+              <tr><td colspan="2" class="muted">Loading breakdown…</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Top candidates -->
+    <div class="drawer-section">
+      <div class="drawer-section__head">
+        <div class="drawer-section__label">Candidates</div>
+        <div class="muted">Click to assign</div>
+      </div>
+      <div class="panel candidates">
+        @for (c of candidatesFor(match); track c.referee.id) {
+          <button type="button" class="candidate"
+                  [class.candidate--assigned]="c.isAssigned"
+                  [class.candidate--used]="c.isUsedElsewhere"
+                  [disabled]="c.isUsedElsewhere"
+                  (click)="swap(match, c.referee.id)">
+            <app-ref-avatar [referee]="c.referee" size="lg"></app-ref-avatar>
+            <span class="candidate__meta mono">
+              @if (c.referee.potential !== null && c.referee.potential !== undefined) {
+                P {{ round(c.referee.potential) }} ·
+              }
+              {{ c.referee.experience }} exp
+            </span>
+            @if (c.isAssigned) { <app-chip variant="accent">assigned</app-chip> }
+            @if (c.isUsedElsewhere) { <app-chip>in use</app-chip> }
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Drawer footer -->
+    <div drawerFoot class="panel__foot">
+      <button type="button" class="btn" (click)="toggleLock(match)">
+        <app-icon [name]="isLocked(match) ? 'unlock' : 'lock'" [size]="12"></app-icon>
+        {{ isLocked(match) ? 'Unlock' : 'Lock assignment' }}
+      </button>
+      <button type="button" class="btn btn--primary" (click)="closeDrawer()">Done</button>
+    </div>
+  </app-drawer>
+}

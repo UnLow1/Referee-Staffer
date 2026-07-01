@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Match} from "../model/match";
+import {DifficultyBreakdown} from "../model/difficultyBreakdown";
 import {environment} from "../../environments/environment";
 
 @Injectable({
@@ -39,5 +40,9 @@ export class MatchService {
 
   public deleteAll(): Observable<void> {
     return this.http.delete<void>(`${this.matchesUrl}`)
+  }
+
+  public getDifficultyBreakdown(matchId: number): Observable<DifficultyBreakdown> {
+    return this.http.get<DifficultyBreakdown>(`${this.matchesUrl}/${matchId}/difficulty`)
   }
 }

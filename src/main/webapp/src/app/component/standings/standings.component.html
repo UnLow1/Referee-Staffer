@@ -1,25 +1,79 @@
-<div class="card my-5">
-  <h2 id="header" class="text-center my-3">Standings</h2>
-  <div class="card-body">
-    <table aria-describedby="header" class="table table-bordered table-striped">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">#</th>
-          <th scope="col">Team name</th>
-          <th scope="col">City</th>
-          <th scope="col">Points</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (team of teams; track team.id; let i = $index) {
-          <tr>
-            <td>{{ i + 1 }}</td>
-            <td>{{ team.name }}</td>
-            <td>{{ team.city }}</td>
-            <td>{{ team.points }}</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+<div class="page-head">
+  <div>
+    <h1>Standings</h1>
+    <div class="page-head__sub">
+      Ekstraklasa 2025/26
+      @if (latestPlayedQueue(); as q) {
+        · after queue {{ q }}
+      }
+    </div>
   </div>
+  <app-seg [options]="filterOptions" [value]="filter()" (valueChange)="filter.set($event)"></app-seg>
+</div>
+
+<div class="panel">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th class="col-pos">#</th>
+        <th>Team</th>
+        <th>City</th>
+        <th class="num right col-stat">P</th>
+        <th class="num right col-stat">W</th>
+        <th class="num right col-stat">D</th>
+        <th class="num right col-stat">L</th>
+        <th class="num right col-goals">GF</th>
+        <th class="num right col-goals">GA</th>
+        <th class="num right col-goals">GD</th>
+        <th class="num right col-pts">Pts</th>
+        <th class="col-form"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of visibleRows(); track row.team.id) {
+        <tr>
+          <td class="num pos-cell">{{ row.pos }}</td>
+          <td>
+            <span class="team-cell">
+              @if (row.zone) {
+                <span class="dot" [class.dot--accent]="row.zone === 'accent'"
+                      [class.dot--danger]="row.zone === 'danger'"></span>
+              }
+              <app-team-pill [team]="row.team"></app-team-pill>
+            </span>
+          </td>
+          <td class="city-cell">{{ row.team.city }}</td>
+          <td class="num right">{{ row.played }}</td>
+          <td class="num right">{{ row.wins }}</td>
+          <td class="num right">{{ row.draws }}</td>
+          <td class="num right">{{ row.losses }}</td>
+          <td class="num right">{{ row.goalsFor }}</td>
+          <td class="num right">{{ row.goalsAgainst }}</td>
+          <td class="num right"
+              [class.gd-positive]="goalDiff(row) > 0"
+              [class.gd-negative]="goalDiff(row) < 0"
+              [class.gd-zero]="goalDiff(row) === 0">{{ formatGoalDiff(row) }}</td>
+          <td class="num right pts-cell">{{ row.team.points ?? '—' }}</td>
+          <td>
+            <div class="bar">
+              <i [style.width.%]="barPct(row)"
+                 [class.bar--danger]="row.zone === 'danger'"
+                 [class.bar--neutral]="row.zone === null"></i>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="12" class="empty-row">
+            <span class="muted">No standings yet — import data or add teams first.</span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<div class="legend">
+  <span class="legend__item"><span class="dot dot--accent"></span> Championship / Europe</span>
+  <span class="legend__item"><span class="dot dot--danger"></span> Relegation zone</span>
 </div>

@@ -1,0 +1,60 @@
+// Design tokens (CSS custom properties) for the redesigned UI (2026-06 redesign).
+//
+// Light theme on :root, dark theme activated by setting `data-theme="dark"` on the
+// <html> element (see the theme toggle in ShellComponent).
+
+:root {
+  // ——— Surfaces (cool neutral) ———
+  --bg: oklch(0.985 0.003 240);
+  --panel: #ffffff;
+  --panel-2: oklch(0.975 0.004 240);
+  --ink: oklch(0.18 0.012 240);
+  --ink-2: oklch(0.42 0.012 240);
+  --ink-3: oklch(0.58 0.010 240);
+  --line: oklch(0.92 0.005 240);
+  --line-2: oklch(0.95 0.004 240);
+
+  // ——— Single accent — pitch green ———
+  --accent: oklch(0.62 0.14 155);
+  --accent-ink: oklch(0.32 0.10 155);
+  --accent-tint: oklch(0.96 0.04 155);
+
+  // ——— Status (matched lightness/chroma to accent) ———
+  --warn: oklch(0.72 0.13 75);
+  --warn-tint: oklch(0.97 0.04 75);
+  --danger: oklch(0.58 0.16 25);
+  --danger-tint: oklch(0.97 0.03 25);
+
+  // ——— Type ———
+  --sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  // ——— Geometry ———
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 10px;
+
+  // ——— Density ———
+  --row-h: 40px;
+  --pad: 14px;
+}
+
+[data-theme="dark"] {
+  --bg: oklch(0.16 0.012 240);
+  --panel: oklch(0.20 0.012 240);
+  --panel-2: oklch(0.23 0.012 240);
+  --ink: oklch(0.96 0.005 240);
+  --ink-2: oklch(0.78 0.008 240);
+  --ink-3: oklch(0.58 0.010 240);
+  --line: oklch(0.30 0.012 240);
+  --line-2: oklch(0.26 0.012 240);
+
+  --accent: oklch(0.70 0.14 155);
+  --accent-ink: oklch(0.85 0.12 155);
+  --accent-tint: oklch(0.28 0.06 155);
+
+  --warn: oklch(0.78 0.13 75);
+  --warn-tint: oklch(0.30 0.06 75);
+  --danger: oklch(0.68 0.16 25);
+  --danger-tint: oklch(0.30 0.06 25);
+}

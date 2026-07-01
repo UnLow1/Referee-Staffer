@@ -1,3 +1,179 @@
-.accepted {
-  background-color: #00800082 !important;
+// StafferComponent local styles. Most of the page already composes from global rules
+// in styles.scss (.panel, .tbl, .seg, .chip, etc.) — these are the bits unique to the
+// Staffer screen layout.
+
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+// The header's queue stepper uses the .seg base class but the middle button is a
+// label, not a tab — drop the hover affordance so it doesn't suggest interactivity.
+.seg--stepper button.active {
+  pointer-events: none;
+}
+.seg--stepper button:not(.active) {
+  font-size: 14px;
+  padding: 0 8px;
+}
+
+// KPI strip — 4 columns inside a panel.
+.panel--kpi-strip {
+  margin-bottom: 20px;
+}
+.kpi-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+// Cast table panel
+.cast-panel {
+  margin-bottom: 16px;
+}
+.cast-panel .legend {
+  display: flex;
+  gap: 8px;
+}
+
+.tbl .col-idx       { width: 36px; }
+.tbl .col-flags     { width: 130px; }
+.tbl .col-difficulty { width: 130px; }
+.tbl .col-referee   { width: 230px; }
+.tbl .col-fit       { width: 90px; }
+.tbl .col-actions   { width: 110px; }
+
+.cast-row {
+  cursor: pointer;
+}
+.cast-row__idx {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+.match-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.match-cell__vs {
+  color: var(--ink-3);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.flag-cell {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.referee-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.referee-cell__lock {
+  color: var(--ink-3);
+  display: inline-flex;
+}
+
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.foot-actions {
+  display: flex;
+  gap: 8px;
+}
+.saved-at {
+  color: var(--accent-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// Empty state — pre-generation
+.empty-state__body {
+  text-align: center;
+  padding: 40px 18px;
+}
+
+// ——— Drawer contents ———
+.drawer-section {
+  margin-bottom: 18px;
+}
+.drawer-section__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.drawer-section__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.drawer-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.candidates {
+  // Override .panel border-radius so candidates stack flush with no inner gap
+  overflow: hidden;
+}
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line-2);
+  cursor: pointer;
+  transition: background 0.12s;
+  color: var(--ink);
+}
+.candidate:last-child {
+  border-bottom: none;
+}
+.candidate:hover:not(.candidate--used) {
+  background: var(--panel-2);
+}
+.candidate--assigned {
+  background: var(--accent-tint);
+}
+.candidate--assigned:hover {
+  background: var(--accent-tint);
+}
+.candidate--used {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.candidate__meta {
+  flex: 1;
+  font-size: 11px;
+  color: var(--ink-3);
+}
+
+/* Drawer breakdown coloring */
+.warn-text { color: var(--warn); }
+.accent-text { color: var(--accent-ink); }
+.danger-text { color: var(--danger); }
+
+.total-row td {
+  background: var(--panel-2);
 }

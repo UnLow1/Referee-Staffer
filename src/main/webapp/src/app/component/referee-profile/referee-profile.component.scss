@@ -1,0 +1,129 @@
+.back-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.profile-id {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-id__name {
+  margin: 0 0 4px;
+}
+
+.profile-id__meta {
+  font-size: 12px;
+}
+
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Larger avatar than the ref-avatar atom's default — design calls for 56×56 in the hero. */
+.avatar.avatar--xl {
+  width: 56px;
+  height: 56px;
+  font-size: 18px;
+}
+
+/* ——— KPI strip ——— */
+.kpi-strip {
+  margin-bottom: 20px;
+}
+
+.kpi-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* ——— Match history table ——— */
+.tbl .col-queue { width: 80px; }
+.tbl .col-score { width: 100px; }
+.tbl .col-grade { width: 200px; }
+
+.muted {
+  color: var(--ink-3);
+}
+
+.empty-row {
+  text-align: center;
+  padding: 32px 14px !important;
+}
+
+.grade-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.grade-cell__value {
+  font-weight: 600;
+  width: 32px;
+  text-align: right;
+}
+
+/* ——— Fairness panel ——— */
+.fairness-panel {
+  margin-bottom: 20px;
+}
+
+.fairness-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+
+.city-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.city-row__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.fairness-balance {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+.fairness-balance__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+/* Two-segment ratio bar — flex values are the raw win counts so the segment
+   widths track home : away proportionally. Mirrors prototype profile.jsx. */
+.balance-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.balance-bar__home { background: var(--ink); }
+.balance-bar__away { background: var(--accent); }
+
+.fairness-balance__legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-top: 4px;
+}

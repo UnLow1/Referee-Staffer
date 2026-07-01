@@ -27,8 +27,15 @@ public class MatchDto {
 
     private final Long gradeId;
 
+    /**
+     * Computed match difficulty (the entity field is @Transient, recalculated on every
+     * staffing run). Exposed so the Staffer screen can sort and visualise; the
+     * per-component breakdown lives on GET /api/matches/{id}/difficulty.
+     */
+    private final Double hardnessLvl;
+
     public MatchDto(Long id, Short queue, Long homeTeamId, Long awayTeamId, LocalDateTime date,
-                    Long refereeId, Short homeScore, Short awayScore, Long gradeId) {
+                    Long refereeId, Short homeScore, Short awayScore, Long gradeId, Double hardnessLvl) {
         this.id = id;
         this.queue = queue;
         this.homeTeamId = homeTeamId;
@@ -38,6 +45,7 @@ public class MatchDto {
         this.homeScore = homeScore;
         this.awayScore = awayScore;
         this.gradeId = gradeId;
+        this.hardnessLvl = hardnessLvl;
     }
 
     public Long getId() {
@@ -76,6 +84,10 @@ public class MatchDto {
         return gradeId;
     }
 
+    public Double getHardnessLvl() {
+        return hardnessLvl;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -90,6 +102,7 @@ public class MatchDto {
         private Short homeScore;
         private Short awayScore;
         private Long gradeId;
+        private Double hardnessLvl;
 
         public Builder id(Long id) {
             this.id = id;
@@ -136,8 +149,13 @@ public class MatchDto {
             return this;
         }
 
+        public Builder hardnessLvl(Double hardnessLvl) {
+            this.hardnessLvl = hardnessLvl;
+            return this;
+        }
+
         public MatchDto build() {
-            return new MatchDto(id, queue, homeTeamId, awayTeamId, date, refereeId, homeScore, awayScore, gradeId);
+            return new MatchDto(id, queue, homeTeamId, awayTeamId, date, refereeId, homeScore, awayScore, gradeId, hardnessLvl);
         }
     }
 }

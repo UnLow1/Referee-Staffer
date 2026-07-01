@@ -1,0 +1,43 @@
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tbl .col-queue   { width: 80px; }
+.tbl .col-grade   { width: 200px; }
+.tbl .col-actions { width: 100px; }
+
+.match-codes {
+  color: var(--ink-3);
+  font-size: 11px;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.grade-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.grade-cell__value {
+  font-weight: 600;
+  width: 32px;
+  text-align: right;
+}
+
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 32px 14px !important;
+}

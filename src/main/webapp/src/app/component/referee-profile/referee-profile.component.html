@@ -1,0 +1,142 @@
+@if (referee(); as r) {
+  <div class="back-row">
+    <a class="btn btn--ghost btn--sm" routerLink="/referees">‹ Back to referees</a>
+  </div>
+
+  <div class="page-head">
+    <div class="profile-id">
+      <span class="avatar avatar--xl">{{ initials() }}</span>
+      <div>
+        <h1 class="profile-id__name">{{ fullName() }}</h1>
+        <div class="page-head__sub mono profile-id__meta">
+          {{ idLabel() }} · {{ r.email }}
+        </div>
+      </div>
+    </div>
+    <div class="page-head__actions">
+      <button type="button" class="btn" (click)="editReferee()">
+        <app-icon name="edit" [size]="12"></app-icon>Edit
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI strip — 5 tiles per design; Top-3 matches still needs a standings join. -->
+  <div class="panel kpi-strip">
+    <div class="kpi-strip-grid">
+      <app-kpi label="Average grade"
+               [value]="formatGrade(avgGrade())"
+               [delta]="avgGrade() !== null
+                          ? ('Computed from ' + gradedMatchCount() + ' graded matches')
+                          : 'No graded matches yet'"></app-kpi>
+      <app-kpi label="Potential"
+               [value]="potential() !== null ? potential()!.toFixed(1) : '—'"
+               [delta]="potential() !== null ? 'P = α·avg + β·experience' : 'Computed once a referee has matches'"></app-kpi>
+      <app-kpi label="Matches refereed" [value]="r.experience"
+               delta="Career total"></app-kpi>
+      <app-kpi label="Top-3 matches" value="—"
+               delta="Needs standings join"></app-kpi>
+      <app-kpi label="Last queue" [value]="lastQueue() ?? '—'"
+               [delta]="lastQueue() !== null ? 'Most recent assignment' : 'Never assigned'"></app-kpi>
+    </div>
+  </div>
+
+  <!-- Fairness — derived entirely from win counters + match history × team city. -->
+  <div class="panel fairness-panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">Fairness</div>
+        <div class="panel__sub">Distribution of assignments</div>
+      </div>
+    </div>
+    <div class="panel__body">
+      <div class="fairness-section-label">Cities refereed</div>
+      @if (topCities().length > 0) {
+        <div class="city-list">
+          @for (entry of topCities(); track entry.city) {
+            <div class="city-row">
+              <div class="city-row__head">
+                <span>{{ entry.city }}</span>
+                <span class="num mono muted">{{ entry.count }}</span>
+              </div>
+              <div class="bar"><i [style.width]="cityBarWidth(entry.count)"></i></div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="muted">No matches refereed yet.</div>
+      }
+
+      <div class="fairness-balance">
+        <div class="fairness-balance__head">
+          <span>Home / away balance</span>
+          <span class="num mono muted">{{ homeWins() }} / {{ awayWins() }}</span>
+        </div>
+        @if (hasWinData()) {
+          <div class="balance-bar">
+            <div class="balance-bar__home" [style.flex]="homeWins()" title="Home wins"></div>
+            <div class="balance-bar__away" [style.flex]="awayWins()" title="Away wins"></div>
+          </div>
+          <div class="fairness-balance__legend">
+            <span>home</span>
+            <span>away</span>
+          </div>
+        } @else {
+          <div class="muted">No decided matches yet — counters fill in once results are entered.</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Match history -->
+  <div class="panel">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">Match history</div>
+        <div class="panel__sub">{{ history().length }} matches refereed</div>
+      </div>
+    </div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th class="num right col-queue">Queue</th>
+          <th>Home</th>
+          <th>Away</th>
+          <th class="num right col-score">Score</th>
+          <th class="num right col-grade">Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (match of history(); track match.id) {
+          <tr>
+            <td class="num right mono muted">{{ match.queue }}</td>
+            <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
+            <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
+            <td class="num right">
+              @if (scoreLine(match); as score) {
+                <strong>{{ score }}</strong>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td class="num right">
+              @if (getGrade(match.gradeId); as g) {
+                <div class="grade-cell">
+                  <app-meter [value]="gradeAsMeter(g)" [max]="100"></app-meter>
+                  <span class="mono grade-cell__value">{{ g.value.toFixed(1) }}</span>
+                </div>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="empty-row muted">No matches in history yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  <div class="panel"><div class="panel__body muted">Loading profile…</div></div>
+}

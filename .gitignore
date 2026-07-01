@@ -34,3 +34,7 @@ build/
 
 ### Claude Code ###
 .claude/
+
+# Local-only development plan / feature backlog (kept out of the repo on purpose)
+/plan-rozwoju.md
+/BACKLOG.md

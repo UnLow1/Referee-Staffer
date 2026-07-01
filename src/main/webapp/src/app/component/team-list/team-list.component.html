@@ -1,27 +1,70 @@
-<div class="card my-5">
-  <h2 id="header" class="text-center my-3">List of teams</h2>
-  <div class="card-body">
-    <table aria-describedby="header" class="table table-bordered table-striped">
-      <thead class="thead-dark">
-        <tr>
-          <th scope="col">Team name</th>
-          <th scope="col">City</th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (team of teams; track team.id) {
-          <tr>
-            <td>{{ team.name }}</td>
-            <td>{{ team.city }}</td>
-            <td>
-              <app-edit-button (clicked)="editTeam(team)"></app-edit-button>
-              <app-delete-button (clicked)="deleteTeam(team)"></app-delete-button>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    <app-add-button label="Add new team" routerLink="addTeam"></app-add-button>
+<div class="page-head">
+  <div>
+    <h1>Teams</h1>
+    <div class="page-head__sub">{{ teams().length }} clubs in the league</div>
+  </div>
+  <div class="page-head__actions">
+    <input type="text" class="input" placeholder="Search team…"
+           [value]="searchTerm()" (input)="setSearch($any($event.target).value)">
+    <button type="button" class="btn btn--primary" (click)="addTeam()">
+      <app-icon name="plus" [size]="12"></app-icon>Add team
+    </button>
   </div>
 </div>
+
+<div class="panel">
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Team</th>
+        <th>City</th>
+        <th class="num right col-played">Played</th>
+        <th class="num right col-points">Points</th>
+        <th class="col-form">Form</th>
+        <th class="col-actions"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (team of visibleTeams(); track team.id) {
+        <tr>
+          <td><app-team-pill [team]="team"></app-team-pill></td>
+          <td class="city-cell">{{ team.city }}</td>
+          <td class="num right">{{ played(team) }}</td>
+          <td class="num right points-cell">{{ team.points ?? '—' }}</td>
+          <td><div class="bar"><i [style.width.%]="barPct(team)"></i></div></td>
+          <td class="col-actions">
+            <div class="row-actions">
+              <button type="button" class="btn btn--ghost btn--sm"
+                      (click)="editTeam(team)" title="Edit team">
+                <app-icon name="edit" [size]="12"></app-icon>
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm btn--danger"
+                      (click)="askDelete(team)" title="Delete team">
+                <app-icon name="trash" [size]="12"></app-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="6" class="empty-row">
+            @if (searchTerm()) {
+              <span class="muted">No teams match "{{ searchTerm() }}".</span>
+            } @else {
+              <span class="muted">No teams in the league yet.</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@if (formOpen()) {
+  <app-team-form [team]="editingTeam()" (saved)="onSaved()" (closed)="closeForm()"></app-team-form>
+}
+
+<app-confirm-dialog [open]="deleteTarget() !== null" [data]="deleteGuard()"
+                    (confirmed)="confirmDelete()" (cancelled)="deleteTarget.set(null)">
+  This will permanently remove <strong>{{ deleteTarget()?.name }}</strong>. This action cannot be undone.
+</app-confirm-dialog>

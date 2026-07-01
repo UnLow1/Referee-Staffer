@@ -42,6 +42,19 @@ public class Config {
         return value;
     }
 
+    /**
+     * Surfaced in JSON — drives the Configuration screen's panel grouping. Computed from
+     * {@link ConfigName#group()} so adding a new key doesn't require touching this entity.
+     */
+    public String getGroup() {
+        return name != null ? name.group() : null;
+    }
+
+    /** Surfaced in JSON — short human-readable explanation shown under each input. */
+    public String getDescription() {
+        return name != null ? name.description() : null;
+    }
+
     @Override
     public String toString() {
         return "Config(id=" + id + ", name=" + name + ", value=" + value + ")";

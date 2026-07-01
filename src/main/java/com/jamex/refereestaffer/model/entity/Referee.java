@@ -44,6 +44,31 @@ public class Referee {
     @Transient
     private boolean busy;
 
+    /**
+     * Highest queue this referee has been assigned to. Set by
+     * {@link com.jamex.refereestaffer.service.RefereeService#calculateStats}; null when
+     * the referee has never been assigned. Surfaced by RefereeDto for the redesigned
+     * Referee list and Profile screens.
+     */
+    @Transient
+    private Short lastQueue;
+
+    /**
+     * Computed referee strength: P = α·avg(grade) + β·experience. Set by
+     * {@link com.jamex.refereestaffer.service.RefereeService#enrichWithStats}; null
+     * before the enrichment pass runs.
+     */
+    @Transient
+    private Double potential;
+
+    /** Number of past matches officiated where the home team won. Fairness signal. */
+    @Transient
+    private Short homeWins;
+
+    /** Number of past matches officiated where the away team won. Fairness signal. */
+    @Transient
+    private Short awayWins;
+
     public Referee() {
     }
 
@@ -127,6 +152,38 @@ public class Referee {
 
     public void setBusy(boolean busy) {
         this.busy = busy;
+    }
+
+    public Short getLastQueue() {
+        return lastQueue;
+    }
+
+    public void setLastQueue(Short lastQueue) {
+        this.lastQueue = lastQueue;
+    }
+
+    public Double getPotential() {
+        return potential;
+    }
+
+    public void setPotential(Double potential) {
+        this.potential = potential;
+    }
+
+    public Short getHomeWins() {
+        return homeWins;
+    }
+
+    public void setHomeWins(Short homeWins) {
+        this.homeWins = homeWins;
+    }
+
+    public Short getAwayWins() {
+        return awayWins;
+    }
+
+    public void setAwayWins(Short awayWins) {
+        this.awayWins = awayWins;
     }
 
     @Override
