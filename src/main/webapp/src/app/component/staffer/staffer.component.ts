@@ -4,6 +4,7 @@ import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
+import {UiSettingsService} from '../../service/ui-settings.service';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
@@ -51,6 +52,8 @@ export class StafferComponent {
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
   private readonly matchService = inject(MatchService);
+  /** Gates the "How the staffer scores assignments" panel (toggled in the sidebar's Admin section). */
+  readonly settings = inject(UiSettingsService);
 
   readonly queue = signal(1);
   readonly matches = signal<Match[] | null>(null);

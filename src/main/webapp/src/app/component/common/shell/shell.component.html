@@ -17,6 +17,11 @@
     <div class="topbar__actions">
       <span class="topbar__round">Round 30 · 4 May 2026</span>
       <span class="topbar__divider"></span>
+      <button type="button" class="btn btn--ghost btn--sm topbar__theme"
+              (click)="settings.toggleDark()"
+              [title]="settings.dark() ? 'Switch to light theme' : 'Switch to dark theme'">
+        <app-icon [name]="settings.dark() ? 'sun' : 'moon'" [size]="14"></app-icon>
+      </button>
       <span class="avatar" title="Jamex">JX</span>
     </div>
   </div>
@@ -38,7 +43,7 @@
       </a>
     }
 
-    @if (showAdmin) {
+    @if (settings.adminVisible()) {
       <div class="nav-group nav-group--admin">Admin<app-icon name="lock" [size]="11"></app-icon></div>
       @for (item of adminNav; track item.path) {
         <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
@@ -46,6 +51,13 @@
           <span>{{ item.label }}</span>
         </a>
       }
+      <!-- Admin-only setting: shows the scoring-formula panel on the Staffer screen. -->
+      <button type="button" class="nav-item nav-item--toggle" (click)="settings.toggleExplainer()"
+              [attr.aria-pressed]="settings.explainerVisible()">
+        <span class="nav-item__icon"><app-icon name="info"></app-icon></span>
+        <span>Algorithm explainer</span>
+        <span class="switch" [class.switch--on]="settings.explainerVisible()"></span>
+      </button>
     }
 
     <div class="nav-group">Setup</div>
@@ -55,6 +67,18 @@
         <span>{{ item.label }}</span>
       </a>
     }
+
+    <!-- TEMPORARY: reveals the Admin nav group until real authorization lands — remove
+         this button (and switch UiSettingsService.adminVisible to a role check) once
+         auth exists. The admin routes always resolve by URL regardless of the flag. -->
+    <div class="sidenav__foot">
+      <button type="button" class="btn btn--ghost btn--sm sidenav__admin-toggle"
+              (click)="settings.toggleAdmin()"
+              [attr.aria-pressed]="settings.adminVisible()">
+        <app-icon [name]="settings.adminVisible() ? 'unlock' : 'lock'" [size]="12"></app-icon>
+        {{ settings.adminVisible() ? 'Hide admin section' : 'Show admin section' }}
+      </button>
+    </div>
   </nav>
 
   <main class="main">

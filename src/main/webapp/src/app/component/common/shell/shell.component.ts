@@ -1,5 +1,6 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {RouterLink, RouterLinkActive, RouterOutlet} from '@angular/router';
+import {UiSettingsService} from '../../../service/ui-settings.service';
 import {IconComponent, IconName} from '../icon/icon.component';
 
 /**
@@ -14,6 +15,9 @@ import {IconComponent, IconName} from '../icon/icon.component';
   imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent]
 })
 export class ShellComponent {
+  /** Theme + admin-visibility + explainer flags; persisted in localStorage. */
+  readonly settings = inject(UiSettingsService);
+
   // Three nav groups mirroring the prototype. `count` is left blank for now — wiring
   // it up requires service calls that should arrive together with the screens that
   // already query those endpoints (step 4+).
@@ -39,13 +43,6 @@ export class ShellComponent {
     {path: '/configuration', label: 'Configuration', icon: 'cog'},
   ];
 
-  /**
-   * Admin nav gate — hidden by default, like the legacy header's `#admin [hidden]`
-   * block the README tip refers to. The modern equivalent of flipping `admin.hidden`
-   * in DevTools is `localStorage.setItem('admin.hidden', 'false')` + refresh; the
-   * admin routes always resolve by URL regardless.
-   */
-  readonly showAdmin = localStorage.getItem('admin.hidden') === 'false';
 }
 
 interface NavItem {

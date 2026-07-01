@@ -48,6 +48,9 @@ const ICON_PATHS = {
   chevDown:   'M6 9l6 6 6-6',
   download:   'M12 3v13M6 11l6 6 6-6M4 21h16',
   filter:     'M4 5h16l-6 8v6l-4-2v-4z',
+  // Theme toggle (lucide sun / moon, subpaths merged into one d)
+  sun:        'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41',
+  moon:       'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
   // Admin nav group icons (lucide shield / trophy / calendar, subpaths merged into one d)
   shield:     'M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z',
   trophy:     'M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z',

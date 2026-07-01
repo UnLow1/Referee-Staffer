@@ -23,6 +23,37 @@
   </div>
 </div>
 
+<!-- Algorithm explainer — the formulas behind the cast, for the curious. Toggled from
+     the sidebar's Admin section; formulas mirror StafferService.countRefereePotentialLvl
+     and MatchService.computeBreakdown (weights live in Configuration). -->
+@if (settings.explainerVisible()) {
+  <div class="panel explainer">
+    <div class="panel__head">
+      <div>
+        <div class="panel__title">How the staffer scores assignments</div>
+        <div class="panel__sub">Toggle off in the sidebar's Admin section if you'd rather see results only.</div>
+      </div>
+    </div>
+    <div class="explainer__grid">
+      <div>
+        <div class="explainer__label">Referee potential</div>
+        <div class="explainer__formula"><strong>P</strong> = α·avg(grade) + β·experience</div>
+        <div class="explainer__desc">How strong the referee is, based on observer grades and matches refereed.</div>
+      </div>
+      <div>
+        <div class="explainer__label">Match difficulty</div>
+        <div class="explainer__formula"><strong>D</strong> = α(β − |Δpts|) + γ·sameCity + δ·top + ε·bottom</div>
+        <div class="explainer__desc">Closeness in the table, derbies, and edge matches drive difficulty up.</div>
+      </div>
+      <div>
+        <div class="explainer__label">Effective value</div>
+        <div class="explainer__formula"><strong>E</strong> = <strong>P</strong> − α·matches − β·home − γ·guest</div>
+        <div class="explainer__desc">Fairness penalty: heavy users and biased pairings get downweighted.</div>
+      </div>
+    </div>
+  </div>
+}
+
 <!-- KPI strip — shows once a cast has been generated -->
 @if (matches(); as ms) {
   <div class="panel panel--kpi-strip">

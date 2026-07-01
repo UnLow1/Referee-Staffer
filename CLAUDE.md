@@ -101,14 +101,14 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 - `system.properties` — removed 2026-04-23. Was a Heroku Java runtime hint (`java.runtime.version=18`); Heroku free tier ended November 2022 and the project is not deployed there.
 - Commit `0304975` (reverted by `e198a13`) attempted an AWS Aurora + Secrets Manager migration. Ignore these files if they appear in history/blame searches — they are not the direction of the project.
 - Legacy frontend pieces removed by the redesign: `header`/`footer` components (replaced by the shell, 2026-06-07), `add-button`/`edit-button`/`delete-button` (replaced by ghost icon buttons, 2026-06-13), and the "Clear data" feature (lived in the old header; the five `deleteAll()` methods in the frontend services are now **unused** — remove them or rebuild the feature deliberately).
-- `data/screenshots/` referenced from `README.md` still shows the **old Bootstrap UI** — stale since the redesign.
+- `data/screenshots/` — regenerated 2026-07-01 against the redesigned UI (headless-browser captures at 1400×900; includes `dashboard.png` and `darkMode.png`). No longer stale.
 - `docs/design_handoff_redesign/`, `docs/design_handoff_forms/` — the design-handoff bundles (React/JSX prototypes + CSS) were removed 2026-07-01 after the redesign completed, and code comments referencing them were scrubbed the same day; the bundles live in git history (last present at `45d294c`).
 
 ## Conventions
 
 - Test files are named `*Spec.groovy`.
 - The Swagger UI is available (springdoc-openapi-ui) when the app is running.
-- Admin nav group (Teams / Standings / Vacations) is hidden by default. Reveal it with `localStorage.setItem('admin.hidden', 'false')` + refresh (see `ShellComponent.showAdmin`); the admin routes always resolve by URL. This replaces the legacy DevTools `admin.hidden` DOM trick the README still mentions.
+- UI preferences (dark theme, admin visibility, staffer algorithm explainer) live in `UiSettingsService` (signals + localStorage: `theme`, `admin.hidden`, `staffer.explainer`). Dark mode toggles via the sun/moon button in the topbar (`data-theme` on `<html>`). The Admin nav group (Teams / Standings / Vacations) is revealed by a **temporary** "Show admin section" button at the bottom of the sidebar — remove it and switch `adminVisible` to a role check once real authorization lands; the admin routes always resolve by URL. The Admin group also hosts the "Algorithm explainer" toggle that shows the scoring-formula panel on the Staffer screen.
 
 ## Domain notes
 

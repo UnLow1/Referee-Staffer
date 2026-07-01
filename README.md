@@ -56,7 +56,23 @@ $G_{i}^{q-1}$ - number of guest team matches to be refereed by referee $i$ until
 
 ## Sample screenshots
 
+### Overview dashboard
+
+![](data/screenshots/dashboard.png)
+
+### Staffer
+
+The scoring-formula panel ("Algorithm explainer") can be toggled from the sidebar's Admin section.
+
+![](data/screenshots/staffer.png)
+
+### List of matches
+
+![](data/screenshots/listOfMatches.png)
+
 ### Adding data (referees, teams, matches)
+
+Add/edit forms open as right-side drawers on top of their lists.
 
 ![](data/screenshots/addReferee.png)
 
@@ -64,15 +80,16 @@ $G_{i}^{q-1}$ - number of guest team matches to be refereed by referee $i$ until
 
 ![](data/screenshots/configuration.png)
 
-### List of matches
-
-![](data/screenshots/listOfMatches.png)
-
-### Staffer
-
-![](data/screenshots/staffer.png)
-
 ### Admin panel
 
-To enable admin panel type in DevTools `admin.hidden=false`
-![](data/screenshots/adminPanel.PNG)
+The Admin nav group (Teams · Standings · Vacations) is hidden by default. Reveal it with the
+"Show admin section" button at the bottom of the sidebar — a temporary stand-in until real
+authorization lands.
+
+![](data/screenshots/adminPanel.png)
+
+### Dark mode
+
+Toggle with the sun/moon button in the top bar.
+
+![](data/screenshots/darkMode.png)

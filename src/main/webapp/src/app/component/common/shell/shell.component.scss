@@ -29,3 +29,66 @@
   text-decoration: none;
   color: inherit;
 }
+
+// Square ghost button for the theme toggle — same height as .btn--sm, icon-only.
+.topbar__theme {
+  width: 26px;
+  padding: 0;
+  justify-content: center;
+}
+
+// The explainer toggle reuses .nav-item styling on a <button> — reset the UA button look.
+button.nav-item--toggle {
+  background: none;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+}
+
+// Mini switch for the explainer toggle (accent when on, matching the design system's
+// single-green-accent rule).
+.switch {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 15px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  transition: transform 0.15s, background 0.15s;
+}
+.switch--on {
+  background: var(--accent-tint);
+  border-color: var(--accent);
+}
+.switch--on::after {
+  transform: translateX(11px);
+  background: var(--accent);
+}
+
+// Pin the temporary admin toggle to the bottom of the sidebar.
+.sidenav {
+  display: flex;
+  flex-direction: column;
+}
+.sidenav__foot {
+  margin-top: auto;
+  padding-top: 14px;
+}
+.sidenav__admin-toggle {
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--ink-3);
+}
