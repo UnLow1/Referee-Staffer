@@ -29,7 +29,7 @@ public class StafferController {
      */
     @PostMapping("/{queue}")
     public Collection<MatchDto> staffReferees(@PathVariable short queue) {
-        log.info("Generating cast for queue " + queue);
+        log.info("Generating cast for queue {}", queue);
         return stafferService.staffReferees(queue);
     }
 }

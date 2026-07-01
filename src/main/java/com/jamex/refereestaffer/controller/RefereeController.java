@@ -47,7 +47,7 @@ public class RefereeController {
 
     @GetMapping("/{id}")
     public RefereeDto getReferee(@PathVariable Long id) {
-        log.info("Getting referee with id " + id);
+        log.info("Getting referee with id {}", id);
         var referee = refereeRepository.findById(id)
                 .orElseThrow(() -> new RefereeNotFoundException(id));
         refereeService.enrichWithStats(java.util.List.of(referee));
@@ -56,7 +56,7 @@ public class RefereeController {
 
     @GetMapping("/available/{queue}")
     public Collection<RefereeDto> getRefereesAvailableForQueue(@PathVariable Short queue) {
-        log.info("Getting referees available for queue " + queue);
+        log.info("Getting referees available for queue {}", queue);
         var referees = refereeService.getAvailableRefereesForQueue(queue);
         // Staffer drawer ranks candidates by potential — enrich so the DTO carries it.
         refereeService.enrichWithStats(referees);
@@ -65,7 +65,7 @@ public class RefereeController {
 
     @PutMapping
     public void updateReferee(@RequestBody RefereeDto refereeDto) {
-        log.info("Updating referee with id " + refereeDto.getId());
+        log.info("Updating referee with id {}", refereeDto.getId());
         var referee = refereeConverter.convertFromDto(refereeDto);
         refereeRepository.save(referee);
     }
@@ -79,7 +79,7 @@ public class RefereeController {
 
     @PostMapping("/byIds")
     public Collection<RefereeDto> getRefereesByIds(@RequestBody IDRequest request) {
-        log.info("Getting referees with ids: " + request.getIds());
+        log.info("Getting referees with ids: {}", request.getIds());
         var referees = refereeRepository.findAllById(request.getIds());
         return refereeConverter.convertFromEntities(referees);
     }
@@ -92,7 +92,7 @@ public class RefereeController {
 
     @DeleteMapping("/{id}")
     public void deleteReferee(@PathVariable Long id) {
-        log.info("Deleting referee with id = " + id);
+        log.info("Deleting referee with id = {}", id);
         refereeRepository.deleteById(id);
     }
 }

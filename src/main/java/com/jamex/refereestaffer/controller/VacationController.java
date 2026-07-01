@@ -40,7 +40,7 @@ public class VacationController {
 
     @GetMapping("{id}")
     public VacationDto getVacation(@PathVariable Long id) {
-        log.info("Getting vacation with id " + id);
+        log.info("Getting vacation with id {}", id);
         var vacation = vacationRepository.findById(id)
                 .orElseThrow(() -> new VacationNotFoundException(id));
         return vacationConverter.convertFromEntity(vacation);
@@ -56,7 +56,7 @@ public class VacationController {
 
     @PutMapping
     public VacationDto updateVacation(@RequestBody VacationDto vacationDto) {
-        log.info("Updating vacation with id " + vacationDto.getId());
+        log.info("Updating vacation with id {}", vacationDto.getId());
         var vacation = vacationConverter.convertFromDto(vacationDto);
         var updatedVacation = vacationRepository.save(vacation);
         return vacationConverter.convertFromEntity(updatedVacation);
@@ -70,7 +70,7 @@ public class VacationController {
 
     @DeleteMapping("/{id}")
     public void deleteVacation(@PathVariable Long id) {
-        log.info("Deleting vacation with id = " + id);
+        log.info("Deleting vacation with id = {}", id);
         vacationRepository.deleteById(id);
     }
 }

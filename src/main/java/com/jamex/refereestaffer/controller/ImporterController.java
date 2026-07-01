@@ -31,14 +31,14 @@ public class ImporterController {
 
     @GetMapping(value = "/example", produces = "text/csv")
     public Resource download() {
-        log.info("Downloading file " + EXAMPLE_FILENAME);
+        log.info("Downloading file {}", EXAMPLE_FILENAME);
         return downloadService.downloadFile(EXAMPLE_FILENAME);
     }
 
     @PostMapping
     public ImportResponse importData(@RequestParam("file") MultipartFile file,
                                      @RequestParam("numberOfQueuesToImport") Short numberOfQueuesToImport) {
-        log.info(String.format("Importing data from file \"%s\"", file.getOriginalFilename()));
+        log.info("Importing data from file \"{}\"", file.getOriginalFilename());
         return importerService.importData(file, numberOfQueuesToImport);
     }
 }

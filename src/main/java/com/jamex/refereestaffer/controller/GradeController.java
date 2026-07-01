@@ -44,26 +44,26 @@ public class GradeController {
 
     @GetMapping("/{id}")
     public GradeDto getGrade(@PathVariable Long id) {
-        log.info("Getting grade with id " + id);
+        log.info("Getting grade with id {}", id);
         var grade = gradeRepository.findById(id).orElseThrow(() -> new GradeNotFoundException(id));
         return gradeConverter.convertFromEntity(grade);
     }
 
     @PostMapping("/{matchId}")
     public void createGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
-        log.info("Adding new grade for match with id " + matchId);
+        log.info("Adding new grade for match with id {}", matchId);
         gradeService.addGrade(gradeDto, matchId);
     }
 
     @PutMapping
     public void updateGrade(@RequestBody GradeDto gradeDto) {
-        log.info("Updating grade with id " + gradeDto.getId());
+        log.info("Updating grade with id {}", gradeDto.getId());
         gradeService.updateGrade(gradeDto);
     }
 
     @PostMapping("/byIds")
     public Collection<GradeDto> getGradesByIds(@RequestBody IDRequest request) {
-        log.info("Getting grades with ids: " + request.getIds());
+        log.info("Getting grades with ids: {}", request.getIds());
         var grades = gradeRepository.findAllById(request.getIds());
         return gradeConverter.convertFromEntities(grades);
     }
@@ -76,7 +76,7 @@ public class GradeController {
 
     @DeleteMapping("{id}")
     public void deleteGrade(@PathVariable Long id) {
-        log.info("Deleting grade with id = " + id);
+        log.info("Deleting grade with id = {}", id);
         gradeRepository.deleteById(id);
     }
 }

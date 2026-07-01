@@ -65,7 +65,7 @@ public class MatchService {
         var match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new MatchNotFoundException(matchId));
         if (match.getGrade() != null) {
-            log.info("Deleting grade with id = " + match.getGrade().getId());
+            log.info("Deleting grade with id = {}", match.getGrade().getId());
             gradeRepository.delete(match.getGrade());
         }
         matchRepository.delete(match);

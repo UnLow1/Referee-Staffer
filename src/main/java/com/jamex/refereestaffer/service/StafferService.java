@@ -85,8 +85,8 @@ public class StafferService {
                     .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
-            log.debug(String.format("Match: %s - %s; hardnessLvl = %f", match.getHome(), match.getAway(), match.getHardnessLvl()));
-            log.debug("Referees with their potential:" + sortedRefereesPotentialLvlMap);
+            log.debug("Match: {} - {}; hardnessLvl = {}", match.getHome(), match.getAway(), match.getHardnessLvl());
+            log.debug("Referees with their potential: {}", sortedRefereesPotentialLvlMap);
             var chosenReferee = sortedRefereesPotentialLvlMap.keySet().stream()
                     .findFirst()
                     .orElseThrow(StafferException::new);

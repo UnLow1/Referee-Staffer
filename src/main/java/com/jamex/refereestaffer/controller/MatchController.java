@@ -45,7 +45,7 @@ public class MatchController {
 
     @GetMapping("/{id}")
     public MatchDto getMatch(@PathVariable Long id) {
-        log.info("Getting match with id " + id);
+        log.info("Getting match with id {}", id);
         var match = matchRepository.findById(id)
                 .orElseThrow(() -> new MatchNotFoundException(id));
         return matchConverter.convertFromEntity(match);
@@ -72,7 +72,7 @@ public class MatchController {
     // TODO is this id needed?
     @PutMapping("/{id}")
     public MatchDto updateMatch(@RequestBody MatchDto matchDto, @PathVariable Long id) {
-        log.info("Updating match with id " + matchDto.getId());
+        log.info("Updating match with id {}", matchDto.getId());
         var match = matchConverter.convertFromDto(matchDto);
         var updatedMatch = matchRepository.save(match);
         return matchConverter.convertFromEntity(updatedMatch);
@@ -83,7 +83,7 @@ public class MatchController {
         var matchIds = matchesDtos.stream()
                 .map(MatchDto::getId)
                 .toList();
-        log.info("Updating matches with ids: " + matchIds);
+        log.info("Updating matches with ids: {}", matchIds);
         var matches = matchConverter.convertFromDtos(matchesDtos);
         matchRepository.saveAll(matches);
     }
@@ -96,7 +96,7 @@ public class MatchController {
 
     @DeleteMapping("/{id}")
     public void deleteMatch(@PathVariable Long id) {
-        log.info("Deleting match with id = " + id);
+        log.info("Deleting match with id = {}", id);
         matchService.deleteMatch(id);
     }
 }
