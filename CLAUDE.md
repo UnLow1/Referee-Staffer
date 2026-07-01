@@ -108,7 +108,7 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 
 - Test files are named `*Spec.groovy`.
 - The Swagger UI is available (springdoc-openapi-ui) when the app is running.
-- UI preferences (dark theme, admin visibility, staffer algorithm explainer) live in `UiSettingsService` (signals + localStorage: `theme`, `admin.hidden`, `staffer.explainer`). Dark mode toggles via the sun/moon button in the topbar (`data-theme` on `<html>`). The Admin nav group (Teams / Standings / Vacations) is revealed by a **temporary** "Show admin section" button at the bottom of the sidebar — remove it and switch `adminVisible` to a role check once real authorization lands; the admin routes always resolve by URL. The Admin group also hosts the "Algorithm explainer" toggle that shows the scoring-formula panel on the Staffer screen.
+- UI preferences (dark theme, admin visibility, staffer algorithm explainer) live in `UiSettingsService` (signals + localStorage: `theme`, `admin.visible`, `staffer.explainer`; the legacy `admin.hidden` DevTools trick was removed 2026-07-01 in favour of the sidebar button). Dark mode toggles via the sun/moon button in the topbar (`data-theme` on `<html>`). The Admin nav group (Teams / Standings / Vacations) is revealed by a **temporary** "Show admin section" button at the bottom of the sidebar — remove it and switch `adminVisible` to a role check once real authorization lands; the admin routes always resolve by URL. The Admin group also hosts the "Algorithm explainer" toggle that shows the scoring-formula panel on the Staffer screen.
 
 ## Domain notes
 

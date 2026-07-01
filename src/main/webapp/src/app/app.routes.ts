@@ -17,7 +17,7 @@ import {VacationListComponent} from './component/vacation-list/vacation-list.com
 // rendered once and the router-outlet inside the shell swaps the screen body.
 //
 // Admin-only routes (teams, standings, vacations) live in the shell's Admin nav group,
-// rendered only when the `admin.hidden` flag is cleared (see ShellComponent.showAdmin);
+// rendered only when the admin section is toggled on (UiSettingsService.adminVisible);
 // their direct URLs always resolve.
 export const routes: Routes = [
   {

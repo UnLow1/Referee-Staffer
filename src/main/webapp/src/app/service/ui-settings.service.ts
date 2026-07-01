@@ -2,17 +2,15 @@ import {Injectable, signal} from '@angular/core';
 
 /**
  * UI preferences shared between the shell and screens, each persisted to localStorage
- * so a refresh keeps the choice. The `admin.hidden` key predates this service (it
- * mirrors the legacy header's DevTools flag) and is kept for compatibility with
- * existing bookmarks of the trick.
+ * so a refresh keeps the choice.
  */
 @Injectable({
   providedIn: 'root'
 })
 export class UiSettingsService {
   private readonly darkSignal = signal(localStorage.getItem('theme') === 'dark');
-  /** Admin nav gate — visible only when `admin.hidden` is explicitly 'false'. */
-  private readonly adminSignal = signal(localStorage.getItem('admin.hidden') === 'false');
+  /** Admin nav gate — toggled by the (temporary) button at the bottom of the sidebar. */
+  private readonly adminSignal = signal(localStorage.getItem('admin.visible') === 'true');
   /** "How the staffer scores assignments" panel on the Staffer screen. Off by default. */
   private readonly explainerSignal = signal(localStorage.getItem('staffer.explainer') === 'true');
 
@@ -32,7 +30,7 @@ export class UiSettingsService {
 
   toggleAdmin(): void {
     this.adminSignal.update(v => !v);
-    localStorage.setItem('admin.hidden', this.adminVisible() ? 'false' : 'true');
+    localStorage.setItem('admin.visible', String(this.adminVisible()));
   }
 
   toggleExplainer(): void {
