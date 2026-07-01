@@ -15,6 +15,9 @@ public class TeamConverter implements BaseConverter<Team, TeamDto> {
 
     @Override
     public Team convertFromDto(TeamDto dto) {
-        return new Team(dto.getId(), dto.getName(), dto.getCity(), dto.getShortCode(), (short) 0, (short) 0);
+        // shortCode is deliberately not taken from the DTO: `short` in JSON is a computed
+        // read-model field (GET fills it with the name-derived fallback), so echoing it
+        // back on writes would persist the fallback as a stored override.
+        return new Team(dto.getId(), dto.getName(), dto.getCity(), null, (short) 0, (short) 0);
     }
 }

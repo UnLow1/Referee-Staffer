@@ -4,8 +4,8 @@ import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.service.StafferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,7 +23,11 @@ public class StafferController {
         this.stafferService = stafferService;
     }
 
-    @GetMapping("/{queue}")
+    /**
+     * POST, not GET: staffing assigns referees and persists the result, so the verb must
+     * signal the state change (was GET until 2026-07, which broke HTTP semantics).
+     */
+    @PostMapping("/{queue}")
     public Collection<MatchDto> staffReferees(@PathVariable short queue) {
         log.info("Generating cast for queue " + queue);
         return stafferService.staffReferees(queue);

@@ -14,6 +14,7 @@ export class StafferService {
   private readonly stafferUrl = `${environment.apiBaseUrl}/api/staffer`
 
   public staffReferees(queue: number): Observable<Match[]> {
-    return this.http.get<Match[]>(`${this.stafferUrl}/${queue}`)
+    // POST — staffing mutates assignments server-side (empty body; queue is in the path).
+    return this.http.post<Match[]>(`${this.stafferUrl}/${queue}`, null)
   }
 }

@@ -18,7 +18,8 @@ public class TeamDto {
      * 3-letter team code. Renamed in JSON to `short` (the frontend's wire format; the
      * Java field can't use the keyword). Backend always returns a non-null value —
      * Team.getShortCode() falls back to the first three letters of `name` when no
-     * override is stored.
+     * override is stored. Read-only: ignored on POST/PUT so the computed fallback the
+     * client echoes back never gets persisted as an override.
      */
     @JsonProperty("short")
     private final String shortCode;

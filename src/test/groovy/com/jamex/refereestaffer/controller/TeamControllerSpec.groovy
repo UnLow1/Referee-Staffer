@@ -78,17 +78,43 @@ class TeamControllerSpec extends Specification {
         1 * teamRepository.save(team)
     }
 
-    def "should update team"() {
-        given:
-        def teamDto = TeamDto.builder().build()
-        def team = [] as Team
+    def "should update team preserving the stored short code"() {
+        given: "a rename payload echoing the previously served short code"
+        def teamDto = TeamDto.builder()
+                .id(65l)
+                .name("Wisla")
+                .city("Krakow")
+                .shortCode("LEG")
+                .build()
+        def existing = Team.builder()
+                .id(65l)
+                .name("Legia")
+                .city("Warszawa")
+                .shortCode("LGW")
+                .build()
 
         when:
         teamController.updateTeam(teamDto)
 
         then:
-        1 * teamConverter.convertFromDto(teamDto) >> team
-        1 * teamRepository.save(team)
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved ->
+            saved.name == "Wisla" && saved.city == "Krakow" && saved.shortCode == "LGW"
+        })
+        0 * teamConverter.convertFromDto(_)
+    }
+
+    def "should throw TeamNotFoundException when updating a missing team"() {
+        given:
+        def teamDto = TeamDto.builder().id(404l).name("Ghost").build()
+
+        when:
+        teamController.updateTeam(teamDto)
+
+        then:
+        1 * teamRepository.findById(404l) >> Optional.empty()
+        0 * teamRepository.save(_)
+        thrown(TeamNotFoundException)
     }
 
     def "should return teams by ids"() {

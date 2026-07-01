@@ -10,7 +10,7 @@ class TeamConverterSpec extends Specification {
     @Subject
     TeamConverter teamConverter = new TeamConverter()
 
-    def "should convert from Team entity to dto"() {
+    def "should convert from Team entity to dto with the name-derived short code fallback"() {
         given:
         def team = Team.builder()
                 .id(65l)
@@ -27,14 +27,30 @@ class TeamConverterSpec extends Specification {
         result.name == team.name
         result.city == team.city
         result.points == team.points
+        result.shortCode == "KOR"
     }
 
-    def "should convert from dto to Team entity"() {
+    def "should convert from Team entity to dto with the stored short code override"() {
         given:
+        def team = Team.builder()
+                .name("Korona")
+                .shortCode("KRN")
+                .build()
+
+        when:
+        def result = teamConverter.convertFromEntity(team)
+
+        then:
+        result.shortCode == "KRN"
+    }
+
+    def "should convert from dto to Team entity ignoring the client-sent short code"() {
+        given: "a short code that differs from the name-derived fallback"
         def teamDto = TeamDto.builder()
                 .id(65l)
                 .name("Korona")
                 .city("Kielce")
+                .shortCode("XXX")
                 .build()
 
         when:
@@ -44,5 +60,7 @@ class TeamConverterSpec extends Specification {
         result.id == teamDto.id
         result.name == teamDto.name
         result.city == teamDto.city
+        and: "the entity falls back to the name prefix, proving nothing was stored"
+        result.shortCode == "KOR"
     }
 }
