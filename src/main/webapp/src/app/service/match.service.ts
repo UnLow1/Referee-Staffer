@@ -38,10 +38,6 @@ export class MatchService {
     return this.http.delete<void>(`${this.matchesUrl}/${id}`)
   }
 
-  public deleteAll(): Observable<void> {
-    return this.http.delete<void>(`${this.matchesUrl}`)
-  }
-
   public getDifficultyBreakdown(matchId: number): Observable<DifficultyBreakdown> {
     return this.http.get<DifficultyBreakdown>(`${this.matchesUrl}/${matchId}/difficulty`)
   }

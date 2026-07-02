@@ -37,8 +37,4 @@ export class VacationService {
   public delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.vacationsUrl}/${id}`)
   }
-
-  public deleteAll(): Observable<void> {
-    return this.http.delete<void>(`${this.vacationsUrl}`)
-  }
 }

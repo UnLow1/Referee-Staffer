@@ -45,8 +45,4 @@ export class TeamService {
   public delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.teamsUrl}/${id}`)
   }
-
-  public deleteAll(): Observable<void> {
-    return this.http.delete<void>(`${this.teamsUrl}`)
-  }
 }

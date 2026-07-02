@@ -45,8 +45,4 @@ export class RefereeService {
   public delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.refereesUrl}/${id}`)
   }
-
-  public deleteAll(): Observable<void> {
-    return this.http.delete<void>(`${this.refereesUrl}`)
-  }
 }

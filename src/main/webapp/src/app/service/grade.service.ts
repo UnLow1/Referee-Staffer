@@ -42,8 +42,4 @@ export class GradeService {
   public delete(grade: Grade): Observable<void> {
     return this.http.delete<void>(`${this.gradesUrl}/${grade.id}`)
   }
-
-  public deleteAll(): Observable<void> {
-    return this.http.delete<void>(`${this.gradesUrl}`)
-  }
 }
