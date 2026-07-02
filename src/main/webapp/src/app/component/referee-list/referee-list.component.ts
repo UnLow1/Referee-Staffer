@@ -1,10 +1,12 @@
 import {Component, OnInit, computed, inject, signal} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Referee} from '../../model/referee';
+import {ModalData} from '../../model/modalData';
 import {RefereeService} from '../../service/referee.service';
 import {IconComponent} from '../common/icon/icon.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
 import {MeterComponent} from '../common/meter/meter.component';
+import {ConfirmDialogComponent} from '../common/confirm-dialog/confirm-dialog.component';
 import {RefereeFormComponent} from '../referee-form/referee-form.component';
 
 /**
@@ -18,7 +20,7 @@ import {RefereeFormComponent} from '../referee-form/referee-form.component';
   selector: 'app-referee-list',
   templateUrl: './referee-list.component.html',
   styleUrl: './referee-list.component.scss',
-  imports: [IconComponent, RefAvatarComponent, MeterComponent, RefereeFormComponent]
+  imports: [IconComponent, RefAvatarComponent, MeterComponent, ConfirmDialogComponent, RefereeFormComponent]
 })
 export class RefereeListComponent implements OnInit {
   private readonly router = inject(Router);
@@ -31,6 +33,21 @@ export class RefereeListComponent implements OnInit {
   /** Add/edit drawer state — the list owns it (repo forms convention, see CLAUDE.md). */
   readonly formOpen = signal(false);
   readonly editingReferee = signal<Referee | null>(null);
+  readonly deleteTarget = signal<Referee | null>(null);
+
+  readonly deleteGuard = computed<ModalData>(() => ({
+    header: 'Delete referee?',
+    message: `This will permanently remove ${this.deleteTargetLabel()}. This action cannot be undone.`,
+    confirmLabel: 'Delete',
+    tone: 'danger',
+    icon: 'trash'
+  }));
+
+  readonly deleteTargetLabel = computed(() => {
+    const referee = this.deleteTarget();
+    if (!referee) return 'this referee';
+    return `${referee.firstName ?? ''} ${referee.lastName ?? ''}`.trim() || 'this referee';
+  });
 
   readonly visibleReferees = computed(() => {
     const term = this.searchTerm().trim().toLowerCase();
@@ -109,10 +126,17 @@ export class RefereeListComponent implements OnInit {
     this.closeForm();
   }
 
-  deleteReferee(referee: Referee, event: Event): void {
+  askDelete(referee: Referee, event: Event): void {
     event.stopPropagation();
+    this.deleteTarget.set(referee);
+  }
+
+  confirmDelete(): void {
+    const referee = this.deleteTarget();
+    if (!referee) return;
     this.refereeService.delete(referee.id).subscribe(() => {
       this.referees.update(prev => prev.filter(r => r.id !== referee.id));
+      this.deleteTarget.set(null);
     });
   }
 

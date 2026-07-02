@@ -5,6 +5,7 @@ import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {Grade} from '../../model/grade';
+import {ModalData} from '../../model/modalData';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
@@ -13,6 +14,7 @@ import {IconComponent} from '../common/icon/icon.component';
 import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
 import {MeterComponent} from '../common/meter/meter.component';
+import {ConfirmDialogComponent} from '../common/confirm-dialog/confirm-dialog.component';
 import {MatchFormComponent} from '../match-form/match-form.component';
 
 /**
@@ -26,7 +28,8 @@ import {MatchFormComponent} from '../match-form/match-form.component';
   templateUrl: './match-list.component.html',
   styleUrl: './match-list.component.scss',
   imports: [
-    IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent, MatchFormComponent
+    IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent, ConfirmDialogComponent,
+    MatchFormComponent
   ]
 })
 export class MatchListComponent implements OnInit {
@@ -48,6 +51,23 @@ export class MatchListComponent implements OnInit {
   /** Add/edit drawer state — the list owns it (repo forms convention, see CLAUDE.md). */
   readonly formOpen = signal(false);
   readonly editingMatch = signal<Match | null>(null);
+  readonly deleteTarget = signal<Match | null>(null);
+
+  readonly deleteGuard = computed<ModalData>(() => ({
+    header: 'Delete match?',
+    message: `This will permanently remove ${this.deleteTargetLabel()}. This action cannot be undone.`,
+    confirmLabel: 'Delete',
+    tone: 'danger',
+    icon: 'trash'
+  }));
+
+  readonly deleteTargetLabel = computed(() => {
+    const match = this.deleteTarget();
+    if (!match) return 'this match';
+    const home = this.getTeam(match.homeTeamId)?.name ?? '?';
+    const away = this.getTeam(match.awayTeamId)?.name ?? '?';
+    return `${home} – ${away}`;
+  });
 
   /** All queues that have at least one match, sorted desc so the latest is first. */
   readonly availableQueues = computed(() => {
@@ -150,10 +170,17 @@ export class MatchListComponent implements OnInit {
     this.closeForm();
   }
 
-  deleteMatch(match: Match, event: Event): void {
+  askDelete(match: Match, event: Event): void {
     event.stopPropagation();
+    this.deleteTarget.set(match);
+  }
+
+  confirmDelete(): void {
+    const match = this.deleteTarget();
+    if (!match) return;
     this.matchService.delete(match.id).subscribe(() => {
       this.matches.update(prev => prev.filter(m => m.id !== match.id));
+      this.deleteTarget.set(null);
     });
   }
 

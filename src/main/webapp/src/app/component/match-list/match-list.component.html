@@ -75,7 +75,7 @@
                 <app-icon name="edit" [size]="12"></app-icon>
               </button>
               <button type="button" class="btn btn--ghost btn--sm btn--danger"
-                      (click)="deleteMatch(match, $event)" title="Delete match">
+                      (click)="askDelete(match, $event)" title="Delete match">
                 <app-icon name="trash" [size]="12"></app-icon>
               </button>
             </div>
@@ -99,3 +99,8 @@
 @if (formOpen()) {
   <app-match-form [match]="editingMatch()" (saved)="onSaved()" (closed)="closeForm()"></app-match-form>
 }
+
+<app-confirm-dialog [open]="deleteTarget() !== null" [data]="deleteGuard()"
+                    (confirmed)="confirmDelete()" (cancelled)="deleteTarget.set(null)">
+  This will permanently remove <strong>{{ deleteTargetLabel() }}</strong>. This action cannot be undone.
+</app-confirm-dialog>
