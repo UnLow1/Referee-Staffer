@@ -474,6 +474,7 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
   animation: toastIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .toast .toast__ic { display: inline-flex; color: var(--accent); }
+.toast--error .toast__ic { color: var(--danger); }
 @keyframes toastIn { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
 // ——— Algorithm formula card ———
