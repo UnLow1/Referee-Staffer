@@ -45,10 +45,9 @@ public class RefereeDto {
     /** Number of past matches officiated where the away team won. See {@link #homeWins}. */
     private final Short awayWins;
 
-    public RefereeDto(Long id, String firstName, String lastName, String email, Integer experience) {
-        this(id, firstName, lastName, email, experience, null, null, null, null, null);
-    }
-
+    // Deliberately the only constructor — Jackson resolves @RequestBody JSON through it by
+    // parameter names. A second constructor makes creator resolution ambiguous and breaks
+    // deserialization of POST/PUT bodies.
     public RefereeDto(Long id, String firstName, String lastName, String email, Integer experience,
                       Double averageGrade, Short lastQueue, Double potential,
                       Short homeWins, Short awayWins) {

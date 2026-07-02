@@ -29,6 +29,7 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 - Spock specs live under `src/test/groovy/com/jamex/refereestaffer/` (controllers, services, model converters).
 - File naming convention: `*Spec.groovy` (not `*Test.java`).
 - Parallel execution is enabled via `SpockConfig.groovy`.
+- **Controller specs are `@WebMvcTest` slices** (MockMvc + `@SpringBean` mocks, JSON asserted with `JsonSlurper`). Two gotchas: (1) in Spring Boot 4 the slice annotation lives in the separate `spring-boot-webmvc-test` module (package `org.springframework.boot.webmvc.test.autoconfigure`) — it is no longer part of `spring-boot-starter-test`; (2) every such spec is annotated `@Execution(ExecutionMode.SAME_THREAD)` because `@SpringBean` mocks live in the shared Spring context and Spock's parallel mode would otherwise run features of one spec concurrently against the same mock instances (symptom: stubs randomly return null). `groovy-json` is a test dependency for `JsonSlurper`.
 - JaCoCo generates coverage reports to `target/site/jacoco/`. CI uploads `jacoco.xml` to Codecov (badge in README, PR comments). The full HTML report is also archived as a CI artifact. The Codecov upload uses `CODECOV_TOKEN` (GitHub repository secret) — public repo so tokenless mode also works, but the token avoids Codecov's tokenless rate-limiting/rejection. Rotate via Codecov repo settings → Reset Repository Upload Token, then update the GH Secret.
 
 ## Spring profiles and database

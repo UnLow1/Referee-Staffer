@@ -4,122 +4,148 @@ import com.jamex.refereestaffer.model.converter.GradeConverter
 import com.jamex.refereestaffer.model.dto.GradeDto
 import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.exception.GradeNotFoundException
-import com.jamex.refereestaffer.model.request.IDRequest
 import com.jamex.refereestaffer.repository.GradeRepository
 import com.jamex.refereestaffer.service.GradeService
+import groovy.json.JsonSlurper
+import org.spockframework.runtime.model.parallel.ExecutionMode
+import org.spockframework.spring.SpringBean
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.http.MediaType
+import org.springframework.test.web.servlet.MockMvc
+import spock.lang.Execution
 import spock.lang.Specification
-import spock.lang.Subject
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+
+// Features must run on one thread: the @SpringBean mocks live in the shared Spring
+// context, so concurrent features would attach/stub the same mock instances at once.
+@Execution(ExecutionMode.SAME_THREAD)
+@WebMvcTest(GradeController)
 class GradeControllerSpec extends Specification {
 
-    @Subject
-    GradeController gradeController
+    @Autowired
+    MockMvc mockMvc
 
+    @SpringBean
     GradeRepository gradeRepository = Mock()
-    GradeConverter gradeConverter = Mock()
-    GradeService gradeService = Mock()
 
-    def setup() {
-        gradeController = new GradeController(gradeRepository, gradeConverter, gradeService)
-    }
+    @SpringBean
+    GradeConverter gradeConverter = Mock()
+
+    @SpringBean
+    GradeService gradeService = Mock()
 
     def "should return grades"() {
         given:
         def grades = [[] as Grade, [] as Grade]
-        def gradesDtos = [GradeDto.builder().build(), GradeDto.builder().build()]
+        def gradesDtos = [GradeDto.builder().id(1l).value(8.5d).build(),
+                          GradeDto.builder().id(2l).value(7.9d).build()]
 
         when:
-        def result = gradeController.getGrades()
+        def response = mockMvc.perform(get("/api/grades")).andReturn().response
 
         then:
         1 * gradeRepository.findAll() >> grades
         1 * gradeConverter.convertFromEntities(grades) >> gradesDtos
-        result == gradesDtos
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json*.value == [8.5, 7.9]
     }
 
-    def "should throw GradeNotFoundException when grade not found"() {
+    def "should return grade as JSON"() {
         given:
-        int gradeId = 12321l
-
-        when:
-        gradeController.getGrade(gradeId)
-
-        then:
-        def exception = thrown(GradeNotFoundException)
-        exception.message == String.format(GradeNotFoundException.NOT_FOUND, gradeId)
-        1 * gradeRepository.findById(gradeId) >> Optional.empty()
-    }
-
-    def "should return grade"() {
-        given:
-        int gradeId = 12321l
+        def gradeId = 77l
         def grade = [] as Grade
-        def gradeDto = GradeDto.builder().build()
+        def gradeDto = GradeDto.builder().id(gradeId).value(8.5d).build()
 
         when:
-        def result = gradeController.getGrade(gradeId)
+        def response = mockMvc.perform(get("/api/grades/$gradeId")).andReturn().response
 
         then:
         1 * gradeRepository.findById(gradeId) >> Optional.of(grade)
         1 * gradeConverter.convertFromEntity(grade) >> gradeDto
-        result == gradeDto
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.id == gradeId
+        json.value == 8.5
     }
 
-    def "should add grade"() {
+    def "should respond 404 with problem detail when grade has not been found"() {
         given:
-        def gradeDto = GradeDto.builder().build()
-        def matchId = 4123213l
+        def gradeId = 77l
 
         when:
-        gradeController.createGrade(gradeDto, matchId)
+        def response = mockMvc.perform(get("/api/grades/$gradeId")).andReturn().response
 
         then:
-        1 * gradeService.addGrade(gradeDto, matchId)
+        1 * gradeRepository.findById(gradeId) >> Optional.empty()
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(GradeNotFoundException.NOT_FOUND, gradeId)
+    }
+
+    def "should add grade for match"() {
+        when:
+        def response = mockMvc.perform(post("/api/grades/2396")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"value": 8.5}'))
+                .andReturn().response
+
+        then:
+        1 * gradeService.addGrade({ GradeDto dto -> dto.value == 8.5d }, 2396l)
+        response.status == 200
     }
 
     def "should update grade"() {
-        given:
-        def gradeDto = GradeDto.builder().build()
-
         when:
-        gradeController.updateGrade(gradeDto)
+        def response = mockMvc.perform(put("/api/grades")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 77, "value": 9.0}'))
+                .andReturn().response
 
         then:
-        1 * gradeService.updateGrade(gradeDto)
+        1 * gradeService.updateGrade({ GradeDto dto -> dto.id == 77l && dto.value == 9.0d })
+        response.status == 200
     }
 
-    def "should return grades by IDs"() {
+    def "should return grades by ids"() {
         given:
-        def idsList = [123l, 555l]
-        def request = [getIds: { idsList }] as IDRequest
-        def grades = [[] as Grade, [] as Grade]
-        def gradesDtos = [GradeDto.builder().build(), GradeDto.builder().build()]
+        def grades = [[] as Grade]
+        def gradesDtos = [GradeDto.builder().id(3l).build()]
 
         when:
-        def result = gradeController.getGradesByIds(request)
+        def response = mockMvc.perform(post("/api/grades/byIds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"ids": [3]}'))
+                .andReturn().response
 
         then:
-        1 * gradeRepository.findAllById(idsList) >> grades
+        1 * gradeRepository.findAllById([3l]) >> grades
         1 * gradeConverter.convertFromEntities(grades) >> gradesDtos
-        result == gradesDtos
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json*.id == [3]
     }
 
     def "should delete all grades"() {
         when:
-        gradeController.deleteAll()
+        def response = mockMvc.perform(delete("/api/grades")).andReturn().response
 
         then:
         1 * gradeRepository.deleteAll()
+        response.status == 200
     }
 
     def "should delete grade with provided id"() {
-        given:
-        def gradeId = 12321l
-
         when:
-        gradeController.deleteGrade(gradeId)
+        def response = mockMvc.perform(delete("/api/grades/77")).andReturn().response
 
         then:
-        1 * gradeRepository.deleteById(gradeId)
+        1 * gradeRepository.deleteById(77l)
+        response.status == 200
     }
 }

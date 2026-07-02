@@ -1,61 +1,67 @@
 package com.jamex.refereestaffer.controller
 
 import com.jamex.refereestaffer.model.dto.MatchDto
+import com.jamex.refereestaffer.model.exception.StafferException
 import com.jamex.refereestaffer.service.StafferService
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import groovy.json.JsonSlurper
+import org.spockframework.runtime.model.parallel.ExecutionMode
+import org.spockframework.spring.SpringBean
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.test.web.servlet.MockMvc
+import spock.lang.Execution
 import spock.lang.Specification
-import spock.lang.Subject
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 
+// Features must run on one thread: the @SpringBean mocks live in the shared Spring
+// context, so concurrent features would attach/stub the same mock instances at once.
+@Execution(ExecutionMode.SAME_THREAD)
+@WebMvcTest(StafferController)
 class StafferControllerSpec extends Specification {
 
-    @Subject
-    StafferController stafferController
+    @Autowired
+    MockMvc mockMvc
 
+    @SpringBean
     StafferService stafferService = Mock()
-
-    def setup() {
-        stafferController = new StafferController(stafferService)
-    }
 
     def "should staff referees to matches in provided queue"() {
         given:
-        short queue = 12
-        def matchesInQueue = [MatchDto.builder().build(), MatchDto.builder().build()]
+        def matchesInQueue = [MatchDto.builder().id(1l).refereeId(4l).build(),
+                              MatchDto.builder().id(2l).refereeId(7l).build()]
 
         when:
-        def result = stafferController.staffReferees(queue)
+        def response = mockMvc.perform(post("/api/staffer/12")).andReturn().response
 
         then:
-        1 * stafferService.staffReferees(queue) >> matchesInQueue
-        result == matchesInQueue
+        1 * stafferService.staffReferees(12 as short) >> matchesInQueue
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json*.id == [1, 2]
+        json*.refereeId == [4, 7]
     }
 
     // Staffing persists referee assignments, so the endpoint must not be reachable via a
     // safe method — a GET-triggering crawler or browser prefetch would mutate the DB.
-    def "should expose staffing as POST"() {
-        given:
-        def mockMvc = MockMvcBuilders.standaloneSetup(stafferController).build()
-
-        when:
-        def response = mockMvc.perform(post("/api/staffer/7")).andReturn().response
-
-        then:
-        1 * stafferService.staffReferees(7 as short) >> []
-        response.status == 200
-    }
-
     def "should reject GET with method not allowed"() {
-        given:
-        def mockMvc = MockMvcBuilders.standaloneSetup(stafferController).build()
-
         when:
         def response = mockMvc.perform(get("/api/staffer/7")).andReturn().response
 
         then:
         0 * stafferService.staffReferees(_)
         response.status == 405
+    }
+
+    def "should respond 409 with problem detail when there are not enough referees"() {
+        when:
+        def response = mockMvc.perform(post("/api/staffer/7")).andReturn().response
+
+        then:
+        1 * stafferService.staffReferees(7 as short) >> { throw new StafferException() }
+        response.status == 409
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == new StafferException().message
     }
 }
