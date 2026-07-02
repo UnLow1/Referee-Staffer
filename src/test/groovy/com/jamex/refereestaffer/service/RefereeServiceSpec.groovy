@@ -47,7 +47,7 @@ class RefereeServiceSpec extends Specification {
         refereeService.calculateStats([referee])
 
         then:
-        1 * matchRepository.findAllByReferee(referee) >> []
+        1 * matchRepository.findAllByRefereeIn([referee]) >> []
         referee.averageGrade == RefereeService.DEFAULT_GRADE
         referee.numberOfMatchesInRound == (short) 0
     }
@@ -61,15 +61,15 @@ class RefereeServiceSpec extends Specification {
         def team1 = Team.builder().name("team1").build()
         def team2 = Team.builder().name("team2").build()
         def matchesWithoutGrades = [
-                Match.builder().home(team1).away(team2).grade(null).build(),
-                Match.builder().home(team2).away(team1).grade(null).build()
+                Match.builder().home(team1).away(team2).grade(null).referee(referee).build(),
+                Match.builder().home(team2).away(team1).grade(null).referee(referee).build()
         ]
 
         when:
         refereeService.calculateStats([referee])
 
         then:
-        1 * matchRepository.findAllByReferee(referee) >> matchesWithoutGrades
+        1 * matchRepository.findAllByRefereeIn([referee]) >> matchesWithoutGrades
         referee.averageGrade == RefereeService.DEFAULT_GRADE
         referee.numberOfMatchesInRound == (short) 2
     }
@@ -88,14 +88,14 @@ class RefereeServiceSpec extends Specification {
         def team3 = Team.builder()
                 .name("team3")
                 .build()
-        def refereesMatches = createMatches(team1, team2, team3, grade1, grade2)
+        def referee = referees.get(0)
+        def refereesMatches = createMatches(referee, team1, team2, team3, grade1, grade2)
 
         when:
         refereeService.calculateStats(referees)
 
         then:
-        3 * matchRepository.findAllByReferee(_) >> refereesMatches
-        def referee = referees.get(0)
+        1 * matchRepository.findAllByRefereeIn(referees) >> refereesMatches
         referee.averageGrade == (double) (grade1 + grade2) / 2
         referee.numberOfMatchesInRound == (short) refereesMatches.size()
         def teamRefereedMap = referee.teamsRefereed
@@ -103,6 +103,10 @@ class RefereeServiceSpec extends Specification {
         teamRefereedMap.get(team1) == 2
         teamRefereedMap.get(team2) == 1
         teamRefereedMap.get(team3) == 1
+
+        and: "referees without matches in the result get the defaults"
+        referees.get(1).averageGrade == RefereeService.DEFAULT_GRADE
+        referees.get(1).numberOfMatchesInRound == (short) 0
     }
 
     static List<Referee> createReferees() {
@@ -122,13 +126,14 @@ class RefereeServiceSpec extends Specification {
         return [ref1, ref2, refSC]
     }
 
-    static List<Match> createMatches(Team team1, Team team2, Team team3, double grade1, double grade2) {
+    static List<Match> createMatches(Referee referee, Team team1, Team team2, Team team3, double grade1, double grade2) {
         def match1 = Match.builder()
                 .home(team1)
                 .away(team2)
                 .grade(Grade.builder()
                         .value(grade1)
                         .build())
+                .referee(referee)
                 .build()
         def match2 = Match.builder()
                 .home(team1)
@@ -136,6 +141,7 @@ class RefereeServiceSpec extends Specification {
                 .grade(Grade.builder()
                         .value(grade2)
                         .build())
+                .referee(referee)
                 .build()
 
         return [match1, match2]

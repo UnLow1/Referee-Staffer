@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class RefereeService {
@@ -49,8 +50,17 @@ public class RefereeService {
     }
 
     public void calculateStats(List<Referee> referees) {
+        if (referees.isEmpty()) {
+            return;
+        }
+        // One bulk query instead of a findAllByReferee per referee (N+1 — this runs on every
+        // referee list/profile GET, not just staffing). Grouping by the entity works because
+        // Hibernate returns the same managed Referee instances that went into the IN clause.
+        var matchesByReferee = matchRepository.findAllByRefereeIn(referees).stream()
+                .collect(Collectors.groupingBy(Match::getReferee));
+
         for (var referee : referees) {
-            var matchesForReferee = matchRepository.findAllByReferee(referee);
+            var matchesForReferee = matchesByReferee.getOrDefault(referee, List.of());
 
             var averageGrade = countAverageGrade(matchesForReferee);
             var teamsRefereedMap = createTeamsRefereedMap(matchesForReferee);
