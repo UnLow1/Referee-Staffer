@@ -2,7 +2,6 @@ package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.MatchDto;
-import com.jamex.refereestaffer.model.entity.Config;
 import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
@@ -51,16 +50,11 @@ public class StafferService {
         var sortedMatchesInQueue = matchService.getMatchesToAssignInQueue(queue);
         // Load all config values up front instead of hitting the DB per (referee × match) — see
         // countRefereePotentialLvl. With ~15 referees × ~8 matches that's 600 → 1 query.
-        var config = loadConfig();
+        var config = configurationRepository.findAllAsMap();
 
         assignRefereesToMatches(referees, sortedMatchesInQueue, config);
 
         return matchConverter.convertFromEntities(sortedMatchesInQueue);
-    }
-
-    private Map<ConfigName, Double> loadConfig() {
-        return configurationRepository.findAll().stream()
-                .collect(Collectors.toMap(Config::getName, Config::getValue));
     }
 
     private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config) {

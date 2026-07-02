@@ -62,12 +62,12 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [ref1, ref2]
         1 * matchService.getMatchesToAssignInQueue(queue) >> matches
         1 * matchConverter.convertFromEntities(matches) >> matchesDtos
-        1 * configurationRepository.findAll() >> [
-                new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, gradeMultiplier as Double),
-                new Config(ConfigName.EXPERIENCE_MULTIPLIER, expMultiplier as Double),
-                new Config(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER, noOfMatchesMultiplier as Double),
-                new Config(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER, homeTeamMultiplier as Double),
-                new Config(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER, awayTeamMultiplier as Double)
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : gradeMultiplier as Double,
+                (ConfigName.EXPERIENCE_MULTIPLIER)     : expMultiplier as Double,
+                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER): noOfMatchesMultiplier as Double,
+                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): homeTeamMultiplier as Double,
+                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): awayTeamMultiplier as Double
         ]
 
         where:
@@ -113,12 +113,12 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.calculateStats(referees)
         1 * matchService.getMatchesToAssignInQueue(_) >> matches
         1 * matchConverter.convertFromEntities(matches)
-        1 * configurationRepository.findAll() >> [
-                new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, 1.0d),
-                new Config(ConfigName.EXPERIENCE_MULTIPLIER, 1.0d),
-                new Config(ConfigName.NUMBER_OF_MATCHES_MULTIPLIER, 1.0d),
-                new Config(ConfigName.HOME_TEAM_REFEREED_MULTIPLIER, 1.0d),
-                new Config(ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER, 1.0d)
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : 1.0d,
+                (ConfigName.EXPERIENCE_MULTIPLIER)     : 1.0d,
+                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER): 1.0d,
+                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): 1.0d,
+                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): 1.0d
         ]
     }
 
@@ -138,7 +138,7 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.getAvailableRefereesForQueue(queue) >> []
         1 * refereeService.calculateStats([])
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
-        1 * configurationRepository.findAll() >> []
+        1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
         0 * matchConverter.convertFromEntities(_)
         thrown(StafferException)
@@ -168,7 +168,7 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [referee]
         1 * refereeService.calculateStats([referee])
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
-        1 * configurationRepository.findAll() >> []
+        1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> [vacation]
         0 * matchConverter.convertFromEntities(_)
         thrown(StafferException)

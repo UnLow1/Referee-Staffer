@@ -92,23 +92,24 @@ class MatchServiceSpec extends Specification {
         def homeTeam = [points: homePoints, place: homePlace, city: "city1"] as Team
         def awayTeam = [points: awayPoints, place: awayPlace, city: "city2"] as Team
         def matches = [Match.builder().home(homeTeam).away(awayTeam).build()]
-        def matchHardnessLvlMultiplier = [value: 1.0] as Config
-        def matchHardnessIncrementer = [value: 100] as Config
+        def matchHardnessLvlMultiplier = 1.0d
+        def matchHardnessIncrementer = 100.0d
 
         when:
         def result = matchService.getMatchesToAssignInQueue(queue)
 
         then:
-        def expectedHardness = (matchHardnessIncrementer.value - Math.abs(awayTeam.points - homeTeam.points)) * matchHardnessLvlMultiplier.value
+        def expectedHardness = (matchHardnessIncrementer - Math.abs(awayTeam.points - homeTeam.points)) * matchHardnessLvlMultiplier
         result.get(0).hardnessLvl == expectedHardness
         1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
         1 * matchRepository.findAllByQueueAndRefereeIsNull(queue) >> matches
-        1 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) >> matchHardnessLvlMultiplier
-        1 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_INCREMENTER) >> matchHardnessIncrementer
-        0 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER)
-        0 * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER)
-        0 * configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS)
-        0 * teamRepository.count()
+        // Deliberately no edge/top/bottom keys in the map — the unranked guard must return
+        // before those values are ever read (a lookup would NPE and fail the test).
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) : matchHardnessLvlMultiplier,
+                (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): matchHardnessIncrementer
+        ]
+        1 * teamRepository.count() >> 3
 
         where:
         homePoints | homePlace | awayPoints | awayPlace
@@ -126,30 +127,31 @@ class MatchServiceSpec extends Specification {
                                .home(homeTeam)
                                .away(awayTeam)
                                .build()]
-        def matchHardnessLvlMultiplier = [value: 2.5] as Config
-        def matchHardnessIncrementer = [value: 100] as Config
-        def numberOfEdgeTeams = [value: edgeTeams] as Config
-        def matchHardnessDerbyIncrementer = [value: 15] as Config
-        def matchHardnessTopIncrementer = [value: 11] as Config
-        def matchHardnessBottomIncrementer = [value: 7] as Config
+        def matchHardnessLvlMultiplier = 2.5d
+        def matchHardnessIncrementer = 100.0d
+        def matchHardnessDerbyIncrementer = 15.0d
+        def matchHardnessTopIncrementer = 11.0d
+        def matchHardnessBottomIncrementer = 7.0d
 
         when:
         def result = matchService.getMatchesToAssignInQueue(queue)
 
         then:
-        def expectedHardnessLevel = (matchHardnessIncrementer.value - Math.abs(awayTeam.points - homeTeam.points)) * matchHardnessLvlMultiplier.value
-        if (isDerby) expectedHardnessLevel += matchHardnessDerbyIncrementer.value
-        if (isTopMatch) expectedHardnessLevel += matchHardnessTopIncrementer.value
-        else if (isBottomMatch) expectedHardnessLevel += matchHardnessBottomIncrementer.value
+        def expectedHardnessLevel = (matchHardnessIncrementer - Math.abs(awayTeam.points - homeTeam.points)) * matchHardnessLvlMultiplier
+        if (isDerby) expectedHardnessLevel += matchHardnessDerbyIncrementer
+        if (isTopMatch) expectedHardnessLevel += matchHardnessTopIncrementer
+        else if (isBottomMatch) expectedHardnessLevel += matchHardnessBottomIncrementer
         result.get(0).hardnessLvl == expectedHardnessLevel
         1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
         1 * matchRepository.findAllByQueueAndRefereeIsNull(queue) >> matches
-        matches.size() * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) >> matchHardnessLvlMultiplier
-        matches.size() * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_INCREMENTER) >> matchHardnessIncrementer
-        matches.size() * configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS) >> numberOfEdgeTeams
-        (0..matches.size()) * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER) >> matchHardnessDerbyIncrementer
-        (0..matches.size()) * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER) >> matchHardnessTopIncrementer
-        (0..matches.size()) * configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER) >> matchHardnessBottomIncrementer
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER)                : matchHardnessLvlMultiplier,
+                (ConfigName.DIFFICULTY_LEVEL_INCREMENTER)               : matchHardnessIncrementer,
+                (ConfigName.NUMBER_OF_EDGE_TEAMS)                       : edgeTeams as Double,
+                (ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER)     : matchHardnessDerbyIncrementer,
+                (ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER)  : matchHardnessTopIncrementer,
+                (ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER): matchHardnessBottomIncrementer
+        ]
         1 * teamRepository.count() >> 3
 
         where:

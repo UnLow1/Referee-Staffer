@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -77,7 +78,11 @@ public class MatchService {
 
         var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
 
-        matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(computeBreakdown(match).total()));
+        // Config values and the team count are constant for the whole request — load them
+        // once here instead of per match (used to be 4-5 findByName + count per iteration).
+        var config = configurationRepository.findAllAsMap();
+        var numberOfTeams = teamRepository.count();
+        matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(computeBreakdown(match, config, numberOfTeams).total()));
         return matchesToAssignInQueue.stream()
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .toList();
@@ -97,22 +102,22 @@ public class MatchService {
         var finishedMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         calculatePointsForTeams(finishedMatches);
 
-        return computeBreakdown(match);
+        return computeBreakdown(match, configurationRepository.findAllAsMap(), teamRepository.count());
     }
 
-    private DifficultyBreakdownDto computeBreakdown(Match match) {
-        var matchHardnessLvlMultiplier = configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER).getValue();
-        var matchHardnessIncrementer = configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_INCREMENTER).getValue();
+    private DifficultyBreakdownDto computeBreakdown(Match match, Map<ConfigName, Double> config, long numberOfTeams) {
+        var matchHardnessLvlMultiplier = config.get(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER);
+        var matchHardnessIncrementer = config.get(ConfigName.DIFFICULTY_LEVEL_INCREMENTER);
         var homeTeam = match.getHome();
         var awayTeam = match.getAway();
         var pointsDiff = Math.abs(homeTeam.getPoints() - awayTeam.getPoints());
 
         var base = (matchHardnessIncrementer - pointsDiff) * matchHardnessLvlMultiplier;
         var sameCity = isDerby(homeTeam, awayTeam)
-                ? configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER).getValue()
+                ? config.get(ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER)
                 : 0.0;
 
-        var topAndBottom = computeEdgeMatchParts(homeTeam, awayTeam);
+        var topAndBottom = computeEdgeMatchParts(homeTeam, awayTeam, config, numberOfTeams);
         var top = topAndBottom[0];
         var bottom = topAndBottom[1];
 
@@ -132,7 +137,7 @@ public class MatchService {
     }
 
     /** Returns [top, bottom] — at most one of them can be non-zero. */
-    private double[] computeEdgeMatchParts(Team homeTeam, Team awayTeam) {
+    private double[] computeEdgeMatchParts(Team homeTeam, Team awayTeam, Map<ConfigName, Double> config, long numberOfTeams) {
         // place is a @Transient field defaulting to 0 for any team that hasn't appeared in
         // a finished match yet (calculatePointsForTeams only ranks teams from the finished set).
         // Without this guard, place=0 satisfies `place <= numberOfTeamsOnEdge` (0 <= 3 by default),
@@ -140,15 +145,12 @@ public class MatchService {
         if (homeTeam.getPlace() == 0 || awayTeam.getPlace() == 0) {
             return new double[]{0.0, 0.0};
         }
-        var numberOfTeamsOnEdge = configurationRepository.findByName(ConfigName.NUMBER_OF_EDGE_TEAMS).getValue().longValue();
-        var numberOfTeams = teamRepository.count();
+        var numberOfTeamsOnEdge = config.get(ConfigName.NUMBER_OF_EDGE_TEAMS).longValue();
         if (homeTeam.getPlace() <= numberOfTeamsOnEdge && awayTeam.getPlace() <= numberOfTeamsOnEdge) {
-            var top = configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER).getValue();
-            return new double[]{top, 0.0};
+            return new double[]{config.get(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER), 0.0};
         }
         if (homeTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge && awayTeam.getPlace() > numberOfTeams - numberOfTeamsOnEdge) {
-            var bottom = configurationRepository.findByName(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER).getValue();
-            return new double[]{0.0, bottom};
+            return new double[]{0.0, config.get(ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER)};
         }
         return new double[]{0.0, 0.0};
     }
