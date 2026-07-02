@@ -39,20 +39,6 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    ignore:
-      # TypeScript 6 is blocked by @angular-devkit/build-angular@21 (peer <6.0).
-      # Remove this once the Angular 22 migration lands.
-      - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
-      # Node runtime is 24 — don't chase @types/node majors ahead of it.
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
-      # Angular majors are done deliberately via `ng update` (migrations/schematics),
-      # never by merging a version-bump PR.
-      - dependency-name: "@angular/*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@angular-devkit/*"
-        update-types: ["version-update:semver-major"]
     groups:
       angular:
         patterns:
