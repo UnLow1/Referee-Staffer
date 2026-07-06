@@ -4,10 +4,13 @@ import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.DifficultyBreakdownDto;
 import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.service.MatchService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -62,7 +65,7 @@ public class MatchController {
     }
 
     @PostMapping
-    public MatchDto createMatch(@RequestBody MatchDto matchDto) {
+    public MatchDto createMatch(@Valid @RequestBody MatchDto matchDto) {
         log.info("Adding new match");
         var match = matchConverter.convertFromDto(matchDto);
         var savedMatch = matchRepository.save(match);
@@ -71,7 +74,7 @@ public class MatchController {
 
     // TODO is this id needed?
     @PutMapping("/{id}")
-    public MatchDto updateMatch(@RequestBody MatchDto matchDto, @PathVariable Long id) {
+    public MatchDto updateMatch(@Validated(OnUpdate.class) @RequestBody MatchDto matchDto, @PathVariable Long id) {
         log.info("Updating match with id {}", matchDto.getId());
         var match = matchConverter.convertFromDto(matchDto);
         var updatedMatch = matchRepository.save(match);
@@ -79,7 +82,7 @@ public class MatchController {
     }
 
     @PutMapping
-    public void updateMatches(@RequestBody List<MatchDto> matchesDtos) {
+    public void updateMatches(@RequestBody List<@Valid MatchDto> matchesDtos) {
         var matchIds = matchesDtos.stream()
                 .map(MatchDto::getId)
                 .toList();

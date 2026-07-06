@@ -4,10 +4,13 @@ import com.jamex.refereestaffer.model.converter.GradeConverter;
 import com.jamex.refereestaffer.model.dto.GradeDto;
 import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.service.GradeService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,19 +53,19 @@ public class GradeController {
     }
 
     @PostMapping("/{matchId}")
-    public void createGrade(@RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
+    public void createGrade(@Valid @RequestBody GradeDto gradeDto, @PathVariable Long matchId) {
         log.info("Adding new grade for match with id {}", matchId);
         gradeService.addGrade(gradeDto, matchId);
     }
 
     @PutMapping
-    public void updateGrade(@RequestBody GradeDto gradeDto) {
+    public void updateGrade(@Validated(OnUpdate.class) @RequestBody GradeDto gradeDto) {
         log.info("Updating grade with id {}", gradeDto.getId());
         gradeService.updateGrade(gradeDto);
     }
 
     @PostMapping("/byIds")
-    public Collection<GradeDto> getGradesByIds(@RequestBody IDRequest request) {
+    public Collection<GradeDto> getGradesByIds(@Valid @RequestBody IDRequest request) {
         log.info("Getting grades with ids: {}", request.getIds());
         var grades = gradeRepository.findAllById(request.getIds());
         return gradeConverter.convertFromEntities(grades);

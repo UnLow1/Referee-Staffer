@@ -61,4 +61,18 @@ class ConfigurationControllerSpec extends Specification {
         json[0].name == "EXPERIENCE_MULTIPLIER"
         json[0].value == 0.5
     }
+
+    def "should reject configuration update when a value is missing"() {
+        when:
+        def response = mockMvc.perform(put("/api/configuration")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('[{"name": "EXPERIENCE_MULTIPLIER"}]'))
+                .andReturn().response
+
+        then:
+        0 * configurationRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "[0].value: must not be null"
+    }
 }

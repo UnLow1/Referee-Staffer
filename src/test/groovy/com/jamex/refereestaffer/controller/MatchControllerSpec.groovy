@@ -162,7 +162,7 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches/11")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 11, "queue": 2}'))
+                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
                 .andReturn().response
 
         then:
@@ -179,13 +179,58 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('[{"id": 1}, {"id": 2}]'))
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"id": 2, "queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
                 .andReturn().response
 
         then:
         1 * matchConverter.convertFromDtos({ List<MatchDto> dtos -> dtos*.id == [1l, 2l] }) >> matches
         1 * matchRepository.saveAll(matches)
         response.status == 200
+    }
+
+    def "should reject match creation when fixture fields are missing"() {
+        when:
+        def response = mockMvc.perform(post("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"queue": 2}'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "awayTeamId: must not be null; homeTeamId: must not be null"
+    }
+
+    def "should reject match update without id"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches/11")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "id: must not be null"
+    }
+
+    def "should reject bulk match update when an element is incomplete"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"id": 2}]'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "[1].awayTeamId: must not be null; [1].homeTeamId: must not be null; [1].queue: must not be null"
     }
 
     def "should delete all matches"() {
