@@ -1,4 +1,4 @@
-import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {IconComponent} from '../icon/icon.component';
 
 /**
@@ -33,6 +33,7 @@ import {IconComponent} from '../icon/icon.component';
       </aside>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .drawer__title {
       font-weight: 600;

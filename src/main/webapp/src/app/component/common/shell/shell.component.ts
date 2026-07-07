@@ -1,4 +1,4 @@
-import {Component, inject} from '@angular/core';
+import {Component, inject, ChangeDetectionStrategy} from '@angular/core';
 import {RouterLink, RouterLinkActive, RouterOutlet} from '@angular/router';
 import {UiSettingsService} from '../../../service/ui-settings.service';
 import {IconComponent, IconName} from '../icon/icon.component';
@@ -12,6 +12,7 @@ import {IconComponent, IconName} from '../icon/icon.component';
   selector: 'app-shell',
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, IconComponent]
 })
 export class ShellComponent {

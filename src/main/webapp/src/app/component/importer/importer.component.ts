@@ -1,4 +1,4 @@
-import {Component, inject, signal} from '@angular/core';
+import {Component, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {saveAs} from 'file-saver';
 import {ImporterService} from '../../service/importer.service';
@@ -17,6 +17,7 @@ import {IconComponent} from '../common/icon/icon.component';
   selector: 'app-importer',
   templateUrl: './importer.component.html',
   styleUrl: './importer.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, IconComponent]
 })
 export class ImporterComponent {

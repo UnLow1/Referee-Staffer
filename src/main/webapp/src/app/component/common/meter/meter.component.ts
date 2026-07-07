@@ -1,4 +1,4 @@
-import {Component, computed, input} from '@angular/core';
+import {Component, computed, input, ChangeDetectionStrategy} from '@angular/core';
 
 export type MeterKind = 'default' | 'warn' | 'danger';
 
@@ -9,6 +9,7 @@ export type MeterKind = 'default' | 'warn' | 'danger';
  */
 @Component({
   selector: 'app-meter',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="meter" [class.meter--warn]="kind() === 'warn'" [class.meter--danger]="kind() === 'danger'">
       <div class="meter__bar"><i [style.width.%]="pct()"></i></div>

@@ -54,7 +54,7 @@
             <td class="vs-cell muted mono">vs</td>
             <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
             <td class="num right col-difficulty">
-              @if (match.hardnessLvl !== null) {
+              @if (match.hardnessLvl != null) {
                 <app-meter [value]="match.hardnessLvl" [max]="150" [kind]="difficultyKind(match.hardnessLvl)"></app-meter>
               } @else {
                 <span class="muted">—</span>

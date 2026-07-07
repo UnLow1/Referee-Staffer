@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
@@ -27,6 +27,7 @@ import {MatchFormComponent} from '../match-form/match-form.component';
   selector: 'app-match-list',
   templateUrl: './match-list.component.html',
   styleUrl: './match-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent, ConfirmDialogComponent,
     MatchFormComponent

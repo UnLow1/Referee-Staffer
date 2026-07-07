@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Team} from '../../model/team';
@@ -23,6 +23,7 @@ import {TeamFormComponent} from '../team-form/team-form.component';
   selector: 'app-team-list',
   templateUrl: './team-list.component.html',
   styleUrls: ['./team-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [IconComponent, TeamPillComponent, ConfirmDialogComponent, TeamFormComponent]
 })
 export class TeamListComponent implements OnInit {

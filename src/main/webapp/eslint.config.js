@@ -31,6 +31,9 @@ module.exports = defineConfig([
           style: "kebab-case",
         },
       ],
+      // The v22 update migration pinned every component to ChangeDetectionStrategy.Eager
+      // (the pre-v22 default). Re-enable this rule when the app migrates to OnPush.
+      "@angular-eslint/prefer-on-push-component-change-detection": "off",
     },
   },
   {
@@ -39,6 +42,9 @@ module.exports = defineConfig([
       angular.configs.templateRecommended,
       angular.configs.templateAccessibility,
     ],
-    rules: {},
+    rules: {
+      // Allow `x != null` — the idiomatic guard for both null and undefined.
+      "@angular-eslint/template/eqeqeq": ["error", { allowNullOrUndefined: true }],
+    },
   }
 ]);

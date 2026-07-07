@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -25,6 +25,7 @@ import {IconComponent} from '../common/icon/icon.component';
 @Component({
   selector: 'app-match-form',
   templateUrl: './match-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, ExcludeValuePipe, FormDrawerComponent, IconComponent]
 })
 export class MatchFormComponent implements OnInit {
