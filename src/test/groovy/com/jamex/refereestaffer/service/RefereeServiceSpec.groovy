@@ -1,5 +1,7 @@
 package com.jamex.refereestaffer.service
 
+import com.jamex.refereestaffer.model.entity.Config
+import com.jamex.refereestaffer.model.entity.ConfigName
 import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.entity.Referee
@@ -107,6 +109,101 @@ class RefereeServiceSpec extends Specification {
         and: "referees without matches in the result get the defaults"
         referees.get(1).averageGrade == RefereeService.DEFAULT_GRADE
         referees.get(1).numberOfMatchesInRound == (short) 0
+    }
+
+    def "should count home and away wins skipping draws and unfinished matches"() {
+        given:
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .build()
+        def team1 = Team.builder().name("team1").build()
+        def team2 = Team.builder().name("team2").build()
+        def matches = [
+                // two home wins, one away win
+                Match.builder().home(team1).away(team2).homeScore((short) 2).awayScore((short) 0).referee(referee).build(),
+                Match.builder().home(team2).away(team1).homeScore((short) 3).awayScore((short) 1).referee(referee).build(),
+                Match.builder().home(team1).away(team2).homeScore((short) 0).awayScore((short) 1).referee(referee).build(),
+                // draw — counts for neither side
+                Match.builder().home(team2).away(team1).homeScore((short) 1).awayScore((short) 1).referee(referee).build(),
+                // unfinished matches — count for neither side
+                Match.builder().home(team1).away(team2).referee(referee).build(),
+                Match.builder().home(team2).away(team1).homeScore((short) 2).referee(referee).build()
+        ]
+
+        when:
+        refereeService.calculateStats([referee])
+
+        then:
+        1 * matchRepository.findAllByRefereeIn([referee]) >> matches
+        referee.homeWins == (short) 2
+        referee.awayWins == (short) 1
+    }
+
+    def "should set zero win counters for referee without matches"() {
+        given:
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .build()
+
+        when:
+        refereeService.calculateStats([referee])
+
+        then:
+        1 * matchRepository.findAllByRefereeIn([referee]) >> []
+        referee.homeWins == (short) 0
+        referee.awayWins == (short) 0
+    }
+
+    def "should enrich referees with potential computed from average grade and experience"() {
+        given:
+        def avgMultiplier = 6.0d
+        def expMultiplier = 0.5d
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .experience(10)
+                .build()
+        def team1 = Team.builder().name("team1").build()
+        def team2 = Team.builder().name("team2").build()
+        def grade1 = 8.0
+        def grade2 = 9.0
+        def matches = createMatches(referee, team1, team2, team2, grade1, grade2)
+
+        when:
+        refereeService.enrichWithStats([referee])
+
+        then:
+        1 * matchRepository.findAllByRefereeIn([referee]) >> matches
+        1 * configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER) >> new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, avgMultiplier)
+        1 * configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER) >> new Config(ConfigName.EXPERIENCE_MULTIPLIER, expMultiplier)
+
+        def expectedAverage = (grade1 + grade2) / 2
+        referee.averageGrade == expectedAverage
+        referee.potential == avgMultiplier * expectedAverage + expMultiplier * referee.experience
+    }
+
+    def "should compute potential from default grade when referee has no grades yet"() {
+        given:
+        def avgMultiplier = 6.0d
+        def expMultiplier = 0.5d
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .experience(4)
+                .build()
+
+        when:
+        refereeService.enrichWithStats([referee])
+
+        then:
+        1 * matchRepository.findAllByRefereeIn([referee]) >> []
+        1 * configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER) >> new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, avgMultiplier)
+        1 * configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER) >> new Config(ConfigName.EXPERIENCE_MULTIPLIER, expMultiplier)
+
+        referee.averageGrade == RefereeService.DEFAULT_GRADE
+        referee.potential == avgMultiplier * RefereeService.DEFAULT_GRADE + expMultiplier * referee.experience
     }
 
     static List<Referee> createReferees() {
