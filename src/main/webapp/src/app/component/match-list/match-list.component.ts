@@ -4,7 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
-import {Grade} from '../../model/grade';
+import {Grade, effectiveGradeValue} from '../../model/grade';
 import {ModalData} from '../../model/modalData';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
@@ -208,7 +208,7 @@ export class MatchListComponent implements OnInit {
 
   /** Grade values are 1..10 — scale to 0..100 for the Meter atom (max=100). */
   gradeAsMeter(grade: Grade | undefined): number {
-    return (grade?.value ?? 0) * 10;
+    return (grade ? effectiveGradeValue(grade) : 0) * 10;
   }
 }
 

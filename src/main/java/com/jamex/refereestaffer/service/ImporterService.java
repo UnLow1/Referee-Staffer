@@ -111,8 +111,7 @@ public class ImporterService {
             matchRepository.save(match);
 
             if (line.length == 8 && queue <= numberOfQueuesToImport) {
-                var value = Double.parseDouble(line[7]);
-                var grade = new Grade(match, value);
+                var grade = parseGrade(match, line[7]);
                 gradeRepository.save(grade);
             }
         }
@@ -120,6 +119,18 @@ public class ImporterService {
         var matches = matchRepository.findAll();
         log.info(CREATED + grades.size() + " grades");
         log.info(CREATED + matches.size() + " matches");
+    }
+
+    // The grade column holds either a plain grade ("8.3") or a split grade ("7.9/8.3") —
+    // an observer grade broken into two components; referee stats use their mean.
+    private Grade parseGrade(Match match, String rawGrade) {
+        var parts = rawGrade.split("/");
+        if (parts.length > 2) {
+            throw new NumberFormatException("Invalid grade format: " + rawGrade);
+        }
+        var value = Double.parseDouble(parts[0]);
+        var secondValue = parts.length == 2 ? Double.parseDouble(parts[1]) : null;
+        return new Grade(match, value, secondValue);
     }
 
     private void createReferees(List<String> lines) {

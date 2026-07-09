@@ -45,8 +45,11 @@
           <td class="num right">{{ row.match.queue }}</td>
           <td class="num right">
             <div class="grade-cell">
+              @if (isSplit(row.grade)) {
+                <span class="mono muted grade-cell__split">{{ row.grade.value.toFixed(1) }}/{{ row.grade.secondValue!.toFixed(1) }}</span>
+              }
               <app-meter [value]="gradeAsMeter(row.grade)" [max]="100" [kind]="gradeKind(row.grade)"></app-meter>
-              <span class="mono grade-cell__value">{{ row.grade.value.toFixed(1) }}</span>
+              <span class="mono grade-cell__value">{{ effectiveValue(row.grade).toFixed(1) }}</span>
             </div>
           </td>
           <td class="col-actions">

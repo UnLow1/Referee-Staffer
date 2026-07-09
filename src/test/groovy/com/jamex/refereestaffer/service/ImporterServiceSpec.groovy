@@ -1,5 +1,6 @@
 package com.jamex.refereestaffer.service
 
+import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.entity.Referee
 import com.jamex.refereestaffer.model.entity.Team
 import com.jamex.refereestaffer.model.exception.ImportException
@@ -73,6 +74,46 @@ class ImporterServiceSpec extends Specification {
         0 * refereeRepository.findByFirstNameAndLastName(_, _)
         0 * matchRepository.save(_)
         0 * gradeRepository.save(_)
+    }
+
+    def "should import split grade from CSV"() {
+        given:
+        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n1;Team1;Team2;01.01.2025 12:00;John Smith;1;0;7.9/8.3"
+        MultipartFile multipartFile = new MockMultipartFile("file", "split-grade.csv", "text/csv", csv.getBytes())
+
+        when:
+        importerService.importData(multipartFile, 30 as short)
+
+        then:
+        1 * teamRepository.saveAll(_)
+        1 * refereeRepository.saveAll(_)
+        2 * teamRepository.findByName(_) >> Optional.of(new Team())
+        1 * refereeRepository.findByFirstNameAndLastName("John", "Smith") >> Optional.of(new Referee())
+        1 * matchRepository.save(_)
+        1 * gradeRepository.save({ Grade grade ->
+            grade.value == 7.9d && grade.secondValue == 8.3d && grade.effectiveValue == (7.9d + 8.3d) / 2
+        })
+        2 * matchRepository.findAll() >> []
+        1 * refereeRepository.findAll() >> []
+        2 * gradeRepository.findAll() >> []
+        1 * teamRepository.findAll() >> []
+    }
+
+    def "should throw ImportException when grade has more than two components"() {
+        given:
+        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n1;Team1;Team2;01.01.2025 12:00;John Smith;1;0;7.9/8.3/8.5"
+        MultipartFile multipartFile = new MockMultipartFile("file", "bad-grade.csv", "text/csv", csv.getBytes())
+
+        when:
+        importerService.importData(multipartFile, 30 as short)
+
+        then:
+        1 * teamRepository.saveAll(_)
+        1 * refereeRepository.saveAll(_)
+        2 * teamRepository.findByName(_) >> Optional.of(new Team())
+        1 * refereeRepository.findByFirstNameAndLastName("John", "Smith") >> Optional.of(new Referee())
+        1 * matchRepository.save(_)
+        thrown(ImportException)
     }
 
     def "should throw ImportException when CSV row has missing columns"() {

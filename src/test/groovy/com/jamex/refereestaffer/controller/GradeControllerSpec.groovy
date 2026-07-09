@@ -74,6 +74,25 @@ class GradeControllerSpec extends Specification {
         json.value == 8.5
     }
 
+    def "should return split grade as JSON"() {
+        given:
+        def gradeId = 77l
+        def grade = [] as Grade
+        def gradeDto = GradeDto.builder().id(gradeId).value(7.9d).secondValue(8.3d).build()
+
+        when:
+        def response = mockMvc.perform(get("/api/grades/$gradeId")).andReturn().response
+
+        then:
+        1 * gradeRepository.findById(gradeId) >> Optional.of(grade)
+        1 * gradeConverter.convertFromEntity(grade) >> gradeDto
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.id == gradeId
+        json.value == 7.9
+        json.secondValue == 8.3
+    }
+
     def "should respond 404 with problem detail when grade has not been found"() {
         given:
         def gradeId = 77l
@@ -97,6 +116,18 @@ class GradeControllerSpec extends Specification {
 
         then:
         1 * gradeService.addGrade({ GradeDto dto -> dto.value == 8.5d }, 2396l)
+        response.status == 200
+    }
+
+    def "should add split grade for match"() {
+        when:
+        def response = mockMvc.perform(post("/api/grades/2396")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"value": 7.9, "secondValue": 8.3}'))
+                .andReturn().response
+
+        then:
+        1 * gradeService.addGrade({ GradeDto dto -> dto.value == 7.9d && dto.secondValue == 8.3d }, 2396l)
         response.status == 200
     }
 

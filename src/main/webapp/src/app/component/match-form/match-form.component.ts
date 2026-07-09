@@ -84,6 +84,17 @@ export class MatchFormComponent implements OnInit {
       });
   }
 
+  /** Gates the second grade input — a split grade needs its first component first. */
+  get gradeValueMissing(): boolean {
+    return this.grade.value == null;
+  }
+
+  onGradeValueChange(value: number | null): void {
+    // A split grade can't consist of the second component alone — clearing the first
+    // part drops the second one too (the input is disabled in that state anyway).
+    if (value == null) this.grade.secondValue = undefined;
+  }
+
   private isGradeRemoved() {
     return this.grade.id;
   }

@@ -141,6 +141,20 @@ describe('MatchFormComponent', () => {
       expect(emitted).toEqual([saved]);
     });
 
+    it('saves a split grade with both components', () => {
+      const component = createComponent(null).componentInstance;
+      const saved = makeMatch({id: 42});
+      matchService.save.and.returnValue(of(saved));
+      gradeService.save.and.returnValue(of({id: 6, value: 7.9, secondValue: 8.3}));
+
+      component.grade.value = 7.9;
+      component.grade.secondValue = 8.3;
+      component.onSubmit(validForm);
+
+      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade);
+      expect(component.grade.secondValue).toBe(8.3);
+    });
+
     it('saves an entered grade against the newly created match before emitting', () => {
       const component = createComponent(null).componentInstance;
       const saved = makeMatch({id: 42});
@@ -242,6 +256,28 @@ describe('MatchFormComponent', () => {
 
       expect(matchService.update).not.toHaveBeenCalled();
       expect(emitted).toEqual([]);
+    });
+  });
+
+  describe('split grade input', () => {
+    it('drops the second component when the first one is cleared', () => {
+      const component = createComponent(null).componentInstance;
+      component.grade.value = 7.9;
+      component.grade.secondValue = 8.3;
+
+      component.onGradeValueChange(null);
+
+      expect(component.grade.secondValue).toBeUndefined();
+    });
+
+    it('keeps the second component while the first one has a value', () => {
+      const component = createComponent(null).componentInstance;
+      component.grade.value = 7.9;
+      component.grade.secondValue = 8.3;
+
+      component.onGradeValueChange(8.0);
+
+      expect(component.grade.secondValue).toBe(8.3);
     });
   });
 });

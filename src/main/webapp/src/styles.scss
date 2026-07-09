@@ -405,6 +405,10 @@ label.field .req { color: var(--danger); margin-left: 2px; }
   box-shadow: 0 0 0 3px var(--danger-tint);
 }
 textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height: 1.5; resize: vertical; }
+/* Two-part input for split grades, entered as "first / second" (match form). */
+.grade-split { display: flex; align-items: center; gap: 6px; }
+.grade-split .input { min-width: 0; }
+.grade-split__sep { color: var(--ink-3); }
 
 .form-section-label {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;

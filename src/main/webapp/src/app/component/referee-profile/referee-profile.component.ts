@@ -4,7 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
-import {Grade} from '../../model/grade';
+import {Grade, effectiveGradeValue} from '../../model/grade';
 import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
@@ -88,8 +88,9 @@ export class RefereeProfileComponent implements OnInit {
     const fromServer = this.referee()?.averageGrade;
     if (typeof fromServer === 'number') return fromServer;
     const grades = this.matches()
-      .map(m => m.gradeId != null ? this.gradesById().get(m.gradeId)?.value : undefined)
-      .filter((v): v is number => typeof v === 'number');
+      .map(m => m.gradeId != null ? this.gradesById().get(m.gradeId) : undefined)
+      .filter((g): g is Grade => g != null)
+      .map(effectiveGradeValue);
     if (grades.length === 0) return null;
     return grades.reduce((s, g) => s + g, 0) / grades.length;
   });
@@ -177,7 +178,11 @@ export class RefereeProfileComponent implements OnInit {
   }
 
   gradeAsMeter(grade: Grade | undefined): number {
-    return (grade?.value ?? 0) * 10;
+    return (grade ? effectiveGradeValue(grade) : 0) * 10;
+  }
+
+  displayGrade(grade: Grade): string {
+    return effectiveGradeValue(grade).toFixed(1);
   }
 
   formatGrade(value: number | null): string {

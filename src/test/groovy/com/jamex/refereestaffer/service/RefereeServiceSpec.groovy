@@ -111,6 +111,40 @@ class RefereeServiceSpec extends Specification {
         referees.get(1).numberOfMatchesInRound == (short) 0
     }
 
+    def "should average split grades using their arithmetic mean"() {
+        given:
+        def referee = Referee.builder()
+                .firstName("John")
+                .lastName("Smith")
+                .build()
+        def team1 = Team.builder().name("team1").build()
+        def team2 = Team.builder().name("team2").build()
+        def splitGradeMatch = Match.builder()
+                .home(team1)
+                .away(team2)
+                .grade(Grade.builder()
+                        .value(7.9d)
+                        .secondValue(8.3d)
+                        .build())
+                .referee(referee)
+                .build()
+        def plainGradeMatch = Match.builder()
+                .home(team2)
+                .away(team1)
+                .grade(Grade.builder()
+                        .value(8.5d)
+                        .build())
+                .referee(referee)
+                .build()
+
+        when:
+        refereeService.calculateStats([referee])
+
+        then:
+        1 * matchRepository.findAllByRefereeIn([referee]) >> [splitGradeMatch, plainGradeMatch]
+        referee.averageGrade == ((7.9d + 8.3d) / 2 + 8.5d) / 2
+    }
+
     def "should count home and away wins skipping draws and unfinished matches"() {
         given:
         def referee = Referee.builder()

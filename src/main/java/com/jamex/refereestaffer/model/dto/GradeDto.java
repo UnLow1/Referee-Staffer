@@ -10,9 +10,13 @@ public class GradeDto {
     @NotNull
     private final Double value;
 
-    public GradeDto(Long id, Double value) {
+    // Second component of a split grade (e.g. 7.9/8.3); null for a plain grade.
+    private final Double secondValue;
+
+    public GradeDto(Long id, Double value, Double secondValue) {
         this.id = id;
         this.value = value;
+        this.secondValue = secondValue;
     }
 
     public Long getId() {
@@ -23,6 +27,10 @@ public class GradeDto {
         return value;
     }
 
+    public Double getSecondValue() {
+        return secondValue;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -30,6 +38,7 @@ public class GradeDto {
     public static class Builder {
         private Long id;
         private Double value;
+        private Double secondValue;
 
         public Builder id(Long id) {
             this.id = id;
@@ -41,8 +50,13 @@ public class GradeDto {
             return this;
         }
 
+        public Builder secondValue(Double secondValue) {
+            this.secondValue = secondValue;
+            return this;
+        }
+
         public GradeDto build() {
-            return new GradeDto(id, value);
+            return new GradeDto(id, value, secondValue);
         }
     }
 }
