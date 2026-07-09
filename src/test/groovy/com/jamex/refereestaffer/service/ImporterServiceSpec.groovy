@@ -99,9 +99,9 @@ class ImporterServiceSpec extends Specification {
         1 * teamRepository.findAll() >> []
     }
 
-    def "should throw ImportException when grade has more than two components"() {
+    def "should throw ImportException when grade is malformed"() {
         given:
-        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n1;Team1;Team2;01.01.2025 12:00;John Smith;1;0;7.9/8.3/8.5"
+        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n1;Team1;Team2;01.01.2025 12:00;John Smith;1;0;$rawGrade"
         MultipartFile multipartFile = new MockMultipartFile("file", "bad-grade.csv", "text/csv", csv.getBytes())
 
         when:
@@ -114,6 +114,9 @@ class ImporterServiceSpec extends Specification {
         1 * refereeRepository.findByFirstNameAndLastName("John", "Smith") >> Optional.of(new Referee())
         1 * matchRepository.save(_)
         thrown(ImportException)
+
+        where:
+        rawGrade << ["7.9/8.3/8.5", "8.3/", "/8.3"]
     }
 
     def "should throw ImportException when CSV row has missing columns"() {

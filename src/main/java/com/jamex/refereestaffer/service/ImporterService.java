@@ -124,7 +124,9 @@ public class ImporterService {
     // The grade column holds either a plain grade ("8.3") or a split grade ("7.9/8.3") —
     // an observer grade broken into two components; referee stats use their mean.
     private Grade parseGrade(Match match, String rawGrade) {
-        var parts = rawGrade.split("/");
+        // limit -1 keeps trailing empty strings, so a malformed "8.3/" fails
+        // on Double.parseDouble("") instead of silently passing as a plain grade
+        var parts = rawGrade.split("/", -1);
         if (parts.length > 2) {
             throw new NumberFormatException("Invalid grade format: " + rawGrade);
         }
