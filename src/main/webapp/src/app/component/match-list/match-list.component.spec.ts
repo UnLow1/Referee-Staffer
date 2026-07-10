@@ -204,6 +204,68 @@ describe('MatchListComponent', () => {
     expect(component.filtersOpen()).toBeFalse();
   });
 
+  describe('pagination', () => {
+    // 60 matches across two queues (30 each) — enough for three 25-item pages on "All queues".
+    const manyMatches: Match[] = Array.from({length: 60}, (_, i) =>
+      makeMatch(1000 + i, {queue: i < 30 ? 1 : 2}));
+
+    beforeEach(() => {
+      matchService.findAll.and.returnValue(of(manyMatches));
+    });
+
+    it('slices the visible list to the current page', async () => {
+      const component = (await create()).componentInstance;
+      component.selectQueue(null);
+
+      expect(component.visibleMatches().length).toBe(60);
+      expect(component.pagedMatches().length).toBe(25);
+      expect(component.pagedMatches()[0].id).toBe(1000);
+
+      component.setPage(3);
+      expect(component.currentPage()).toBe(3);
+      expect(component.pagedMatches().map(m => m.id)).toEqual([1050, 1051, 1052, 1053, 1054,
+        1055, 1056, 1057, 1058, 1059]);
+    });
+
+    it('resets to the first page when the queue, search or status filters change', async () => {
+      const component = (await create()).componentInstance;
+      component.selectQueue(null);
+      component.setPage(3);
+
+      component.selectQueue(1);
+      expect(component.page()).toBe(1);
+
+      component.setPage(2);
+      component.setSearch('alfa');
+      expect(component.page()).toBe(1);
+
+      component.setSearch('');
+      component.setPage(2);
+      component.setResultFilter('unplayed');
+      expect(component.page()).toBe(1);
+
+      component.setPage(2);
+      component.setRefereeFilter('unassigned');
+      expect(component.page()).toBe(1);
+
+      component.setPage(2);
+      component.clearFilters();
+      expect(component.page()).toBe(1);
+    });
+
+    it('clamps the page when the filtered list shrinks below it', async () => {
+      const component = (await create()).componentInstance;
+      component.selectQueue(null);
+      component.setPage(3);
+
+      // Queue 1 alone has 30 matches → 2 pages; the requested page 3 must clamp to 2.
+      component.selectedQueue.set(1);
+
+      expect(component.currentPage()).toBe(2);
+      expect(component.pagedMatches().length).toBe(5);
+    });
+  });
+
   it('renders the score only when both halves are present', async () => {
     const component = (await create()).componentInstance;
 

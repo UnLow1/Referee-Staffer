@@ -16,6 +16,7 @@ import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
 import {MeterComponent} from '../common/meter/meter.component';
 import {ConfirmDialogComponent} from '../common/confirm-dialog/confirm-dialog.component';
 import {SegComponent, SegOption} from '../common/seg/seg.component';
+import {PaginatorComponent} from '../common/paginator/paginator.component';
 import {MatchFormComponent} from '../match-form/match-form.component';
 
 export type ResultFilter = 'all' | 'played' | 'unplayed';
@@ -35,7 +36,7 @@ export type RefereeFilter = 'all' | 'assigned' | 'unassigned';
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent, ConfirmDialogComponent,
-    SegComponent, MatchFormComponent
+    SegComponent, PaginatorComponent, MatchFormComponent
   ]
 })
 export class MatchListComponent implements OnInit {
@@ -57,6 +58,10 @@ export class MatchListComponent implements OnInit {
    */
   readonly selectedQueue = signal<number | null | undefined>(undefined);
   readonly searchTerm = signal('');
+
+  /** Requested page (1-based). May point past the end after the list shrinks — see `currentPage`. */
+  readonly page = signal(1);
+  readonly pageSize = 25;
 
   /** Filter bar state — toggled by the "Filter" button in the page head. */
   readonly filtersOpen = signal(false);
@@ -122,6 +127,17 @@ export class MatchListComponent implements OnInit {
       });
   });
 
+  /** Requested page clamped to the filtered list, so a shrink (delete, filter) can't strand us on an empty page. */
+  readonly currentPage = computed(() => {
+    const totalPages = Math.max(1, Math.ceil(this.visibleMatches().length / this.pageSize));
+    return Math.min(this.page(), totalPages);
+  });
+
+  readonly pagedMatches = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.visibleMatches().slice(start, start + this.pageSize);
+  });
+
   ngOnInit(): void {
     this.load();
 
@@ -168,19 +184,36 @@ export class MatchListComponent implements OnInit {
 
   selectQueue(q: number | null): void {
     this.selectedQueue.set(q);
+    this.page.set(1);
   }
 
   setSearch(value: string): void {
     this.searchTerm.set(value);
+    this.page.set(1);
+  }
+
+  setPage(page: number): void {
+    this.page.set(page);
   }
 
   toggleFilters(): void {
     this.filtersOpen.update(open => !open);
   }
 
+  setResultFilter(filter: ResultFilter): void {
+    this.resultFilter.set(filter);
+    this.page.set(1);
+  }
+
+  setRefereeFilter(filter: RefereeFilter): void {
+    this.refereeFilter.set(filter);
+    this.page.set(1);
+  }
+
   clearFilters(): void {
     this.resultFilter.set('all');
     this.refereeFilter.set('all');
+    this.page.set(1);
   }
 
   openDetail(match: Match): void {

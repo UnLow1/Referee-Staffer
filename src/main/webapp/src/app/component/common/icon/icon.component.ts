@@ -54,6 +54,8 @@ const ICON_PATHS = {
   play:       'M6 4l14 8-14 8z',
   arrowRight: 'M5 12h14M13 6l6 6-6 6',
   chevDown:   'M6 9l6 6 6-6',
+  chevLeft:   'm15 18-6-6 6-6',
+  chevRight:  'm9 18 6-6-6-6',
   download:   'M12 3v13M6 11l6 6 6-6M4 21h16',
   filter:     'M4 5h16l-6 8v6l-4-2v-4z',
   // Theme toggle (lucide sun / moon, subpaths merged into one d)
