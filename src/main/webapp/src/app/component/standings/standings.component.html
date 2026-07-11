@@ -3,7 +3,7 @@
     <h1>Standings</h1>
     <div class="page-head__sub">
       Ekstraklasa 2025/26
-      @if (latestPlayedQueue(); as q) {
+      @if (afterQueue(); as q) {
         · after queue {{ q }}
       }
     </div>
@@ -30,30 +30,30 @@
       </tr>
     </thead>
     <tbody>
-      @for (row of visibleRows(); track row.team.id) {
+      @for (row of visibleRows(); track row.standing.id) {
         <tr>
-          <td class="num pos-cell">{{ row.pos }}</td>
+          <td class="num pos-cell">{{ row.standing.place }}</td>
           <td>
             <span class="team-cell">
               @if (row.zone) {
                 <span class="dot" [class.dot--accent]="row.zone === 'accent'"
                       [class.dot--danger]="row.zone === 'danger'"></span>
               }
-              <app-team-pill [team]="row.team"></app-team-pill>
+              <app-team-pill [team]="row.standing"></app-team-pill>
             </span>
           </td>
-          <td class="city-cell">{{ row.team.city }}</td>
-          <td class="num right">{{ row.played }}</td>
-          <td class="num right">{{ row.wins }}</td>
-          <td class="num right">{{ row.draws }}</td>
-          <td class="num right">{{ row.losses }}</td>
-          <td class="num right">{{ row.goalsFor }}</td>
-          <td class="num right">{{ row.goalsAgainst }}</td>
+          <td class="city-cell">{{ row.standing.city }}</td>
+          <td class="num right">{{ row.standing.played }}</td>
+          <td class="num right">{{ row.standing.wins }}</td>
+          <td class="num right">{{ row.standing.draws }}</td>
+          <td class="num right">{{ row.standing.losses }}</td>
+          <td class="num right">{{ row.standing.goalsFor }}</td>
+          <td class="num right">{{ row.standing.goalsAgainst }}</td>
           <td class="num right"
               [class.gd-positive]="goalDiff(row) > 0"
               [class.gd-negative]="goalDiff(row) < 0"
               [class.gd-zero]="goalDiff(row) === 0">{{ formatGoalDiff(row) }}</td>
-          <td class="num right pts-cell">{{ row.team.points ?? '—' }}</td>
+          <td class="num right pts-cell">{{ row.standing.points ?? '—' }}</td>
           <td>
             <div class="bar">
               <i [style.width.%]="barPct(row)"

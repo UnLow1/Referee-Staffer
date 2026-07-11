@@ -1,6 +1,7 @@
 package com.jamex.refereestaffer.controller
 
 import com.jamex.refereestaffer.model.converter.TeamConverter
+import com.jamex.refereestaffer.model.dto.StandingsDto
 import com.jamex.refereestaffer.model.dto.TeamDto
 import com.jamex.refereestaffer.model.entity.Team
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException
@@ -162,20 +163,34 @@ class TeamControllerSpec extends Specification {
         json*.id == [23, 55]
     }
 
-    def "should return standings"() {
+    def "should return standings with computed stats and the wire-format short field"() {
         given:
-        def teams = [[] as Team]
-        def teamsDtos = [TeamDto.builder().points(30 as Short).build()]
+        def row = new StandingsDto.Row(65l, "Legia", "Warszawa", "LEG", 30 as short, 1 as short,
+                12 as short, 9 as short, 3 as short, 0 as short, 25 as short, 8 as short)
+        def standings = new StandingsDto(12 as Short, [row])
 
         when:
         def response = mockMvc.perform(get("/api/teams/standings")).andReturn().response
 
         then:
-        1 * teamService.getStandings() >> teams
-        1 * teamConverter.convertFromEntities(teams) >> teamsDtos
+        1 * teamService.getStandings() >> standings
+        0 * teamConverter._
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)
-        json[0].points == 30
+        json.afterQueue == 12
+        json.rows.size() == 1
+        def firstRow = json.rows[0]
+        firstRow.id == 65
+        firstRow.name == "Legia"
+        firstRow.short == "LEG"
+        firstRow.points == 30
+        firstRow.place == 1
+        firstRow.played == 12
+        firstRow.wins == 9
+        firstRow.draws == 3
+        firstRow.losses == 0
+        firstRow.goalsFor == 25
+        firstRow.goalsAgainst == 8
     }
 
     def "should delete all teams"() {

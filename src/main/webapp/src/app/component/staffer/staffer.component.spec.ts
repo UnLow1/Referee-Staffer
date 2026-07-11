@@ -8,7 +8,7 @@ import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
 import {UiSettingsService} from '../../service/ui-settings.service';
 import {Match} from '../../model/match';
-import {Team} from '../../model/team';
+import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 
@@ -21,18 +21,24 @@ describe('StafferComponent', () => {
   let matchService: jasmine.SpyObj<MatchService>;
   let explainerVisible: WritableSignal<boolean>;
 
-  // Standings order defines place: index 0 = 1st. 8 teams, NUMBER_OF_EDGE_TEAMS = 3,
-  // so top = both places <= 3, bottom = both places > 5. Teams 1 and 2 share a city.
-  const standings: Team[] = [
-    {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Krakow', points: 35},
-    {id: 3, name: 'Gamma', city: 'Gdansk', points: 30},
-    {id: 4, name: 'Delta', city: 'Poznan', points: 25},
-    {id: 5, name: 'Epsilon', city: 'Lodz', points: 20},
-    {id: 6, name: 'Zeta', city: 'Wroclaw', points: 15},
-    {id: 7, name: 'Eta', city: 'Radom', points: 10},
-    {id: 8, name: 'Theta', city: 'Opole', points: 5}
-  ];
+  // Backend rows carry `place`. 8 teams, NUMBER_OF_EDGE_TEAMS = 3, so top = both
+  // places <= 3, bottom = both places > 5. Teams 1 and 2 share a city.
+  const standings: Standings = {
+    afterQueue: 10,
+    rows: [
+      {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
+      {id: 2, name: 'Beta', city: 'Krakow', points: 35},
+      {id: 3, name: 'Gamma', city: 'Gdansk', points: 30},
+      {id: 4, name: 'Delta', city: 'Poznan', points: 25},
+      {id: 5, name: 'Epsilon', city: 'Lodz', points: 20},
+      {id: 6, name: 'Zeta', city: 'Wroclaw', points: 15},
+      {id: 7, name: 'Eta', city: 'Radom', points: 10},
+      {id: 8, name: 'Theta', city: 'Opole', points: 5}
+    ].map((team, i) => ({
+      ...team, place: i + 1, played: 10, wins: 8 - i, draws: i, losses: 2,
+      goalsFor: 20 - i, goalsAgainst: 10 + i
+    }))
+  };
 
   function makeMatch(id: number, overrides: Partial<Match> = {}): Match {
     return {

@@ -58,9 +58,9 @@ export class StafferComponent {
   readonly queue = signal(1);
   readonly matches = signal<Match[] | null>(null);
   readonly referees = signal<Referee[]>([]);
-  /** Map<teamId, Team> — populated from /api/teams/standings so `place` (== index+1) is meaningful. */
+  /** Map<teamId, Team> — populated from /api/teams/standings rows. */
   readonly teamsById = signal<Map<number, Team>>(new Map());
-  /** Map<teamId, place> — derived from standings sort order. */
+  /** Map<teamId, place> — the backend-computed table position. */
   readonly placeById = signal<Map<number, number>>(new Map());
   readonly totalTeams = signal(0);
 
@@ -120,17 +120,17 @@ export class StafferComponent {
       referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
     }).subscribe({
       next: ({matches, standings, referees}) => {
-        // standings is sorted by points desc; index 0 = first place. Build place lookup
-        // so flag derivation (top/bottom) doesn't need re-sorting on every cell render.
+        // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
+        // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
         const placeMap = new Map<number, number>();
-        standings.forEach((t, i) => {
+        standings.rows.forEach(t => {
           teamsMap.set(t.id, t);
-          placeMap.set(t.id, i + 1);
+          placeMap.set(t.id, t.place);
         });
         this.teamsById.set(teamsMap);
         this.placeById.set(placeMap);
-        this.totalTeams.set(standings.length);
+        this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
         this.matches.set([...matches]);
         this.loading.set(false);

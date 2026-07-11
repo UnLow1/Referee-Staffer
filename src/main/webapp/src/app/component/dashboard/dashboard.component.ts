@@ -24,8 +24,8 @@ const NUMBER_OF_EDGE_TEAMS = 3;
  *    joined with team pills and the difficulty meter.
  *  - Top referees — sorted by `potential` desc (falls back to experience for
  *    un-enriched responses); the meter normalises against the top scorer.
- *  - Standings — only Pts + form bar (W/D/L/GF/GA need a season-stats endpoint that
- *    doesn't exist yet).
+ *  - Standings — only Pts + form bar by design; the full stats live on the
+ *    Standings screen (/api/teams/standings serves them).
  */
 @Component({
   selector: 'app-dashboard',
@@ -101,7 +101,7 @@ export class DashboardComponent implements OnInit {
     }).subscribe(({matches, referees, standings}) => {
       this.matches.set(matches);
       this.referees.set(referees);
-      this.standings.set(standings);
+      this.standings.set(standings.rows);
     });
   }
 
