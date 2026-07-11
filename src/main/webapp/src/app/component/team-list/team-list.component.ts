@@ -1,11 +1,9 @@
 import {Component, OnInit, computed, inject, signal} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
-import {forkJoin} from 'rxjs';
 import {Team} from '../../model/team';
-import {Match} from '../../model/match';
+import {Standing} from '../../model/standing';
 import {ModalData} from '../../model/modalData';
 import {TeamService} from '../../service/team.service';
-import {MatchService} from '../../service/match.service';
 import {IconComponent} from '../common/icon/icon.component';
 import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {ConfirmDialogComponent} from '../common/confirm-dialog/confirm-dialog.component';
@@ -15,9 +13,8 @@ import {TeamFormComponent} from '../team-form/team-form.component';
  * Team list — searchable league directory sorted by points, with the add/edit drawer
  * and the delete confirm.
  *
- * "Played" is derived client-side from the match list (fixtures with both scores) —
- * the standings endpoint only carries points today; a backend `played` counter is a
- * tracked follow-up.
+ * Points and "Played" both come from /api/teams/standings — no client-side counting
+ * from the match list anymore.
  */
 @Component({
   selector: 'app-team-list',
@@ -29,11 +26,9 @@ export class TeamListComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly teamService = inject(TeamService);
-  private readonly matchService = inject(MatchService);
 
-  /** Sorted by points desc — /api/teams/standings returns them in table order. */
-  readonly teams = signal<Team[]>([]);
-  readonly playedById = signal<Map<number, number>>(new Map());
+  /** Sorted by points desc — /api/teams/standings returns rows in table order. */
+  readonly teams = signal<Standing[]>([]);
   readonly searchTerm = signal('');
 
   /** Add/edit drawer state — the list owns it (repo forms convention, see CLAUDE.md). */
@@ -80,12 +75,8 @@ export class TeamListComponent implements OnInit {
   }
 
   private load(): void {
-    forkJoin({
-      standings: this.teamService.getStandings(),
-      matches: this.matchService.findAll()
-    }).subscribe(({standings, matches}) => {
-      this.teams.set(standings);
-      this.playedById.set(countPlayed(matches));
+    this.teamService.getStandings().subscribe(standings => {
+      this.teams.set(standings.rows);
     });
   }
 
@@ -93,11 +84,7 @@ export class TeamListComponent implements OnInit {
     this.searchTerm.set(value);
   }
 
-  played(team: Team): number {
-    return this.playedById().get(team.id) ?? 0;
-  }
-
-  barPct(team: Team): number {
+  barPct(team: Standing): number {
     return Math.round(((team.points ?? 0) / this.maxPoints()) * 100);
   }
 
@@ -137,15 +124,4 @@ export class TeamListComponent implements OnInit {
       this.deleteTarget.set(null);
     });
   }
-}
-
-/** Map<teamId, played> — a match counts once it has both scores. */
-function countPlayed(matches: Match[]): Map<number, number> {
-  const played = new Map<number, number>();
-  for (const m of matches) {
-    if (m.homeScore == null || m.awayScore == null) continue;
-    played.set(m.homeTeamId, (played.get(m.homeTeamId) ?? 0) + 1);
-    played.set(m.awayTeamId, (played.get(m.awayTeamId) ?? 0) + 1);
-  }
-  return played;
 }

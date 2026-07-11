@@ -1,6 +1,7 @@
 package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.TeamConverter;
+import com.jamex.refereestaffer.model.dto.StandingsDto;
 import com.jamex.refereestaffer.model.dto.TeamDto;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
@@ -78,10 +79,9 @@ public class TeamController {
     }
 
     @GetMapping("/standings")
-    public Collection<TeamDto> getStandings() {
+    public StandingsDto getStandings() {
         log.info("Calculating standings");
-        var teams = teamService.getStandings();
-        return teamConverter.convertFromEntities(teams);
+        return teamService.getStandings();
     }
 
     @DeleteMapping

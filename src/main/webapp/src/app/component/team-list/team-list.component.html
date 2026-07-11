@@ -29,7 +29,7 @@
         <tr>
           <td><app-team-pill [team]="team"></app-team-pill></td>
           <td class="city-cell">{{ team.city }}</td>
-          <td class="num right">{{ played(team) }}</td>
+          <td class="num right">{{ team.played }}</td>
           <td class="num right points-cell">{{ team.points ?? '—' }}</td>
           <td><div class="bar"><i [style.width.%]="barPct(team)"></i></div></td>
           <td class="col-actions">

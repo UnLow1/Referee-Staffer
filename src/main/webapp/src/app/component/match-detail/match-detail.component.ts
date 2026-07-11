@@ -2,7 +2,7 @@ import {Component, OnInit, computed, inject, signal} from '@angular/core';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
-import {Team} from '../../model/team';
+import {Standing} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 import {MatchService} from '../../service/match.service';
@@ -26,8 +26,8 @@ interface CompareRow {
  * Match detail — read-only deep dive on a single fixture.
  *
  * Difficulty parts load from /api/matches/:id/difficulty; candidate ranking uses the
- * enriched RefereeDto `potential`. Per-team W/D/L/GF/GA still wait on a season-stats
- * endpoint.
+ * enriched RefereeDto `potential`. Per-team season stats (place, W/D/L/GF/GA) come
+ * from the standings rows.
  */
 @Component({
   selector: 'app-match-detail',
@@ -44,10 +44,10 @@ export class MatchDetailComponent implements OnInit {
 
   readonly match = signal<Match | null>(null);
   readonly breakdown = signal<DifficultyBreakdown | null>(null);
-  readonly home = signal<Team | undefined>(undefined);
-  readonly away = signal<Team | undefined>(undefined);
-  /** Standings sorted by points desc — index lookup for `place`. */
-  readonly standings = signal<Team[]>([]);
+  readonly home = signal<Standing | undefined>(undefined);
+  readonly away = signal<Standing | undefined>(undefined);
+  /** Standings rows — carry the backend-computed `place` and season stats. */
+  readonly standings = signal<Standing[]>([]);
   readonly referees = signal<Referee[]>([]);
   readonly assignedReferee = signal<Referee | undefined>(undefined);
 
@@ -101,9 +101,11 @@ export class MatchDetailComponent implements OnInit {
     return [
       {label: 'Position', home: hp != null ? `#${hp}` : '—', away: ap != null ? `#${ap}` : '—', bar: false},
       {label: 'Points', home: h.points ?? 0, away: a.points ?? 0, bar: true},
-      // W / D / L / GF / GA need a backend stats endpoint that doesn't exist yet. For
-      // now they're omitted; placeholder note in the template tells the reader why the
-      // panel feels short.
+      {label: 'Wins', home: h.wins, away: a.wins, bar: true},
+      {label: 'Draws', home: h.draws, away: a.draws, bar: true},
+      {label: 'Losses', home: h.losses, away: a.losses, bar: true},
+      {label: 'Goals for', home: h.goalsFor, away: a.goalsFor, bar: true},
+      {label: 'Goals against', home: h.goalsAgainst, away: a.goalsAgainst, bar: true},
     ];
   });
 
@@ -133,10 +135,10 @@ export class MatchDetailComponent implements OnInit {
     }).subscribe(({match, breakdown, standings, referees}) => {
       this.match.set(match);
       this.breakdown.set(breakdown);
-      this.standings.set(standings);
+      this.standings.set(standings.rows);
       this.referees.set(referees);
-      this.home.set(standings.find(t => t.id === match.homeTeamId));
-      this.away.set(standings.find(t => t.id === match.awayTeamId));
+      this.home.set(standings.rows.find(t => t.id === match.homeTeamId));
+      this.away.set(standings.rows.find(t => t.id === match.awayTeamId));
       this.assignedReferee.set(referees.find(r => r.id === match.refereeId));
     });
   }
@@ -177,7 +179,6 @@ export class MatchDetailComponent implements OnInit {
 
   private placeOf(teamId: number | undefined): number | null {
     if (teamId == null) return null;
-    const idx = this.standings().findIndex(t => t.id === teamId);
-    return idx >= 0 ? idx + 1 : null;
+    return this.standings().find(t => t.id === teamId)?.place ?? null;
   }
 }
