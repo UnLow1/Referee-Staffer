@@ -15,10 +15,15 @@ import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
 import {MeterComponent} from '../common/meter/meter.component';
 import {ConfirmDialogComponent} from '../common/confirm-dialog/confirm-dialog.component';
+import {SegComponent, SegOption} from '../common/seg/seg.component';
 import {MatchFormComponent} from '../match-form/match-form.component';
 
+export type ResultFilter = 'all' | 'played' | 'unplayed';
+export type RefereeFilter = 'all' | 'assigned' | 'unassigned';
+
 /**
- * Match list — browse fixtures by queue, search by team name, edit / delete inline.
+ * Match list — browse fixtures by queue, search by team name, filter by result /
+ * referee assignment, edit / delete inline.
  *
  * Data fetch is a single forkJoin so all four dependencies (matches, teams, referees,
  * grades) land together — replaces the previous nested subscribe chain.
@@ -29,7 +34,7 @@ import {MatchFormComponent} from '../match-form/match-form.component';
   styleUrl: './match-list.component.scss',
   imports: [
     IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent, ConfirmDialogComponent,
-    MatchFormComponent
+    SegComponent, MatchFormComponent
   ]
 })
 export class MatchListComponent implements OnInit {
@@ -47,6 +52,25 @@ export class MatchListComponent implements OnInit {
 
   readonly selectedQueue = signal<number | null>(null);
   readonly searchTerm = signal('');
+
+  /** Filter bar state — toggled by the "Filter" button in the page head. */
+  readonly filtersOpen = signal(false);
+  readonly resultFilter = signal<ResultFilter>('all');
+  readonly refereeFilter = signal<RefereeFilter>('all');
+
+  readonly resultOptions: SegOption<ResultFilter>[] = [
+    {value: 'all', label: 'All'},
+    {value: 'played', label: 'Played'},
+    {value: 'unplayed', label: 'Not played'}
+  ];
+  readonly refereeOptions: SegOption<RefereeFilter>[] = [
+    {value: 'all', label: 'All'},
+    {value: 'assigned', label: 'Assigned'},
+    {value: 'unassigned', label: 'Unassigned'}
+  ];
+
+  readonly activeFilterCount = computed(() =>
+    (this.resultFilter() === 'all' ? 0 : 1) + (this.refereeFilter() === 'all' ? 0 : 1));
 
   /** Add/edit drawer state — the list owns it (repo forms convention, see CLAUDE.md). */
   readonly formOpen = signal(false);
@@ -79,8 +103,12 @@ export class MatchListComponent implements OnInit {
   readonly visibleMatches = computed(() => {
     const queue = this.selectedQueue();
     const term = this.searchTerm().trim().toLowerCase();
+    const result = this.resultFilter();
+    const referee = this.refereeFilter();
     return this.matches()
       .filter(m => queue == null || m.queue === queue)
+      .filter(m => result === 'all' || (result === 'played') === isPlayed(m))
+      .filter(m => referee === 'all' || (referee === 'assigned') === (m.refereeId != null))
       .filter(m => {
         if (!term) return true;
         const home = this.getTeam(m.homeTeamId)?.name?.toLowerCase() ?? '';
@@ -132,12 +160,21 @@ export class MatchListComponent implements OnInit {
     });
   }
 
-  selectQueue(q: number): void {
+  selectQueue(q: number | null): void {
     this.selectedQueue.set(q);
   }
 
   setSearch(value: string): void {
     this.searchTerm.set(value);
+  }
+
+  toggleFilters(): void {
+    this.filtersOpen.update(open => !open);
+  }
+
+  clearFilters(): void {
+    this.resultFilter.set('all');
+    this.refereeFilter.set('all');
   }
 
   openDetail(match: Match): void {
@@ -210,6 +247,11 @@ export class MatchListComponent implements OnInit {
   gradeAsMeter(grade: Grade | undefined): number {
     return (grade?.value ?? 0) * 10;
   }
+}
+
+/** A match counts as played once both halves of the score are recorded. */
+function isPlayed(match: Match): boolean {
+  return match.homeScore != null && match.awayScore != null;
 }
 
 function unique<T>(arr: T[]): T[] {

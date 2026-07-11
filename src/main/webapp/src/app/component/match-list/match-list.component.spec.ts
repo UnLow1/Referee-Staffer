@@ -130,6 +130,70 @@ describe('MatchListComponent', () => {
     expect(component.visibleMatches().map(m => m.id)).toEqual([13]);
   });
 
+  it('filters by result and referee assignment across all queues', async () => {
+    const component = (await create()).componentInstance;
+    component.selectQueue(null);
+
+    component.resultFilter.set('played');
+    expect(component.visibleMatches().map(m => m.id)).toEqual([11]);
+
+    component.resultFilter.set('unplayed');
+    expect(component.visibleMatches().map(m => m.id)).toEqual([12, 13]);
+
+    component.resultFilter.set('all');
+    component.refereeFilter.set('assigned');
+    expect(component.visibleMatches().map(m => m.id)).toEqual([11]);
+
+    component.refereeFilter.set('unassigned');
+    expect(component.visibleMatches().map(m => m.id)).toEqual([12, 13]);
+  });
+
+  it('combines status filters with the queue and the team search', async () => {
+    const component = (await create()).componentInstance;
+
+    component.selectQueue(2);
+    component.refereeFilter.set('unassigned');
+    component.setSearch('gamma');
+    expect(component.visibleMatches().map(m => m.id)).toEqual([12, 13]);
+
+    component.resultFilter.set('played');
+    expect(component.visibleMatches()).toEqual([]);
+  });
+
+  it('treats a half-recorded score as not played', async () => {
+    matchService.findAll.and.returnValue(of([makeMatch(31, {homeScore: 1})]));
+
+    const component = (await create()).componentInstance;
+    component.resultFilter.set('unplayed');
+
+    expect(component.visibleMatches().map(m => m.id)).toEqual([31]);
+  });
+
+  it('counts active filters and clears them in one go', async () => {
+    const component = (await create()).componentInstance;
+    expect(component.activeFilterCount()).toBe(0);
+
+    component.resultFilter.set('played');
+    component.refereeFilter.set('assigned');
+    expect(component.activeFilterCount()).toBe(2);
+
+    component.clearFilters();
+    expect(component.activeFilterCount()).toBe(0);
+    expect(component.resultFilter()).toBe('all');
+    expect(component.refereeFilter()).toBe('all');
+  });
+
+  it('toggles the filter bar', async () => {
+    const component = (await create()).componentInstance;
+    expect(component.filtersOpen()).toBeFalse();
+
+    component.toggleFilters();
+    expect(component.filtersOpen()).toBeTrue();
+
+    component.toggleFilters();
+    expect(component.filtersOpen()).toBeFalse();
+  });
+
   it('renders the score only when both halves are present', async () => {
     const component = (await create()).componentInstance;
 
