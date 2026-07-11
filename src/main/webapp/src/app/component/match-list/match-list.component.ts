@@ -107,8 +107,8 @@ export class MatchListComponent implements OnInit {
     const referee = this.refereeFilter();
     return this.matches()
       .filter(m => queue == null || m.queue === queue)
-      .filter(m => result === 'all' || (result === 'played') === isPlayed(m))
-      .filter(m => referee === 'all' || (referee === 'assigned') === (m.refereeId != null))
+      .filter(m => matchesResult(m, result))
+      .filter(m => matchesReferee(m, referee))
       .filter(m => {
         if (!term) return true;
         const home = this.getTeam(m.homeTeamId)?.name?.toLowerCase() ?? '';
@@ -252,6 +252,17 @@ export class MatchListComponent implements OnInit {
 /** A match counts as played once both halves of the score are recorded. */
 function isPlayed(match: Match): boolean {
   return match.homeScore != null && match.awayScore != null;
+}
+
+function matchesResult(match: Match, filter: ResultFilter): boolean {
+  if (filter === 'all') return true;
+  return filter === 'played' ? isPlayed(match) : !isPlayed(match);
+}
+
+function matchesReferee(match: Match, filter: RefereeFilter): boolean {
+  if (filter === 'all') return true;
+  const assigned = match.refereeId != null;
+  return filter === 'assigned' ? assigned : !assigned;
 }
 
 function unique<T>(arr: T[]): T[] {
