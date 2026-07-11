@@ -2,39 +2,28 @@ import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {of} from 'rxjs';
 import {StandingsComponent} from './standings.component';
 import {TeamService} from '../../service/team.service';
-import {MatchService} from '../../service/match.service';
-import {Team} from '../../model/team';
-import {Match} from '../../model/match';
+import {Standing, Standings} from '../../model/standing';
 
 describe('StandingsComponent', () => {
   let teamService: jasmine.SpyObj<TeamService>;
-  let matchService: jasmine.SpyObj<MatchService>;
 
-  // /api/teams/standings returns table order; 8 teams so both edge zones exist.
-  const standings: Team[] = Array.from({length: 8}, (_, i) => ({
-    id: i + 1, name: `Team ${i + 1}`, city: `City ${i + 1}`, points: 40 - i * 5
+  // /api/teams/standings returns the computed table; 8 teams so both edge zones exist.
+  const rows: Standing[] = Array.from({length: 8}, (_, i) => ({
+    id: i + 1, name: `Team ${i + 1}`, city: `City ${i + 1}`, points: 40 - i * 5,
+    place: i + 1, played: 10, wins: 8 - i, draws: i, losses: 2,
+    goalsFor: 20 - i, goalsAgainst: 10 + i
   }));
 
-  const matches = [
-    // Team 1 beats Team 2 away: 1 has W 3:1, 2 has L.
-    {id: 11, queue: 1, homeTeamId: 2, awayTeamId: 1, homeScore: 1, awayScore: 3},
-    // Draw between 1 and 3.
-    {id: 12, queue: 2, homeTeamId: 1, awayTeamId: 3, homeScore: 2, awayScore: 2},
-    // Unplayed — must not count anywhere.
-    {id: 13, queue: 3, homeTeamId: 1, awayTeamId: 4}
-  ] as Match[];
+  const standings: Standings = {afterQueue: 10, rows};
 
   beforeEach(async () => {
     teamService = jasmine.createSpyObj('TeamService', ['getStandings']);
-    matchService = jasmine.createSpyObj('MatchService', ['findAll']);
     teamService.getStandings.and.returnValue(of(standings));
-    matchService.findAll.and.returnValue(of(matches));
 
     await TestBed.configureTestingModule({
       imports: [StandingsComponent],
       providers: [
-        {provide: TeamService, useValue: teamService},
-        {provide: MatchService, useValue: matchService}
+        {provide: TeamService, useValue: teamService}
       ]
     }).compileComponents();
   });
@@ -45,47 +34,42 @@ describe('StandingsComponent', () => {
     return fixture;
   }
 
-  it('derives W/D/L and goals from played matches only', () => {
-    const rows = create().componentInstance.rows();
-    const team1 = rows.find(r => r.team.id === 1)!;
-    const team2 = rows.find(r => r.team.id === 2)!;
-    const team4 = rows.find(r => r.team.id === 4)!;
+  it('renders the backend-computed stats without local derivation', () => {
+    const componentRows = create().componentInstance.rows();
+    const first = componentRows.find(r => r.standing.id === 1)!;
 
-    expect(team1).toEqual(jasmine.objectContaining(
-      {played: 2, wins: 1, draws: 1, losses: 0, goalsFor: 5, goalsAgainst: 3}));
-    expect(team2).toEqual(jasmine.objectContaining(
-      {played: 1, wins: 0, draws: 0, losses: 1, goalsFor: 1, goalsAgainst: 3}));
-    // Only fixture 13 references team 4 and it has no result.
-    expect(team4.played).toBe(0);
+    expect(componentRows.length).toBe(8);
+    expect(first.standing).toEqual(jasmine.objectContaining(
+      {place: 1, played: 10, wins: 8, draws: 0, losses: 2, goalsFor: 20, goalsAgainst: 10}));
   });
 
   it('marks the top three accent and the bottom three danger', () => {
-    const rows = create().componentInstance.rows();
+    const componentRows = create().componentInstance.rows();
 
-    expect(rows.filter(r => r.zone === 'accent').map(r => r.pos)).toEqual([1, 2, 3]);
-    expect(rows.filter(r => r.zone === 'danger').map(r => r.pos)).toEqual([6, 7, 8]);
-    expect(rows.filter(r => r.zone === null).map(r => r.pos)).toEqual([4, 5]);
+    expect(componentRows.filter(r => r.zone === 'accent').map(r => r.standing.place)).toEqual([1, 2, 3]);
+    expect(componentRows.filter(r => r.zone === 'danger').map(r => r.standing.place)).toEqual([6, 7, 8]);
+    expect(componentRows.filter(r => r.zone === null).map(r => r.standing.place)).toEqual([4, 5]);
   });
 
   it('suppresses the danger zone in a league too small for both zones', () => {
-    teamService.getStandings.and.returnValue(of(standings.slice(0, 5)));
+    teamService.getStandings.and.returnValue(of({afterQueue: 10, rows: rows.slice(0, 5)}));
 
-    const rows = create().componentInstance.rows();
+    const componentRows = create().componentInstance.rows();
 
-    expect(rows.filter(r => r.zone === 'accent').map(r => r.pos)).toEqual([1, 2, 3]);
-    expect(rows.some(r => r.zone === 'danger')).toBeFalse();
+    expect(componentRows.filter(r => r.zone === 'accent').map(r => r.standing.place)).toEqual([1, 2, 3]);
+    expect(componentRows.some(r => r.zone === 'danger')).toBeFalse();
   });
 
   it('formats the goal difference with an explicit sign', () => {
     const component = create().componentInstance;
-    const rows = component.rows();
-    const team1 = rows.find(r => r.team.id === 1)!; // GD +2
-    const team2 = rows.find(r => r.team.id === 2)!; // GD -2
-    const team3 = rows.find(r => r.team.id === 3)!; // GD 0
+    const componentRows = component.rows();
+    const positive = componentRows.find(r => r.standing.id === 1)!; // GD +10
+    const negative = componentRows.find(r => r.standing.id === 8)!; // GD -4
+    const zero = componentRows.find(r => r.standing.id === 6)!; // 15:15
 
-    expect(component.formatGoalDiff(team1)).toBe('+2');
-    expect(component.formatGoalDiff(team2)).toBe('-2');
-    expect(component.formatGoalDiff(team3)).toBe('0');
+    expect(component.formatGoalDiff(positive)).toBe('+10');
+    expect(component.formatGoalDiff(negative)).toBe('-4');
+    expect(component.formatGoalDiff(zero)).toBe('0');
   });
 
   it('filters the visible rows by zone segment', () => {
@@ -94,16 +78,22 @@ describe('StandingsComponent', () => {
     expect(component.visibleRows().length).toBe(8);
 
     component.filter.set('top');
-    expect(component.visibleRows().map(r => r.pos)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(component.visibleRows().map(r => r.standing.place)).toEqual([1, 2, 3, 4, 5, 6]);
 
     component.filter.set('bottom');
-    expect(component.visibleRows().map(r => r.pos)).toEqual([6, 7, 8]);
+    expect(component.visibleRows().map(r => r.standing.place)).toEqual([6, 7, 8]);
   });
 
-  it('reports the latest queue with a played match, or null before the season starts', () => {
-    expect(create().componentInstance.latestPlayedQueue()).toBe(2);
+  it('shows the backend afterQueue in the subtitle, or nothing before the season starts', () => {
+    const fixture = create();
+    expect(fixture.componentInstance.afterQueue()).toBe(10);
+    expect((fixture.nativeElement as HTMLElement).querySelector('.page-head__sub')?.textContent)
+      .toContain('after queue 10');
 
-    matchService.findAll.and.returnValue(of([matches[2]]));
-    expect(create().componentInstance.latestPlayedQueue()).toBeNull();
+    teamService.getStandings.and.returnValue(of({afterQueue: null, rows: []}));
+    const emptyFixture = create();
+    expect(emptyFixture.componentInstance.afterQueue()).toBeNull();
+    expect((emptyFixture.nativeElement as HTMLElement).querySelector('.page-head__sub')?.textContent)
+      .not.toContain('after queue');
   });
 });
