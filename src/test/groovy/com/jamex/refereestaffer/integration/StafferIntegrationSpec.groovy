@@ -88,4 +88,28 @@ class StafferIntegrationSpec extends Specification {
         persisted.referee != null
         persisted.referee.id == freeReferee.id
     }
+
+    def "should assign referee whose other matches are on adjacent days"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        def referee = refereeRepository.save(new Referee("John", "Doe", "john@doe.com", 5))
+        short queue = 2
+        def matchDay = LocalDateTime.of(2026, 9, 12, 15, 0)
+        // Probe both edges of the [dayStart, nextDayStart) window: a late-evening match the
+        // day before and a midnight match the day after must not block the assignment.
+        matchRepository.save(new Match((short) 1, team3, team4, LocalDateTime.of(2026, 9, 11, 23, 0), referee, null, null))
+        matchRepository.save(new Match((short) 3, team4, team3, LocalDateTime.of(2026, 9, 13, 0, 0), referee, null, null))
+        def matchToStaff = matchRepository.save(new Match(queue, team1, team2, matchDay, null, null, null))
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        def persisted = matchRepository.findById(matchToStaff.id).orElseThrow()
+        persisted.referee != null
+        persisted.referee.id == referee.id
+    }
 }
