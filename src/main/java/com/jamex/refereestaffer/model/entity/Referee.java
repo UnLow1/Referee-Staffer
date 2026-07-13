@@ -41,9 +41,6 @@ public class Referee {
     @Transient
     private Map<Team, Short> teamsRefereed;
 
-    @Transient
-    private boolean busy;
-
     /**
      * Highest queue this referee has been assigned to. Set by
      * {@link com.jamex.refereestaffer.service.RefereeService#calculateStats}; null when
@@ -73,7 +70,7 @@ public class Referee {
     }
 
     public Referee(Long id, String firstName, String lastName, String email, List<Match> matches, int experience,
-                   Double averageGrade, Short numberOfMatchesInRound, Map<Team, Short> teamsRefereed, boolean busy) {
+                   Double averageGrade, Short numberOfMatchesInRound, Map<Team, Short> teamsRefereed) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -83,7 +80,6 @@ public class Referee {
         this.averageGrade = averageGrade;
         this.numberOfMatchesInRound = numberOfMatchesInRound;
         this.teamsRefereed = teamsRefereed;
-        this.busy = busy;
     }
 
     public Referee(String firstName, String lastName) {
@@ -146,14 +142,6 @@ public class Referee {
         this.teamsRefereed = teamsRefereed;
     }
 
-    public boolean isBusy() {
-        return busy;
-    }
-
-    public void setBusy(boolean busy) {
-        this.busy = busy;
-    }
-
     public Short getLastQueue() {
         return lastQueue;
     }
@@ -207,7 +195,6 @@ public class Referee {
         private Double averageGrade;
         private Short numberOfMatchesInRound;
         private Map<Team, Short> teamsRefereed;
-        private boolean busy;
 
         public Builder id(Long id) {
             this.id = id;
@@ -254,14 +241,9 @@ public class Referee {
             return this;
         }
 
-        public Builder busy(boolean busy) {
-            this.busy = busy;
-            return this;
-        }
-
         public Referee build() {
             return new Referee(id, firstName, lastName, email, matches, experience,
-                    averageGrade, numberOfMatchesInRound, teamsRefereed, busy);
+                    averageGrade, numberOfMatchesInRound, teamsRefereed);
         }
     }
 }

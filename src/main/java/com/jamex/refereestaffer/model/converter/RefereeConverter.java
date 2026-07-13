@@ -33,7 +33,6 @@ public class RefereeConverter implements BaseConverter<Referee, RefereeDto> {
                 dto.getExperience(),
                 null,
                 null,
-                null,
-                false);
+                null);
     }
 }
