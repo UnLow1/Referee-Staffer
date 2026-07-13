@@ -4,28 +4,23 @@ import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
-import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
-import com.jamex.refereestaffer.repository.GradeRepository;
-import com.jamex.refereestaffer.repository.RefereeRepository;
-import com.jamex.refereestaffer.repository.TeamRepository;
+import com.jamex.refereestaffer.model.entity.Team;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
+/**
+ * Pure mapping between {@link Match} and {@link MatchDto} — no repository access.
+ * Resolving ids to entities (teams, referee, grade) is the service layer's job
+ * ({@link com.jamex.refereestaffer.service.MatchService}), so the dto → entity
+ * direction takes already-resolved entities instead of implementing
+ * {@link BaseConverter#convertFromDto(Object)}.
+ */
 @Component
-public class MatchConverter implements BaseConverter<Match, MatchDto> {
+public class MatchConverter {
 
-    private final TeamRepository teamRepository;
-    private final RefereeRepository refereeRepository;
-    private final GradeRepository gradeRepository;
-
-    public MatchConverter(TeamRepository teamRepository, RefereeRepository refereeRepository, GradeRepository gradeRepository) {
-        this.teamRepository = teamRepository;
-        this.refereeRepository = refereeRepository;
-        this.gradeRepository = gradeRepository;
-    }
-
-    @Override
     public MatchDto convertFromEntity(Match entity) {
         var referee = Optional.ofNullable(entity.getReferee())
                 .map(Referee::getId);
@@ -45,25 +40,21 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
                 entity.getHardnessLvl());
     }
 
-    @Override
-    public Match convertFromDto(MatchDto dto) {
-        var homeTeam = teamRepository.findById(dto.getHomeTeamId())
-                .orElseThrow(() -> new TeamNotFoundException(dto.getHomeTeamId()));
-        var awayTeam = teamRepository.findById(dto.getAwayTeamId())
-                .orElseThrow(() -> new TeamNotFoundException(dto.getAwayTeamId()));
-        var referee = Optional.ofNullable(dto.getRefereeId())
-                .flatMap(refereeRepository::findById);
-        var grade = Optional.ofNullable(dto.getGradeId())
-                .flatMap(gradeRepository::findById);
+    public Collection<MatchDto> convertFromEntities(final Iterable<Match> entities) {
+        return StreamSupport.stream(entities.spliterator(), false)
+                .map(this::convertFromEntity)
+                .toList();
+    }
 
+    public Match convertFromDto(MatchDto dto, Team home, Team away, Referee referee, Grade grade) {
         return new Match(
                 dto.getId(),
                 dto.getQueue(),
-                homeTeam,
-                awayTeam,
+                home,
+                away,
                 dto.getDate(),
-                referee.orElse(null),
-                grade.orElse(null),
+                referee,
+                grade,
                 dto.getHomeScore(),
                 dto.getAwayScore(),
                 0.0);
