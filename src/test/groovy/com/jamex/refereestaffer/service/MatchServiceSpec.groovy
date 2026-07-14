@@ -113,9 +113,9 @@ class MatchServiceSpec extends Specification {
 
         where:
         homePoints | homePlace | awayPoints | awayPlace
-        0          | 0         | 0          | 0
-        0          | 0         | 30         | 1
-        30         | 1         | 0          | 0
+        0          | null      | 0          | null
+        0          | null      | 30         | 1
+        30         | 1         | 0          | null
     }
 
     def "should get matches to assign for given queue and set hardness level FULL"() {
@@ -263,9 +263,9 @@ class MatchServiceSpec extends Specification {
 
         where:
         homePoints | homePlace | awayPoints | awayPlace
-        0          | 0         | 0          | 0
-        0          | 0         | 30         | 1
-        30         | 1         | 0          | 0
+        0          | null      | 0          | null
+        0          | null      | 30         | 1
+        30         | 1         | 0          | null
     }
 
     def "should refresh standings from finished matches before computing breakdown"() {

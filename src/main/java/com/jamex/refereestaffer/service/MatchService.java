@@ -138,11 +138,10 @@ public class MatchService {
 
     /** Returns [top, bottom] — at most one of them can be non-zero. */
     private double[] computeEdgeMatchParts(Team homeTeam, Team awayTeam, Map<ConfigName, Double> config, long numberOfTeams) {
-        // place is a @Transient field defaulting to 0 for any team that hasn't appeared in
-        // a finished match yet (calculatePointsForTeams only ranks teams from the finished set).
-        // Without this guard, place=0 satisfies `place <= numberOfTeamsOnEdge` (0 <= 3 by default),
-        // so a fresh team's match would be classified as a top-of-table fixture by accident.
-        if (homeTeam.getPlace() == 0 || awayTeam.getPlace() == 0) {
+        // place is null for any team that hasn't appeared in a finished match yet
+        // (calculatePointsForTeams only ranks teams from the finished set), so an unranked
+        // team can never be classified as a top- or bottom-of-table fixture.
+        if (homeTeam.getPlace() == null || awayTeam.getPlace() == null) {
             return new double[]{0.0, 0.0};
         }
         var numberOfTeamsOnEdge = config.get(ConfigName.NUMBER_OF_EDGE_TEAMS).longValue();

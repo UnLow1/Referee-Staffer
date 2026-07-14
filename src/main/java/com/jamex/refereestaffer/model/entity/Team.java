@@ -32,17 +32,22 @@ public class Team {
     @Transient
     private short points;
 
+    /**
+     * Standings position computed by {@code MatchService.calculatePointsForTeams} — only
+     * teams that appear in a finished match get ranked. {@code null} means unranked (no
+     * finished matches yet); never 0.
+     */
     @Transient
-    private short place;
+    private Short place;
 
     public Team() {
     }
 
-    public Team(Long id, String name, String city, short points, short place) {
+    public Team(Long id, String name, String city, short points, Short place) {
         this(id, name, city, null, points, place);
     }
 
-    public Team(Long id, String name, String city, String shortCode, short points, short place) {
+    public Team(Long id, String name, String city, String shortCode, short points, Short place) {
         this.id = id;
         this.name = name;
         this.city = city;
@@ -104,11 +109,11 @@ public class Team {
         return points;
     }
 
-    public short getPlace() {
+    public Short getPlace() {
         return place;
     }
 
-    public void setPlace(short place) {
+    public void setPlace(Short place) {
         this.place = place;
     }
 
@@ -135,7 +140,7 @@ public class Team {
         private String city;
         private String shortCode;
         private short points;
-        private short place;
+        private Short place;
 
         public Builder id(Long id) {
             this.id = id;
@@ -162,7 +167,7 @@ public class Team {
             return this;
         }
 
-        public Builder place(short place) {
+        public Builder place(Short place) {
             this.place = place;
             return this;
         }
