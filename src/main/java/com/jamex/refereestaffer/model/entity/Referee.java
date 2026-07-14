@@ -102,6 +102,16 @@ public class Referee {
         return id;
     }
 
+    /**
+     * "S C" = "Sędzia z Centrali" (central-level referee assigned top-down by PZPN).
+     * The imported CSV stores such assignments with firstName="S", lastName="C" as a
+     * sentinel meaning "the staffer must not touch this match". Kept as a name-based
+     * sentinel for now — modelling it as an explicit flag is a separate ticket.
+     */
+    public boolean isCentralSentinel() {
+        return "S".equals(firstName) && "C".equals(lastName);
+    }
+
     public String getFirstName() {
         return firstName;
     }
