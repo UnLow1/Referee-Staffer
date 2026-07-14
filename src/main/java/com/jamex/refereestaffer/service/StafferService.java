@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,6 +36,7 @@ public class StafferService {
     static final String LOCKED_MATCH_NOT_ASSIGNABLE = "Locked match with id = %d is not assignable in queue %d";
     static final String DUPLICATE_LOCKED_MATCH = "Match with id = %d is locked more than once";
     static final String DUPLICATE_LOCKED_REFEREE = "Referee with id = %d is locked to more than one match";
+    static final String LOCKED_REFEREE_UNAVAILABLE = "Referee with id = %d already has a non-reassignable match in queue %d";
 
     private static final Logger log = LoggerFactory.getLogger(StafferService.class);
 
@@ -120,14 +122,29 @@ public class StafferService {
     }
 
     private void validateLocks(short queue, List<Match> matchesToStaff, List<StaffingLockRequest> locks) {
+        if (locks.isEmpty()) {
+            return;
+        }
         var assignableMatchIds = matchesToStaff.stream()
                 .map(Match::getId)
+                .collect(Collectors.toSet());
+        // Referees keeping an assignment in this queue (finished or central matches) cannot be
+        // pinned to another match — that would double-book them within the round. Unreachable
+        // through the UI (its candidate pool already excludes them) but reachable via raw API.
+        var unavailableRefereeIds = matchRepository.findAllByQueue(queue).stream()
+                .filter(match -> !assignableMatchIds.contains(match.getId()))
+                .map(Match::getReferee)
+                .filter(Objects::nonNull)
+                .map(Referee::getId)
                 .collect(Collectors.toSet());
         var lockedMatchIds = new HashSet<Long>();
         var lockedRefereeIds = new HashSet<Long>();
         for (var lock : locks) {
             if (!assignableMatchIds.contains(lock.matchId())) {
                 throw new StafferException(String.format(LOCKED_MATCH_NOT_ASSIGNABLE, lock.matchId(), queue));
+            }
+            if (unavailableRefereeIds.contains(lock.refereeId())) {
+                throw new StafferException(String.format(LOCKED_REFEREE_UNAVAILABLE, lock.refereeId(), queue));
             }
             if (!lockedMatchIds.add(lock.matchId())) {
                 throw new StafferException(String.format(DUPLICATE_LOCKED_MATCH, lock.matchId()));

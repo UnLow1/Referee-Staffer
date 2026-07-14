@@ -199,6 +199,7 @@ class StafferServiceSpec extends Specification {
         lockedMatch.referee == lockedReferee
         otherMatch.referee == freeReferee
         1 * matchService.getMatchesToAssignInQueue(queue) >> [lockedMatch, otherMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [lockedMatch, otherMatch]
         1 * refereeRepository.findById(11l) >> Optional.of(lockedReferee)
         // Pinned state must be flushed before the native availability query runs.
         1 * matchRepository.flush()
@@ -246,11 +247,37 @@ class StafferServiceSpec extends Specification {
 
         then:
         1 * matchService.getMatchesToAssignInQueue(queue) >> [assignableMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [assignableMatch]
         0 * refereeRepository.findById(_)
         0 * refereeService.getAvailableRefereesForQueue(_)
         def exception = thrown(StafferException)
         exception.message == String.format(StafferService.LOCKED_MATCH_NOT_ASSIGNABLE, 99l, queue)
         assignableMatch.referee == null
+    }
+
+    def "should reject lock pinning a referee who keeps a non-reassignable match in the queue"() {
+        given:
+        short queue = 4
+        def busyReferee = Referee.builder().id(11l).firstName("Busy").lastName("Referee").build()
+        def assignableMatch = Match.builder().id(1l).build()
+        def finishedMatch = Match.builder()
+                .id(2l)
+                .referee(busyReferee)
+                .homeScore((short) 1).awayScore((short) 0)
+                .build()
+        def locks = [new StaffingLockRequest(1l, 11l)]
+
+        when:
+        stafferService.staffReferees(queue, locks)
+
+        then:
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [assignableMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [assignableMatch, finishedMatch]
+        0 * refereeRepository.findById(_)
+        def exception = thrown(StafferException)
+        exception.message == String.format(StafferService.LOCKED_REFEREE_UNAVAILABLE, 11l, queue)
+        assignableMatch.referee == null
+        finishedMatch.referee == busyReferee
     }
 
     def "should reject duplicate locks"() {
@@ -263,6 +290,7 @@ class StafferServiceSpec extends Specification {
 
         then:
         1 * matchService.getMatchesToAssignInQueue(queue) >> matches
+        1 * matchRepository.findAllByQueue(queue) >> matches
         0 * refereeRepository.findById(_)
         def exception = thrown(StafferException)
         exception.message == expectedMessage
@@ -284,6 +312,7 @@ class StafferServiceSpec extends Specification {
 
         then:
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * matchRepository.findAllByQueue(queue) >> [match]
         1 * refereeRepository.findById(77l) >> Optional.empty()
         0 * refereeService.getAvailableRefereesForQueue(_)
         thrown(RefereeNotFoundException)

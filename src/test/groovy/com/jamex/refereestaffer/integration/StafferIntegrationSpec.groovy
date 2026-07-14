@@ -8,8 +8,10 @@ import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.repository.TeamRepository
 import com.jamex.refereestaffer.service.StafferService
+import org.spockframework.runtime.model.parallel.ExecutionMode
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import spock.lang.Execution
 import spock.lang.Specification
 
 import java.time.LocalDateTime
@@ -20,6 +22,10 @@ import java.time.LocalDateTime
  * algorithm with mocks — this one's job is to prove that referee assignment actually
  * persists to the database, which is the part dependency-injected mocks can never verify.
  */
+// Features must run on one thread: they share the single cached H2 instance and setup()
+// wipes the domain tables, so Spock's parallel mode would let features delete each
+// other's fixtures mid-flight.
+@Execution(ExecutionMode.SAME_THREAD)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class StafferIntegrationSpec extends Specification {
 
