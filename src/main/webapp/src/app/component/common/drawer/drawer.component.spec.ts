@@ -65,4 +65,19 @@ describe('DrawerComponent', () => {
     open();
     expect(fixture.nativeElement.querySelector('.drawer--wide')).not.toBeNull();
   });
+
+  it('moves focus into the panel on open and back to the trigger on close', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    open();
+    expect(document.activeElement).toBe(fixture.nativeElement.querySelector('button[aria-label="Close"]'));
+
+    fixture.componentRef.setInput('open', false);
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(trigger);
+
+    trigger.remove();
+  });
 });
