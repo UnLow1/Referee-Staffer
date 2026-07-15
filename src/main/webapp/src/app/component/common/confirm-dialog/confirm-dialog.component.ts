@@ -1,5 +1,6 @@
 import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
 import {IconComponent} from '../icon/icon.component';
+import {FocusTrapDirective} from '../focus-trap/focus-trap.directive';
 import {ModalData} from '../../../model/modalData';
 
 /**
@@ -13,11 +14,11 @@ import {ModalData} from '../../../model/modalData';
  */
 @Component({
   selector: 'app-confirm-dialog',
-  imports: [IconComponent],
+  imports: [IconComponent, FocusTrapDirective],
   template: `
     @if (open) {
       <button type="button" class="modal-backdrop" (click)="cancelled.emit()" aria-label="Cancel"></button>
-      <div class="modal" role="alertdialog" aria-modal="true" [attr.aria-label]="data.header">
+      <div class="modal" role="alertdialog" aria-modal="true" [attr.aria-label]="data.header" appFocusTrap>
         <div class="modal__head">
           <span class="modal__icon"
                 [class.modal__icon--warn]="data.tone === 'warn'"
@@ -39,9 +40,10 @@ import {ModalData} from '../../../model/modalData';
     }
   `,
   styles: [`
-    /* Same focusable-backdrop pattern as app-drawer: a <button> so Tab can reach it and
-       Enter/Space dismiss. The global .modal-backdrop flex centering is irrelevant for
-       an empty button, so the modal centers itself instead. */
+    /* Same backdrop-as-<button> pattern as app-drawer — activatable by assistive tech
+       but outside the focus trap's Tab cycle (Esc and the footer buttons cover keyboard
+       dismissal). The global .modal-backdrop flex centering is irrelevant for an empty
+       button, so the modal centers itself instead. */
     button.modal-backdrop {
       border: none;
       padding: 0;
