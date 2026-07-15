@@ -41,6 +41,7 @@ class RefereeServiceSpec extends Specification {
     def "should fall back to default grade when referee has no matches"() {
         given:
         def referee = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .build()
@@ -57,6 +58,7 @@ class RefereeServiceSpec extends Specification {
     def "should fall back to default grade when referee's matches have no grades yet"() {
         given:
         def referee = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .build()
@@ -114,6 +116,7 @@ class RefereeServiceSpec extends Specification {
     def "should count home and away wins skipping draws and unfinished matches"() {
         given:
         def referee = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .build()
@@ -143,6 +146,7 @@ class RefereeServiceSpec extends Specification {
     def "should set zero win counters for referee without matches"() {
         given:
         def referee = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .build()
@@ -161,6 +165,7 @@ class RefereeServiceSpec extends Specification {
         def avgMultiplier = 6.0d
         def expMultiplier = 0.5d
         def referee = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .experience(10)
@@ -189,6 +194,7 @@ class RefereeServiceSpec extends Specification {
         def avgMultiplier = 6.0d
         def expMultiplier = 0.5d
         def referee = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .experience(4)
@@ -208,14 +214,17 @@ class RefereeServiceSpec extends Specification {
 
     static List<Referee> createReferees() {
         def ref1 = Referee.builder()
+                .id(1L)
                 .firstName("John")
                 .lastName("Smith")
                 .build()
         def ref2 = Referee.builder()
+                .id(2L)
                 .firstName("Affan")
                 .lastName("Bradshaw")
                 .build()
         def refSC = Referee.builder()
+                .id(3L)
                 .firstName("S")
                 .lastName("C")
                 .build()
