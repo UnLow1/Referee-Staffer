@@ -79,6 +79,9 @@ export class FocusTrapDirective implements AfterViewInit, OnDestroy {
   }
 
   private focusables(): HTMLElement[] {
-    return Array.from(this.container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+    // checkVisibility() drops display:none / visibility:hidden matches — focusing those
+    // silently fails, which would break both the initial focus and the Tab wrap-around.
+    return Array.from(this.container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
+      .filter(element => element.checkVisibility());
   }
 }

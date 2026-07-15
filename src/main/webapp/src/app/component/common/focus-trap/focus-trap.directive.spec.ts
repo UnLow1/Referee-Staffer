@@ -11,6 +11,7 @@ import {FocusTrapDirective} from './focus-trap.directive';
         <button id="first" type="button">first</button>
         <button id="second" type="button" [disabled]="secondDisabled()">second</button>
         <button id="last" type="button">last</button>
+        <button id="invisible" type="button" style="display: none">invisible</button>
       </div>
     }
     @if (stacked()) {
