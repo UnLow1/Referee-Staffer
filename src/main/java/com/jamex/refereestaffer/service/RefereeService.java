@@ -54,13 +54,15 @@ public class RefereeService {
             return;
         }
         // One bulk query instead of a findAllByReferee per referee (N+1 — this runs on every
-        // referee list/profile GET, not just staffing). Grouping by the entity works because
-        // Hibernate returns the same managed Referee instances that went into the IN clause.
-        var matchesByReferee = matchRepository.findAllByRefereeIn(referees).stream()
-                .collect(Collectors.groupingBy(Match::getReferee));
+        // referee list/profile GET, not just staffing). Group by id, not by entity: with OSIV
+        // off, the referees passed in by a controller come from a different (already closed)
+        // session than this query, so Hibernate returns different instances — and Referee
+        // compares by identity, which would make every lookup below miss.
+        var matchesByRefereeId = matchRepository.findAllByRefereeIn(referees).stream()
+                .collect(Collectors.groupingBy(match -> match.getReferee().getId()));
 
         for (var referee : referees) {
-            var matchesForReferee = matchesByReferee.getOrDefault(referee, List.of());
+            var matchesForReferee = matchesByRefereeId.getOrDefault(referee.getId(), List.of());
 
             var averageGrade = countAverageGrade(matchesForReferee);
             var teamsRefereedMap = createTeamsRefereedMap(matchesForReferee);
