@@ -2,7 +2,7 @@ import {TestBed} from '@angular/core/testing';
 import {HttpErrorResponse, provideHttpClient, withInterceptors} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
 
-import {ConfigurationService} from './configuration.service';
+import {ConfigurationService, DEFAULT_NUMBER_OF_EDGE_TEAMS} from './configuration.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
 import {Config} from '../model/config';
@@ -83,5 +83,55 @@ describe('ConfigurationService', () => {
 
     expect(error?.status).toBe(500);
     expect(toastService.toast()).toEqual({message: 'Request failed (HTTP 500)', kind: 'error'});
+  });
+
+  describe('edgeTeams', () => {
+    it('starts on the fallback before any fetch', () => {
+      expect(service.edgeTeams()).toBe(DEFAULT_NUMBER_OF_EDGE_TEAMS);
+    });
+
+    it('loads NUMBER_OF_EDGE_TEAMS once and ignores repeat calls', () => {
+      service.ensureEdgeTeamsLoaded();
+      httpTesting.expectOne(configurationUrl)
+        .flush([{id: 2, name: 'NUMBER_OF_EDGE_TEAMS', value: 4.0, group: 'difficulty'}]);
+
+      expect(service.edgeTeams()).toBe(4);
+
+      service.ensureEdgeTeamsLoaded();
+      httpTesting.expectNone(configurationUrl);
+    });
+
+    it('retries on a later call after the fetch fails, keeping the fallback meanwhile', () => {
+      service.ensureEdgeTeamsLoaded();
+      httpTesting.expectOne(configurationUrl)
+        .flush(null, {status: 500, statusText: 'Internal Server Error'});
+      expect(service.edgeTeams()).toBe(DEFAULT_NUMBER_OF_EDGE_TEAMS);
+
+      service.ensureEdgeTeamsLoaded();
+      httpTesting.expectOne(configurationUrl)
+        .flush([{id: 2, name: 'NUMBER_OF_EDGE_TEAMS', value: 5.0, group: 'difficulty'}]);
+      expect(service.edgeTeams()).toBe(5);
+    });
+
+    it('keeps the current value when the key is missing or not positive', () => {
+      service.ensureEdgeTeamsLoaded();
+      httpTesting.expectOne(configurationUrl)
+        .flush([{id: 1, name: 'AVERAGE_GRADE_MULTIPLIER', value: 10, group: 'potential'}]);
+      expect(service.edgeTeams()).toBe(DEFAULT_NUMBER_OF_EDGE_TEAMS);
+
+      service.update(configs).subscribe();
+      httpTesting.expectOne(configurationUrl)
+        .flush([{id: 2, name: 'NUMBER_OF_EDGE_TEAMS', value: 0, group: 'difficulty'}]);
+      expect(service.edgeTeams()).toBe(DEFAULT_NUMBER_OF_EDGE_TEAMS);
+    });
+
+    it('stays in sync when the configuration screen saves a new value', () => {
+      const updated: Config[] = [{id: 2, name: 'NUMBER_OF_EDGE_TEAMS', value: 2.0, group: 'difficulty'}];
+
+      service.update(updated).subscribe();
+      httpTesting.expectOne(configurationUrl).flush(updated);
+
+      expect(service.edgeTeams()).toBe(2);
+    });
   });
 });
