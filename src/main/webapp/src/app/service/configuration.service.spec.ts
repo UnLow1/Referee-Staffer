@@ -101,6 +101,16 @@ describe('ConfigurationService', () => {
       httpTesting.expectNone(configurationUrl);
     });
 
+    it('skips the fetch when the configuration was already loaded elsewhere', () => {
+      service.findAll().subscribe();
+      httpTesting.expectOne(configurationUrl)
+        .flush([{id: 2, name: 'NUMBER_OF_EDGE_TEAMS', value: 4.0, group: 'difficulty'}]);
+
+      service.ensureEdgeTeamsLoaded();
+      httpTesting.expectNone(configurationUrl);
+      expect(service.edgeTeams()).toBe(4);
+    });
+
     it('retries on a later call after the fetch fails, keeping the fallback meanwhile', () => {
       service.ensureEdgeTeamsLoaded();
       httpTesting.expectOne(configurationUrl)

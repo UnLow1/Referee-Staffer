@@ -54,6 +54,9 @@ export class ConfigurationService {
   }
 
   private syncEdgeTeams(configs: Config[]): void {
+    // Any successful configuration response counts as "loaded" — e.g. the Configuration
+    // screen calling findAll() directly spares ensureEdgeTeamsLoaded() a duplicate fetch.
+    this.edgeTeamsLoaded = true;
     const value = configs.find(c => c.name === 'NUMBER_OF_EDGE_TEAMS')?.value;
     if (value != null && value > 0) {
       this.edgeTeamsSignal.set(Math.round(value));
