@@ -61,6 +61,13 @@ describe('app routes', () => {
     expect(router.url).toBe('/dashboard');
   });
 
+  it('sends deep paths under the legacy /importer to the dashboard, not /import', async () => {
+    // The old importer screen had no child routes, so only the exact path is preserved.
+    await harness.navigateByUrl('/importer/foo');
+
+    expect(router.url).toBe('/dashboard');
+  });
+
   it('redirects the legacy /importer path to /import', async () => {
     await harness.navigateByUrl('/importer');
 
