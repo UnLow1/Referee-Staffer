@@ -7,13 +7,12 @@ import {Team} from '../../model/team';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
 import {TeamService} from '../../service/team.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {IconComponent} from '../common/icon/icon.component';
 import {KpiComponent} from '../common/kpi/kpi.component';
 import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
 import {MeterComponent} from '../common/meter/meter.component';
-
-const NUMBER_OF_EDGE_TEAMS = 3;
 
 /**
  * Overview — at-a-glance dashboard.
@@ -37,6 +36,10 @@ export class DashboardComponent implements OnInit {
   private readonly matchService = inject(MatchService);
   private readonly refereeService = inject(RefereeService);
   private readonly teamService = inject(TeamService);
+  private readonly configurationService = inject(ConfigurationService);
+
+  /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
+  readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly matches = signal<Match[]>([]);
   readonly referees = signal<Referee[]>([]);
@@ -94,6 +97,7 @@ export class DashboardComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.configurationService.ensureEdgeTeamsLoaded();
     forkJoin({
       matches: this.matchService.findAll(),
       referees: this.refereeService.findAll(),
@@ -137,8 +141,9 @@ export class DashboardComponent implements OnInit {
 
   zoneFor(index: number): 'top' | 'relegation' | null {
     const total = this.standingsTotal();
-    if (index < NUMBER_OF_EDGE_TEAMS) return 'top';
-    if (index >= total - NUMBER_OF_EDGE_TEAMS && total >= NUMBER_OF_EDGE_TEAMS * 2) return 'relegation';
+    const edge = this.edgeTeams();
+    if (index < edge) return 'top';
+    if (index >= total - edge && total >= edge * 2) return 'relegation';
     return null;
   }
 }

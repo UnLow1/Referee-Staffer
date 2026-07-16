@@ -8,11 +8,10 @@ import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {IconComponent} from '../common/icon/icon.component';
 import {ChipComponent} from '../common/chip/chip.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
-
-const NUMBER_OF_EDGE_TEAMS = 3;
 
 interface CompareRow {
   label: string;
@@ -41,6 +40,10 @@ export class MatchDetailComponent implements OnInit {
   private readonly matchService = inject(MatchService);
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
+  private readonly configurationService = inject(ConfigurationService);
+
+  /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
+  readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly match = signal<Match | null>(null);
   readonly breakdown = signal<DifficultyBreakdown | null>(null);
@@ -78,7 +81,8 @@ export class MatchDetailComponent implements OnInit {
     if (flags) return flags.isTop;
     const hp = this.homePlace();
     const ap = this.awayPlace();
-    return hp != null && ap != null && hp <= NUMBER_OF_EDGE_TEAMS && ap <= NUMBER_OF_EDGE_TEAMS;
+    const edge = this.edgeTeams();
+    return hp != null && ap != null && hp <= edge && ap <= edge;
   });
 
   readonly isRelegationMatch = computed(() => {
@@ -87,9 +91,10 @@ export class MatchDetailComponent implements OnInit {
     const hp = this.homePlace();
     const ap = this.awayPlace();
     const total = this.standings().length;
+    const edge = this.edgeTeams();
     return hp != null && ap != null && total > 0
-      && hp > total - NUMBER_OF_EDGE_TEAMS
-      && ap > total - NUMBER_OF_EDGE_TEAMS;
+      && hp > total - edge
+      && ap > total - edge;
   });
 
   readonly compareRows = computed<CompareRow[]>(() => {
@@ -125,6 +130,7 @@ export class MatchDetailComponent implements OnInit {
       this.router.navigate(['/matches']);
       return;
     }
+    this.configurationService.ensureEdgeTeamsLoaded();
     forkJoin({
       match: this.matchService.findById(matchId),
       breakdown: this.matchService.getDifficultyBreakdown(matchId),

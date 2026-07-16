@@ -1,14 +1,17 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {signal, WritableSignal} from '@angular/core';
 import {of} from 'rxjs';
 import {StandingsComponent} from './standings.component';
 import {TeamService} from '../../service/team.service';
 import {MatchService} from '../../service/match.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {Team} from '../../model/team';
 import {Match} from '../../model/match';
 
 describe('StandingsComponent', () => {
   let teamService: jasmine.SpyObj<TeamService>;
   let matchService: jasmine.SpyObj<MatchService>;
+  let edgeTeams: WritableSignal<number>;
 
   // /api/teams/standings returns table order; 8 teams so both edge zones exist.
   const standings: Team[] = Array.from({length: 8}, (_, i) => ({
@@ -29,12 +32,14 @@ describe('StandingsComponent', () => {
     matchService = jasmine.createSpyObj('MatchService', ['findAll']);
     teamService.getStandings.and.returnValue(of(standings));
     matchService.findAll.and.returnValue(of(matches));
+    edgeTeams = signal(3);
 
     await TestBed.configureTestingModule({
       imports: [StandingsComponent],
       providers: [
         {provide: TeamService, useValue: teamService},
-        {provide: MatchService, useValue: matchService}
+        {provide: MatchService, useValue: matchService},
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}}
       ]
     }).compileComponents();
   });
@@ -74,6 +79,16 @@ describe('StandingsComponent', () => {
 
     expect(rows.filter(r => r.zone === 'accent').map(r => r.pos)).toEqual([1, 2, 3]);
     expect(rows.some(r => r.zone === 'danger')).toBeFalse();
+  });
+
+  it('derives zones and filter labels from the configured edge size', () => {
+    edgeTeams.set(2);
+    const component = create().componentInstance;
+
+    const rows = component.rows();
+    expect(rows.filter(r => r.zone === 'accent').map(r => r.pos)).toEqual([1, 2]);
+    expect(rows.filter(r => r.zone === 'danger').map(r => r.pos)).toEqual([7, 8]);
+    expect(component.filterOptions().map(o => o.label)).toEqual(['All', 'Top 4', 'Bottom 2']);
   });
 
   it('formats the goal difference with an explicit sign', () => {
