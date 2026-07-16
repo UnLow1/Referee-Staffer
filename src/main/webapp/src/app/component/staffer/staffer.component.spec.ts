@@ -6,6 +6,7 @@ import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {UiSettingsService} from '../../service/ui-settings.service';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -20,9 +21,11 @@ describe('StafferComponent', () => {
   let refereeService: jasmine.SpyObj<RefereeService>;
   let matchService: jasmine.SpyObj<MatchService>;
   let explainerVisible: WritableSignal<boolean>;
+  let edgeTeams: WritableSignal<number>;
 
-  // Standings order defines place: index 0 = 1st. 8 teams, NUMBER_OF_EDGE_TEAMS = 3,
-  // so top = both places <= 3, bottom = both places > 5. Teams 1 and 2 share a city.
+  // Standings order defines place: index 0 = 1st. 8 teams, edge size 3 (stubbed
+  // ConfigurationService), so top = both places <= 3, bottom = both places > 5.
+  // Teams 1 and 2 share a city.
   const standings: Team[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
     {id: 2, name: 'Beta', city: 'Krakow', points: 35},
@@ -91,6 +94,7 @@ describe('StafferComponent', () => {
     refereeService = jasmine.createSpyObj('RefereeService', ['findRefereesAvailableForQueue']);
     matchService = jasmine.createSpyObj('MatchService', ['getDifficultyBreakdown', 'updateList']);
     explainerVisible = signal(false);
+    edgeTeams = signal(3);
 
     stafferService.staffReferees.and.returnValue(of(matches));
     teamService.getStandings.and.returnValue(of(standings));
@@ -105,6 +109,7 @@ describe('StafferComponent', () => {
         {provide: TeamService, useValue: teamService},
         {provide: RefereeService, useValue: refereeService},
         {provide: MatchService, useValue: matchService},
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}},
         {provide: UiSettingsService, useValue: {explainerVisible: explainerVisible.asReadonly()}}
       ]
     }).compileComponents();
@@ -344,6 +349,17 @@ describe('StafferComponent', () => {
 
     it('degrades to no flags for teams missing from the standings', () => {
       expect(component.hasNoFlags(makeMatch(28, {homeTeamId: 998, awayTeamId: 999}))).toBeTrue();
+    });
+
+    it('follows the configured edge size instead of a hardcoded 3', () => {
+      edgeTeams.set(2);
+
+      // Places 1 vs 3 stop being a top pairing once the edge shrinks to 2...
+      expect(component.flags(makeMatch(29, {homeTeamId: 1, awayTeamId: 3})).isTop).toBeFalse();
+      expect(component.flags(makeMatch(30, {homeTeamId: 1, awayTeamId: 2})).isTop).toBeTrue();
+      // ...and places 6 vs 8 leave the relegation zone (now places > 6).
+      expect(component.flags(makeMatch(31, {homeTeamId: 6, awayTeamId: 8})).isBot).toBeFalse();
+      expect(component.flags(makeMatch(32, {homeTeamId: 7, awayTeamId: 8})).isBot).toBeTrue();
     });
   });
 

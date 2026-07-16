@@ -4,10 +4,9 @@ import {Team} from '../../model/team';
 import {Match} from '../../model/match';
 import {TeamService} from '../../service/team.service';
 import {MatchService} from '../../service/match.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {SegComponent, SegOption} from '../common/seg/seg.component';
-
-const NUMBER_OF_EDGE_TEAMS = 3;
 
 export type StandingsFilter = 'all' | 'top' | 'bottom';
 
@@ -29,8 +28,9 @@ interface StandingRow {
  *
  * Order and points come from /api/teams/standings (authoritative — points weighting is
  * configurable server-side); P/W/D/L/GF/GA are derived client-side from played matches,
- * the same way the team list derives "Played". Top 3 = accent zone, bottom 3 = danger,
- * matching the dashboard widget's NUMBER_OF_EDGE_TEAMS.
+ * the same way the team list derives "Played". Zone sizes follow NUMBER_OF_EDGE_TEAMS
+ * from the backend configuration (top edge = accent, bottom edge = danger), matching
+ * the dashboard widget.
  */
 @Component({
   selector: 'app-standings',
@@ -41,16 +41,20 @@ interface StandingRow {
 export class StandingsComponent implements OnInit {
   private readonly teamService = inject(TeamService);
   private readonly matchService = inject(MatchService);
+  private readonly configurationService = inject(ConfigurationService);
+
+  /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
+  readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly teams = signal<Team[]>([]);
   readonly matches = signal<Match[]>([]);
   readonly filter = signal<StandingsFilter>('all');
 
-  readonly filterOptions: SegOption<StandingsFilter>[] = [
+  readonly filterOptions = computed<SegOption<StandingsFilter>[]>(() => [
     {value: 'all', label: 'All'},
-    {value: 'top', label: `Top ${NUMBER_OF_EDGE_TEAMS * 2}`},
-    {value: 'bottom', label: `Bottom ${NUMBER_OF_EDGE_TEAMS}`}
-  ];
+    {value: 'top', label: `Top ${this.edgeTeams() * 2}`},
+    {value: 'bottom', label: `Bottom ${this.edgeTeams()}`}
+  ]);
 
   /** Highest queue with at least one played match — "after queue N" in the subtitle. */
   readonly latestPlayedQueue = computed<number | null>(() => {
@@ -62,11 +66,12 @@ export class StandingsComponent implements OnInit {
   readonly rows = computed<StandingRow[]>(() => {
     const stats = computeStats(this.matches());
     const total = this.teams().length;
+    const edge = this.edgeTeams();
     return this.teams().map((team, i) => {
       const pos = i + 1;
       const s = stats.get(team.id) ?? emptyStats();
-      const zone = pos <= NUMBER_OF_EDGE_TEAMS ? 'accent' as const
-        : (pos > total - NUMBER_OF_EDGE_TEAMS && total >= NUMBER_OF_EDGE_TEAMS * 2) ? 'danger' as const
+      const zone = pos <= edge ? 'accent' as const
+        : (pos > total - edge && total >= edge * 2) ? 'danger' as const
         : null;
       return {team, pos, zone, ...s};
     });
@@ -75,10 +80,11 @@ export class StandingsComponent implements OnInit {
   readonly visibleRows = computed(() => {
     const filter = this.filter();
     const total = this.rows().length;
+    const edge = this.edgeTeams();
     return this.rows().filter(row =>
       filter === 'all' ? true
-        : filter === 'top' ? row.pos <= NUMBER_OF_EDGE_TEAMS * 2
-        : row.pos > total - NUMBER_OF_EDGE_TEAMS);
+        : filter === 'top' ? row.pos <= edge * 2
+        : row.pos > total - edge);
   });
 
   readonly maxPoints = computed(() => {
@@ -87,6 +93,7 @@ export class StandingsComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.configurationService.ensureEdgeTeamsLoaded();
     forkJoin({
       standings: this.teamService.getStandings(),
       matches: this.matchService.findAll()

@@ -4,6 +4,7 @@ import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {UiSettingsService} from '../../service/ui-settings.service';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -29,8 +30,6 @@ interface Candidate {
   isUsedElsewhere: boolean;
 }
 
-const NUMBER_OF_EDGE_TEAMS = 3;
-
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
  * swap individual rows, then save.
@@ -52,8 +51,12 @@ export class StafferComponent {
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
   private readonly matchService = inject(MatchService);
+  private readonly configurationService = inject(ConfigurationService);
   /** Gates the "How the staffer scores assignments" panel (toggled in the sidebar's Admin section). */
   readonly settings = inject(UiSettingsService);
+
+  /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
+  readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly queue = signal(1);
   readonly matches = signal<Match[] | null>(null);
@@ -76,6 +79,10 @@ export class StafferComponent {
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
+
+  constructor() {
+    this.configurationService.ensureEdgeTeamsLoaded();
+  }
 
   // ——— Derived state ———
 
@@ -211,10 +218,11 @@ export class StafferComponent {
     const awayPlace = this.placeById().get(match.awayTeamId);
     const total = this.totalTeams();
 
+    const edge = this.edgeTeams();
     const sameCity = !!(home?.city && away?.city && home.city === away.city);
-    const isTop = !!(homePlace && awayPlace && homePlace <= NUMBER_OF_EDGE_TEAMS && awayPlace <= NUMBER_OF_EDGE_TEAMS);
+    const isTop = !!(homePlace && awayPlace && homePlace <= edge && awayPlace <= edge);
     const isBot = !!(homePlace && awayPlace && total > 0
-      && homePlace > total - NUMBER_OF_EDGE_TEAMS && awayPlace > total - NUMBER_OF_EDGE_TEAMS);
+      && homePlace > total - edge && awayPlace > total - edge);
     return {sameCity, isTop, isBot};
   }
 

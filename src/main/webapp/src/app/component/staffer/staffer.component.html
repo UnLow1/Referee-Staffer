@@ -108,7 +108,7 @@
               @let f = flags(match);
               <div class="flag-cell">
                 @if (f.sameCity) { <app-chip variant="warn">derby</app-chip> }
-                @if (f.isTop) { <app-chip variant="accent">top-3</app-chip> }
+                @if (f.isTop) { <app-chip variant="accent">top-{{ edgeTeams() }}</app-chip> }
                 @if (f.isBot) { <app-chip variant="danger">relegation</app-chip> }
                 @if (hasNoFlags(match)) { <span class="muted">—</span> }
               </div>
@@ -203,7 +203,7 @@
                 <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
               </tr>
               <tr>
-                <td>Top-3 match</td>
+                <td>Top-{{ edgeTeams() }} match</td>
                 <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
               </tr>
               <tr>

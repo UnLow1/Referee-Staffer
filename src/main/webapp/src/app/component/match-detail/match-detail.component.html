@@ -59,7 +59,7 @@
     </div>
     <div class="hero-flags">
       @if (sameCity()) { <app-chip variant="warn">derby — same city</app-chip> }
-      @if (isTopMatch()) { <app-chip variant="accent">top-3 match</app-chip> }
+      @if (isTopMatch()) { <app-chip variant="accent">top-{{ edgeTeams() }} match</app-chip> }
       @if (isRelegationMatch()) { <app-chip variant="danger">relegation match</app-chip> }
       <app-chip>Δ pts {{ pointsDiff() }}</app-chip>
       @if (m.hardnessLvl !== null) {
@@ -93,7 +93,7 @@
               <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
             </tr>
             <tr>
-              <td>Top-3 match</td>
+              <td>Top-{{ edgeTeams() }} match</td>
               <td class="num right muted">{{ b.flags.isTop ? 'active' : 'inactive' }}</td>
               <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
             </tr>
