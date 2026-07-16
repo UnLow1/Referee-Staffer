@@ -40,6 +40,15 @@ describe('ConfigurationService', () => {
       httpMock.expectNone(url);
     });
 
+    it('skips the fetch when the configuration was already loaded elsewhere', () => {
+      service.findAll().subscribe();
+      httpMock.expectOne(url).flush([config('NUMBER_OF_EDGE_TEAMS', 4.0)]);
+
+      service.ensureEdgeTeamsLoaded();
+      httpMock.expectNone(url);
+      expect(service.edgeTeams()).toBe(4);
+    });
+
     it('retries on a later call after the fetch fails, keeping the fallback meanwhile', () => {
       service.ensureEdgeTeamsLoaded();
       httpMock.expectOne(url).flush(null, {status: 500, statusText: 'Server Error'});
