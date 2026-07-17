@@ -95,47 +95,49 @@
         <div class="panel__sub">{{ history().length }} matches refereed</div>
       </div>
     </div>
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th class="num right col-queue">Queue</th>
-          <th>Home</th>
-          <th>Away</th>
-          <th class="num right col-score">Score</th>
-          <th class="num right col-grade">Grade</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (match of history(); track match.id) {
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead>
           <tr>
-            <td class="num right mono muted">{{ match.queue }}</td>
-            <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
-            <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
-            <td class="num right">
-              @if (scoreLine(match); as score) {
-                <strong>{{ score }}</strong>
-              } @else {
-                <span class="muted">—</span>
-              }
-            </td>
-            <td class="num right">
-              @if (getGrade(match.gradeId); as g) {
-                <div class="grade-cell">
-                  <app-meter [value]="gradeAsMeter(g)" [max]="100"></app-meter>
-                  <span class="mono grade-cell__value">{{ g.value.toFixed(1) }}</span>
-                </div>
-              } @else {
-                <span class="muted">—</span>
-              }
-            </td>
+            <th class="num right col-queue">Queue</th>
+            <th>Home</th>
+            <th>Away</th>
+            <th class="num right col-score">Score</th>
+            <th class="num right col-grade">Grade</th>
           </tr>
-        } @empty {
-          <tr>
-            <td colspan="5" class="empty-row muted">No matches in history yet.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (match of history(); track match.id) {
+            <tr>
+              <td class="num right mono muted">{{ match.queue }}</td>
+              <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
+              <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
+              <td class="num right">
+                @if (scoreLine(match); as score) {
+                  <strong>{{ score }}</strong>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td class="num right">
+                @if (getGrade(match.gradeId); as g) {
+                  <div class="grade-cell">
+                    <app-meter [value]="gradeAsMeter(g)" [max]="100"></app-meter>
+                    <span class="mono grade-cell__value">{{ g.value.toFixed(1) }}</span>
+                  </div>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="empty-row muted">No matches in history yet.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 } @else {
   <div class="panel"><div class="panel__body muted">Loading profile…</div></div>

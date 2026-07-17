@@ -17,56 +17,58 @@
 </div>
 
 <div class="panel">
-  <table class="tbl">
-    <thead>
-      <tr>
-        <th>Referee</th>
-        <th>Match</th>
-        <th class="num right col-queue">Queue</th>
-        <th class="num right col-grade">Grade</th>
-        <th class="col-actions"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (row of rows(); track row.grade.id) {
+  <div class="tbl-scroll">
+    <table class="tbl">
+      <thead>
         <tr>
-          <td>
-            @if (row.referee) {
-              <app-ref-avatar [referee]="row.referee"></app-ref-avatar>
-            } @else {
-              <span class="muted">—</span>
-            }
-          </td>
-          <td>
-            <span class="match-codes mono">
-              {{ shortCode(row.home) }} vs {{ shortCode(row.away) }}
-            </span>
-          </td>
-          <td class="num right">{{ row.match.queue }}</td>
-          <td class="num right">
-            <div class="grade-cell">
-              <app-meter [value]="gradeAsMeter(row.grade)" [max]="100" [kind]="gradeKind(row.grade)"></app-meter>
-              <span class="mono grade-cell__value">{{ row.grade.value.toFixed(1) }}</span>
-            </div>
-          </td>
-          <td class="col-actions">
-            <div class="row-actions">
-              <button type="button" class="btn btn--ghost btn--sm"
-                      (click)="editGrade(row, $event)" title="Edit via match form">
-                <app-icon name="edit" [size]="12"></app-icon>
-              </button>
-              <button type="button" class="btn btn--ghost btn--sm btn--danger"
-                      (click)="deleteGrade(row, $event)" title="Delete grade">
-                <app-icon name="trash" [size]="12"></app-icon>
-              </button>
-            </div>
-          </td>
+          <th>Referee</th>
+          <th>Match</th>
+          <th class="num right col-queue">Queue</th>
+          <th class="num right col-grade">Grade</th>
+          <th class="col-actions"></th>
         </tr>
-      } @empty {
-        <tr>
-          <td colspan="5" class="empty-row muted">No grades recorded yet.</td>
-        </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.grade.id) {
+          <tr>
+            <td>
+              @if (row.referee) {
+                <app-ref-avatar [referee]="row.referee"></app-ref-avatar>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td>
+              <span class="match-codes mono">
+                {{ shortCode(row.home) }} vs {{ shortCode(row.away) }}
+              </span>
+            </td>
+            <td class="num right">{{ row.match.queue }}</td>
+            <td class="num right">
+              <div class="grade-cell">
+                <app-meter [value]="gradeAsMeter(row.grade)" [max]="100" [kind]="gradeKind(row.grade)"></app-meter>
+                <span class="mono grade-cell__value">{{ row.grade.value.toFixed(1) }}</span>
+              </div>
+            </td>
+            <td class="col-actions">
+              <div class="row-actions">
+                <button type="button" class="btn btn--ghost btn--sm"
+                        (click)="editGrade(row, $event)" title="Edit via match form">
+                  <app-icon name="edit" [size]="12"></app-icon>
+                </button>
+                <button type="button" class="btn btn--ghost btn--sm btn--danger"
+                        (click)="deleteGrade(row, $event)" title="Delete grade">
+                  <app-icon name="trash" [size]="12"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="empty-row muted">No grades recorded yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

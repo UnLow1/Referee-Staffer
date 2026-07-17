@@ -81,75 +81,77 @@
         <span class="chip"><app-icon name="lock" [size]="11"></app-icon>locked</span>
       </div>
     </div>
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th class="col-idx"></th>
-          <th>Match</th>
-          <th class="col-flags">Flags</th>
-          <th class="num right col-difficulty">Difficulty</th>
-          <th class="col-referee">Assigned referee</th>
-          <th class="num right col-fit">Fit</th>
-          <th class="col-actions"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (match of sortedMatches(); track match.id; let i = $index) {
-          <tr class="cast-row" (click)="openDrawer(match)">
-            <td class="num cast-row__idx">{{ pad2(i + 1) }}</td>
-            <td>
-              <div class="match-cell">
-                <app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill>
-                <span class="match-cell__vs">vs</span>
-                <app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill>
-              </div>
-            </td>
-            <td>
-              @let f = flags(match);
-              <div class="flag-cell">
-                @if (f.sameCity) { <app-chip variant="warn">derby</app-chip> }
-                @if (f.isTop) { <app-chip variant="accent">top-3</app-chip> }
-                @if (f.isBot) { <app-chip variant="danger">relegation</app-chip> }
-                @if (hasNoFlags(match)) { <span class="muted">—</span> }
-              </div>
-            </td>
-            <td class="right">
-              <app-meter [value]="round(match.hardnessLvl)"
-                         [max]="150"
-                         [kind]="difficultyKind(match.hardnessLvl)"></app-meter>
-            </td>
-            <td>
-              <div class="referee-cell">
-                @if (isLocked(match)) {
-                  <span class="referee-cell__lock"><app-icon name="lock" [size]="12"></app-icon></span>
-                }
-                @if (getReferee(match.refereeId); as ref) {
-                  <app-ref-avatar [referee]="ref"></app-ref-avatar>
-                } @else {
-                  <span class="muted">unassigned</span>
-                }
-              </div>
-            </td>
-            <!-- Bias-aware Fit % is a planned backend addition. Placeholder until then. -->
-            <td class="num right muted">—</td>
-            <td class="col-actions" (click)="$event.stopPropagation()">
-              <div class="row-actions">
-                <button type="button" class="btn btn--ghost btn--sm"
-                        (click)="toggleLock(match)"
-                        [attr.title]="isLocked(match) ? 'Unlock' : 'Lock assignment'">
-                  <app-icon [name]="isLocked(match) ? 'lock' : 'unlock'" [size]="12"></app-icon>
-                </button>
-                <button type="button" class="btn btn--ghost btn--sm"
-                        (click)="openDrawer(match)"
-                        title="Swap referee">
-                  <app-icon name="swap" [size]="12"></app-icon>
-                </button>
-              </div>
-            </td>
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="col-idx"></th>
+            <th>Match</th>
+            <th class="col-flags">Flags</th>
+            <th class="num right col-difficulty">Difficulty</th>
+            <th class="col-referee">Assigned referee</th>
+            <th class="num right col-fit">Fit</th>
+            <th class="col-actions"></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (match of sortedMatches(); track match.id; let i = $index) {
+            <tr class="cast-row" (click)="openDrawer(match)">
+              <td class="num cast-row__idx">{{ pad2(i + 1) }}</td>
+              <td>
+                <div class="match-cell">
+                  <app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill>
+                  <span class="match-cell__vs">vs</span>
+                  <app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill>
+                </div>
+              </td>
+              <td>
+                @let f = flags(match);
+                <div class="flag-cell">
+                  @if (f.sameCity) { <app-chip variant="warn">derby</app-chip> }
+                  @if (f.isTop) { <app-chip variant="accent">top-3</app-chip> }
+                  @if (f.isBot) { <app-chip variant="danger">relegation</app-chip> }
+                  @if (hasNoFlags(match)) { <span class="muted">—</span> }
+                </div>
+              </td>
+              <td class="right">
+                <app-meter [value]="round(match.hardnessLvl)"
+                           [max]="150"
+                           [kind]="difficultyKind(match.hardnessLvl)"></app-meter>
+              </td>
+              <td>
+                <div class="referee-cell">
+                  @if (isLocked(match)) {
+                    <span class="referee-cell__lock"><app-icon name="lock" [size]="12"></app-icon></span>
+                  }
+                  @if (getReferee(match.refereeId); as ref) {
+                    <app-ref-avatar [referee]="ref"></app-ref-avatar>
+                  } @else {
+                    <span class="muted">unassigned</span>
+                  }
+                </div>
+              </td>
+              <!-- Bias-aware Fit % is a planned backend addition. Placeholder until then. -->
+              <td class="num right muted">—</td>
+              <td class="col-actions" (click)="$event.stopPropagation()">
+                <div class="row-actions">
+                  <button type="button" class="btn btn--ghost btn--sm"
+                          (click)="toggleLock(match)"
+                          [attr.title]="isLocked(match) ? 'Unlock' : 'Lock assignment'">
+                    <app-icon [name]="isLocked(match) ? 'lock' : 'unlock'" [size]="12"></app-icon>
+                  </button>
+                  <button type="button" class="btn btn--ghost btn--sm"
+                          (click)="openDrawer(match)"
+                          title="Swap referee">
+                    <app-icon name="swap" [size]="12"></app-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
     <div class="panel__foot">
       <div class="muted">
         @if (savedAt(); as t) {
@@ -191,38 +193,40 @@
     <div class="drawer-section">
       <div class="drawer-section__label">Difficulty breakdown</div>
       <div class="panel">
-        <table class="tbl">
-          <tbody>
-            @if (drawerBreakdown(); as b) {
-              <tr>
-                <td>Base — closeness in table (Δ {{ b.flags.pointsDiff }})</td>
-                <td class="num right">+{{ round(b.parts.base) }}</td>
-              </tr>
-              <tr>
-                <td>Same city {{ b.flags.sameCity ? '(derby)' : '' }}</td>
-                <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
-              </tr>
-              <tr>
-                <td>Top-3 match</td>
-                <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
-              </tr>
-              <tr>
-                <td>Relegation match</td>
-                <td class="num right" [class.danger-text]="b.flags.isBot" [class.muted]="!b.flags.isBot">+{{ round(b.parts.bottom) }}</td>
-              </tr>
-              <tr class="total-row">
-                <td><strong>Total difficulty</strong></td>
-                <td class="num right"><strong>{{ round(b.total) }}</strong></td>
-              </tr>
-            } @else {
-              <tr>
-                <td>Total difficulty</td>
-                <td class="num right">{{ round(match.hardnessLvl) }}</td>
-              </tr>
-              <tr><td colspan="2" class="muted">Loading breakdown…</td></tr>
-            }
-          </tbody>
-        </table>
+        <div class="tbl-scroll">
+          <table class="tbl">
+            <tbody>
+              @if (drawerBreakdown(); as b) {
+                <tr>
+                  <td>Base — closeness in table (Δ {{ b.flags.pointsDiff }})</td>
+                  <td class="num right">+{{ round(b.parts.base) }}</td>
+                </tr>
+                <tr>
+                  <td>Same city {{ b.flags.sameCity ? '(derby)' : '' }}</td>
+                  <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
+                </tr>
+                <tr>
+                  <td>Top-3 match</td>
+                  <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
+                </tr>
+                <tr>
+                  <td>Relegation match</td>
+                  <td class="num right" [class.danger-text]="b.flags.isBot" [class.muted]="!b.flags.isBot">+{{ round(b.parts.bottom) }}</td>
+                </tr>
+                <tr class="total-row">
+                  <td><strong>Total difficulty</strong></td>
+                  <td class="num right"><strong>{{ round(b.total) }}</strong></td>
+                </tr>
+              } @else {
+                <tr>
+                  <td>Total difficulty</td>
+                  <td class="num right">{{ round(match.hardnessLvl) }}</td>
+                </tr>
+                <tr><td colspan="2" class="muted">Loading breakdown…</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 

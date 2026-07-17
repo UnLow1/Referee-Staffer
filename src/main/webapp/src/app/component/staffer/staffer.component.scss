@@ -220,3 +220,13 @@
 .total-row td {
   background: var(--panel-2);
 }
+
+// ——— <768px (RS-85): explainer formulas stack, KPI strip folds to 2×2 ———
+@media (max-width: 767px) {
+  .explainer__grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-strip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

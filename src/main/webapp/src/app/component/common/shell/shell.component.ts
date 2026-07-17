@@ -1,4 +1,4 @@
-import {Component, inject, ChangeDetectionStrategy} from '@angular/core';
+import {Component, HostListener, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {RouterLink, RouterLinkActive, RouterOutlet} from '@angular/router';
 import {UiSettingsService} from '../../../service/ui-settings.service';
 import {IconComponent, IconName} from '../icon/icon.component';
@@ -18,6 +18,25 @@ import {IconComponent, IconName} from '../icon/icon.component';
 export class ShellComponent {
   /** Theme + admin-visibility + explainer flags; persisted in localStorage. */
   readonly settings = inject(UiSettingsService);
+
+  /**
+   * Mobile-only (<768px) off-canvas nav state, toggled by the hamburger in the topbar.
+   * On desktop the sidenav is a static grid column and this flag has no visual effect.
+   */
+  readonly navOpen = signal(false);
+
+  toggleNav(): void {
+    this.navOpen.update(open => !open);
+  }
+
+  closeNav(): void {
+    this.navOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeNav();
+  }
 
   // Three nav groups mirroring the prototype. `count` is left blank for now — wiring
   // it up requires service calls that should arrive together with the screens that

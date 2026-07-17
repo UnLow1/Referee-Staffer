@@ -30,6 +30,9 @@ const ICON_PATHS = {
   whistle:    'M4 12a6 6 0 1 0 8.5-5.5L20 4l-1 6h-3',
   grid:       'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   list:       'M4 6h16M4 12h16M4 18h16',
+  // Same three-line glyph as `list` (lucide draws them identically) — separate name so
+  // the mobile nav toggle reads as "menu" at the call site.
+  menu:       'M4 6h16M4 12h16M4 18h16',
   users:      'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0M16 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-4.9',
   chart:      'M4 20V10M10 20V4M16 20v-7M22 20H2',
   star:       'm12 3 2.5 6h6.5l-5 4.5L17.5 21 12 17l-5.5 4 1.5-7.5-5-4.5h6.5z',

@@ -127,3 +127,10 @@
   color: var(--ink-3);
   margin-top: 4px;
 }
+
+/* ——— <768px (RS-85): five KPI cells fold into a 2-column grid ——— */
+@media (max-width: 767px) {
+  .kpi-strip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
