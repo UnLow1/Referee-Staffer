@@ -25,14 +25,18 @@ export class IconComponent {
   }
 }
 
+// lucide draws `list` and `menu` with the same three lines — shared so the two names
+// can't drift apart.
+const THREE_LINES = 'M4 6h16M4 12h16M4 18h16';
+
 const ICON_PATHS = {
   home:       'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z',
   whistle:    'M4 12a6 6 0 1 0 8.5-5.5L20 4l-1 6h-3',
   grid:       'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
-  list:       'M4 6h16M4 12h16M4 18h16',
-  // Same three-line glyph as `list` (lucide draws them identically) — separate name so
-  // the mobile nav toggle reads as "menu" at the call site.
-  menu:       'M4 6h16M4 12h16M4 18h16',
+  list:       THREE_LINES,
+  // Same glyph as `list` — separate name so the mobile nav toggle reads as "menu"
+  // at the call site.
+  menu:       THREE_LINES,
   users:      'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0M16 11a3 3 0 1 0 0-6M21 20a5 5 0 0 0-4-4.9',
   chart:      'M4 20V10M10 20V4M16 20v-7M22 20H2',
   star:       'm12 3 2.5 6h6.5l-5 4.5L17.5 21 12 17l-5.5 4 1.5-7.5-5-4.5h6.5z',
