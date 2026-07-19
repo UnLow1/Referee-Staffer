@@ -1,4 +1,4 @@
-import type {MockedObject} from 'vitest';
+import type {Mock, MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
 import {of, Subject, throwError} from 'rxjs';
@@ -99,7 +99,7 @@ describe('StafferComponent', () => {
     stafferService = createMock<StafferService>(['staffReferees']);
     teamService = createMock<TeamService>(['getStandings']);
     refereeService = createMock<RefereeService>(['findRefereesAvailableForQueue']);
-    matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList']);
+    matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
     explainerVisible = signal(false);
     edgeTeams = signal(3);
 
@@ -385,6 +385,71 @@ describe('StafferComponent', () => {
 
       expect(matchService.updateList).not.toHaveBeenCalled();
       expect(component.savedAt()).toBeNull();
+    });
+  });
+
+  describe('exportPdf', () => {
+    let createdAnchor: HTMLAnchorElement;
+    let createObjectURL: Mock;
+    let revokeObjectURL: Mock;
+
+    beforeEach(() => {
+      matchService.downloadAssignmentsPdf.mockReturnValue(of(new Blob(['%PDF-'], {type: 'application/pdf'})));
+      // jsdom implements neither method, so there is nothing to spy on — assign and
+      // restore by hand.
+      createObjectURL = vi.fn().mockReturnValue('blob:fake');
+      revokeObjectURL = vi.fn();
+      URL.createObjectURL = createObjectURL as unknown as typeof URL.createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL as unknown as typeof URL.revokeObjectURL;
+
+      const realCreateElement = document.createElement.bind(document);
+      vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = realCreateElement(tag);
+        if (tag === 'a') {
+          createdAnchor = el as HTMLAnchorElement;
+          // Without this jsdom tries to navigate to the object URL and logs a
+          // "Not implemented" error.
+          vi.spyOn(createdAnchor, 'click').mockImplementation(() => undefined);
+        }
+        return el;
+      });
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      delete (URL as Partial<typeof URL>).createObjectURL;
+      delete (URL as Partial<typeof URL>).revokeObjectURL;
+    });
+
+    it('downloads the PDF for the selected queue and triggers a browser download', () => {
+      component.incQueue();
+
+      component.exportPdf();
+
+      expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(2);
+      expect(createdAnchor.download).toBe('referee-assignments-queue-2.pdf');
+      expect(createdAnchor.click).toHaveBeenCalled();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake');
+      expect(component.exporting()).toBe(false);
+    });
+
+    it('keeps exporting true until the download completes', () => {
+      const pdfSubject = new Subject<Blob>();
+      matchService.downloadAssignmentsPdf.mockReturnValue(pdfSubject);
+
+      component.exportPdf();
+      expect(component.exporting()).toBe(true);
+
+      pdfSubject.next(new Blob());
+      expect(component.exporting()).toBe(false);
+    });
+
+    it('clears the exporting flag on error', () => {
+      matchService.downloadAssignmentsPdf.mockReturnValue(throwError(() => new Error('empty queue')));
+
+      component.exportPdf();
+
+      expect(component.exporting()).toBe(false);
     });
   });
 

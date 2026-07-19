@@ -7,10 +7,15 @@ import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.model.exception.RequestValidationException;
 import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.service.AssignmentPdfService;
 import com.jamex.refereestaffer.service.MatchService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,11 +39,14 @@ public class MatchController {
     private final MatchRepository matchRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
+    private final AssignmentPdfService assignmentPdfService;
 
-    public MatchController(MatchRepository matchRepository, MatchConverter matchConverter, MatchService matchService) {
+    public MatchController(MatchRepository matchRepository, MatchConverter matchConverter, MatchService matchService,
+                           AssignmentPdfService assignmentPdfService) {
         this.matchRepository = matchRepository;
         this.matchConverter = matchConverter;
         this.matchService = matchService;
+        this.assignmentPdfService = assignmentPdfService;
     }
 
     @GetMapping
@@ -64,6 +72,23 @@ public class MatchController {
     public DifficultyBreakdownDto getMatchDifficulty(@PathVariable Long id) {
         log.info("Computing difficulty breakdown for match {}", id);
         return matchService.computeDifficultyBreakdown(id);
+    }
+
+    /**
+     * Assignment sheet for a queue as a downloadable PDF (RS-8). Renders persisted
+     * assignments — save the cast on the Staffer screen first for it to show up here.
+     */
+    @GetMapping("/queue/{queue}/pdf")
+    public ResponseEntity<byte[]> getAssignmentsPdf(@PathVariable short queue) {
+        log.info("Generating assignment PDF for queue {}", queue);
+        var pdf = assignmentPdfService.generateAssignmentsPdf(queue);
+        var contentDisposition = ContentDisposition.attachment()
+                .filename("referee-assignments-queue-" + queue + ".pdf")
+                .build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .body(pdf);
     }
 
     @PostMapping
