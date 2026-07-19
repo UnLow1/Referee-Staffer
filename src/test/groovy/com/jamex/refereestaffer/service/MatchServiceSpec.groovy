@@ -102,7 +102,7 @@ class MatchServiceSpec extends Specification {
         def expectedHardness = (matchHardnessIncrementer - Math.abs(awayTeam.points - homeTeam.points)) * matchHardnessLvlMultiplier
         result.get(0).hardnessLvl == expectedHardness
         1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
-        1 * matchRepository.findAllByQueueAndRefereeIsNull(queue) >> matches
+        1 * matchRepository.findAllByQueue(queue) >> matches
         // Deliberately no edge/top/bottom keys in the map — the unranked guard must return
         // before those values are ever read (a lookup would NPE and fail the test).
         1 * configurationRepository.findAllAsMap() >> [
@@ -143,7 +143,7 @@ class MatchServiceSpec extends Specification {
         else if (isBottomMatch) expectedHardnessLevel += matchHardnessBottomIncrementer
         result.get(0).hardnessLvl == expectedHardnessLevel
         1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
-        1 * matchRepository.findAllByQueueAndRefereeIsNull(queue) >> matches
+        1 * matchRepository.findAllByQueue(queue) >> matches
         1 * configurationRepository.findAllAsMap() >> [
                 (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER)                : matchHardnessLvlMultiplier,
                 (ConfigName.DIFFICULTY_LEVEL_INCREMENTER)               : matchHardnessIncrementer,
@@ -162,6 +162,47 @@ class MatchServiceSpec extends Specification {
         3             | "city2"      | 2         | false   | false      | true
         1             | "city1"      | 2         | true    | true       | false
         3             | "city1"      | 2         | true    | false      | true
+    }
+
+    def "should include previously assigned matches but keep central and finished assignments"() {
+        given:
+        short queue = 2
+        def homeTeam = [points: 0, place: 0, city: "city1"] as Team
+        def awayTeam = [points: 0, place: 0, city: "city2"] as Team
+        def unassigned = Match.builder().home(homeTeam).away(awayTeam).build()
+        def assignedUnfinished = Match.builder()
+                .home(homeTeam).away(awayTeam)
+                .referee(new Referee("John", "Doe"))
+                .build()
+        def centralAssigned = Match.builder()
+                .home(homeTeam).away(awayTeam)
+                .referee(new Referee("S", "C"))
+                .build()
+        def finishedAssigned = Match.builder()
+                .home(homeTeam).away(awayTeam)
+                .referee(new Referee("Jane", "Smith"))
+                .homeScore((short) 2).awayScore((short) 1)
+                .build()
+        def finishedUnassigned = Match.builder()
+                .home(homeTeam).away(awayTeam)
+                .homeScore((short) 0).awayScore((short) 0)
+                .build()
+
+        when:
+        def result = matchService.getMatchesToAssignInQueue(queue)
+
+        then:
+        result.size() == 3
+        result.containsAll([unassigned, assignedUnfinished, finishedUnassigned])
+        !result.contains(centralAssigned)
+        !result.contains(finishedAssigned)
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
+        1 * matchRepository.findAllByQueue(queue) >> [unassigned, assignedUnfinished, centralAssigned, finishedAssigned, finishedUnassigned]
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) : 1.0d,
+                (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): 100.0d
+        ]
+        1 * teamRepository.count() >> 3
     }
 
     def "should throw MatchNotFoundException when computing breakdown for missing match"() {

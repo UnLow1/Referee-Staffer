@@ -135,7 +135,7 @@ describe('StafferComponent', () => {
       component.incQueue();
       component.generate();
 
-      expect(stafferService.staffReferees).toHaveBeenCalledWith(2);
+      expect(stafferService.staffReferees).toHaveBeenCalledWith(2, []);
       expect(refereeService.findRefereesAvailableForQueue).toHaveBeenCalledWith(2);
       expect(component.matches()).toEqual(matches);
       expect(component.referees()).toEqual(referees);
@@ -172,6 +172,15 @@ describe('StafferComponent', () => {
 
       component.generate();
       expect(component.savedAt()).toBeNull();
+    });
+
+    it('sends the locked pairs so a regenerate preserves them server-side', () => {
+      component.generate();
+      component.toggleLock(component.matches()![0]);
+
+      component.generate();
+
+      expect(stafferService.staffReferees).toHaveBeenCalledWith(1, [{matchId: 11, refereeId: 100}]);
     });
   });
 
@@ -218,6 +227,18 @@ describe('StafferComponent', () => {
       expect(component.lockCount()).toBe(2);
 
       component.clearLocks();
+      expect(component.lockCount()).toBe(0);
+    });
+
+    it('clears locks on queue change — they reference matches of the previous queue', () => {
+      component.toggleLock(component.matches()![0]);
+      expect(component.lockCount()).toBe(1);
+
+      component.incQueue();
+      expect(component.lockCount()).toBe(0);
+
+      component.toggleLock(component.matches()![0]);
+      component.decQueue();
       expect(component.lockCount()).toBe(0);
     });
   });
