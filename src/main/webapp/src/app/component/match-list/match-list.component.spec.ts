@@ -130,6 +130,16 @@ describe('MatchListComponent', () => {
     expect(component.visibleMatches().map(m => m.id)).toEqual([13]);
   });
 
+  it('keeps an explicit "All queues" choice across the reload after a drawer save', async () => {
+    const component = (await create()).componentInstance;
+    expect(component.selectedQueue()).toBe(2);
+
+    component.selectQueue(null);
+    component.onSaved();
+
+    expect(component.selectedQueue()).toBeNull();
+  });
+
   it('filters by result and referee assignment across all queues', async () => {
     const component = (await create()).componentInstance;
     component.selectQueue(null);

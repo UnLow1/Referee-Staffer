@@ -7,6 +7,7 @@
     <input type="text" class="input" placeholder="Search team…"
            [value]="searchTerm()" (input)="setSearch($any($event.target).value)">
     <button type="button" class="btn" [class.btn--filter-active]="activeFilterCount() > 0"
+            [attr.aria-expanded]="filtersOpen()"
             (click)="toggleFilters()" title="Filter matches">
       <app-icon name="filter" [size]="12"></app-icon>Filter
       @if (activeFilterCount() > 0) {
@@ -115,6 +116,8 @@
               <span class="muted">No matches match "{{ searchTerm() }}".</span>
             } @else if (activeFilterCount() > 0) {
               <span class="muted">No matches match the current filters.</span>
+            } @else if (selectedQueue() === null) {
+              <span class="muted">No matches yet.</span>
             } @else {
               <span class="muted">No matches in this queue.</span>
             }

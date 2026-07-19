@@ -50,7 +50,11 @@ export class MatchListComponent implements OnInit {
   readonly refereesById = signal<Map<number, Referee>>(new Map());
   readonly gradesById = signal<Map<number, Grade>>(new Map());
 
-  readonly selectedQueue = signal<number | null>(null);
+  /**
+   * `undefined` = not initialized yet (load() will default to the latest queue),
+   * `null` = the user explicitly picked "All queues" — must survive a reload.
+   */
+  readonly selectedQueue = signal<number | null | undefined>(undefined);
   readonly searchTerm = signal('');
 
   /** Filter bar state — toggled by the "Filter" button in the page head. */
@@ -152,8 +156,9 @@ export class MatchListComponent implements OnInit {
         this.gradesById.set(toMap(grades));
 
         // Default to the latest queue with matches so the user lands on something.
+        // Only on first load — an explicit "All queues" choice (null) must stick.
         const queues = this.availableQueues();
-        if (queues.length > 0 && this.selectedQueue() == null) {
+        if (queues.length > 0 && this.selectedQueue() === undefined) {
           this.selectedQueue.set(queues[0]);
         }
       });
