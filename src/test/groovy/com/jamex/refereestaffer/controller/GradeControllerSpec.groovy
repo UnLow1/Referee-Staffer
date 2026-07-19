@@ -112,6 +112,34 @@ class GradeControllerSpec extends Specification {
         response.status == 200
     }
 
+    def "should reject grade creation without value"() {
+        when:
+        def response = mockMvc.perform(post("/api/grades/2396")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{}'))
+                .andReturn().response
+
+        then:
+        0 * gradeService._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "value: must not be null"
+    }
+
+    def "should reject grade update without id"() {
+        when:
+        def response = mockMvc.perform(put("/api/grades")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"value": 9.0}'))
+                .andReturn().response
+
+        then:
+        0 * gradeService._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "id: must not be null"
+    }
+
     def "should return grades by ids"() {
         given:
         def grades = [[] as Grade]

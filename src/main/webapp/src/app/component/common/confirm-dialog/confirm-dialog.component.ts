@@ -1,4 +1,4 @@
-import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {IconComponent} from '../icon/icon.component';
 import {ModalData} from '../../../model/modalData';
 
@@ -38,6 +38,7 @@ import {ModalData} from '../../../model/modalData';
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     /* Same focusable-backdrop pattern as app-drawer: a <button> so Tab can reach it and
        Enter/Space dismiss. The global .modal-backdrop flex centering is irrelevant for

@@ -134,13 +134,42 @@ class TeamControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/teams")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 404, "name": "Ghost"}'))
+                .content('{"id": 404, "name": "Ghost", "city": "Nowhere"}'))
                 .andReturn().response
 
         then:
         1 * teamRepository.findById(404l) >> Optional.empty()
         0 * teamRepository.save(_)
         response.status == 404
+    }
+
+    def "should reject team creation when name or city is blank"() {
+        when:
+        def response = mockMvc.perform(post("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"name": "  "}'))
+                .andReturn().response
+
+        then:
+        0 * teamConverter._
+        0 * teamRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "city: must not be blank; name: must not be blank"
+    }
+
+    def "should reject team update without id"() {
+        when:
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"name": "Wisla", "city": "Krakow"}'))
+                .andReturn().response
+
+        then:
+        0 * teamRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "id: must not be null"
     }
 
     def "should return teams by ids"() {

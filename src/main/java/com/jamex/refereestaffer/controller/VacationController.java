@@ -3,9 +3,12 @@ package com.jamex.refereestaffer.controller;
 import com.jamex.refereestaffer.model.converter.VacationConverter;
 import com.jamex.refereestaffer.model.dto.VacationDto;
 import com.jamex.refereestaffer.model.exception.VacationNotFoundException;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.VacationRepository;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,7 +50,7 @@ public class VacationController {
     }
 
     @PostMapping
-    public VacationDto createVacation(@RequestBody VacationDto vacationDto) {
+    public VacationDto createVacation(@Valid @RequestBody VacationDto vacationDto) {
         log.info("Adding new vacation");
         var vacation = vacationConverter.convertFromDto(vacationDto);
         var savedVacation = vacationRepository.save(vacation);
@@ -55,7 +58,7 @@ public class VacationController {
     }
 
     @PutMapping
-    public VacationDto updateVacation(@RequestBody VacationDto vacationDto) {
+    public VacationDto updateVacation(@Validated(OnUpdate.class) @RequestBody VacationDto vacationDto) {
         log.info("Updating vacation with id {}", vacationDto.getId());
         var vacation = vacationConverter.convertFromDto(vacationDto);
         var updatedVacation = vacationRepository.save(vacation);

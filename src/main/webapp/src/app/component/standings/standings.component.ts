@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {forkJoin} from 'rxjs';
 import {Team} from '../../model/team';
 import {Match} from '../../model/match';
@@ -36,6 +36,7 @@ interface StandingRow {
   selector: 'app-standings',
   templateUrl: './standings.component.html',
   styleUrls: ['./standings.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [TeamPillComponent, SegComponent]
 })
 export class StandingsComponent implements OnInit {

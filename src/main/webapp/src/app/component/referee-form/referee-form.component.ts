@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Referee} from '../../model/referee';
 import {RefereeService} from '../../service/referee.service';
@@ -17,6 +17,7 @@ import {IconComponent} from '../common/icon/icon.component';
 @Component({
   selector: 'app-referee-form',
   templateUrl: './referee-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, FormDrawerComponent, IconComponent]
 })
 export class RefereeFormComponent implements OnInit {

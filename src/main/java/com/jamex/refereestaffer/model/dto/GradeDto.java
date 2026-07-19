@@ -1,10 +1,11 @@
 package com.jamex.refereestaffer.model.dto;
 
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotNull;
 
 public class GradeDto {
 
-    @NotNull
+    @NotNull(groups = OnUpdate.class)
     private final Long id;
 
     @NotNull

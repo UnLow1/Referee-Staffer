@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
@@ -31,6 +31,7 @@ const NUMBER_OF_EDGE_TEAMS = 3;
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [RouterLink, IconComponent, KpiComponent, TeamPillComponent, RefAvatarComponent, MeterComponent]
 })
 export class DashboardComponent implements OnInit {

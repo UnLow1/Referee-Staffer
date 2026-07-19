@@ -4,10 +4,13 @@ import com.jamex.refereestaffer.model.converter.RefereeConverter;
 import com.jamex.refereestaffer.model.dto.RefereeDto;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.service.RefereeService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,21 +67,21 @@ public class RefereeController {
     }
 
     @PutMapping
-    public void updateReferee(@RequestBody RefereeDto refereeDto) {
+    public void updateReferee(@Validated(OnUpdate.class) @RequestBody RefereeDto refereeDto) {
         log.info("Updating referee with id {}", refereeDto.getId());
         var referee = refereeConverter.convertFromDto(refereeDto);
         refereeRepository.save(referee);
     }
 
     @PostMapping
-    public void createReferee(@RequestBody RefereeDto refereeDto) {
+    public void createReferee(@Valid @RequestBody RefereeDto refereeDto) {
         log.info("Adding new referee");
         var referee = refereeConverter.convertFromDto(refereeDto);
         refereeRepository.save(referee);
     }
 
     @PostMapping("/byIds")
-    public Collection<RefereeDto> getRefereesByIds(@RequestBody IDRequest request) {
+    public Collection<RefereeDto> getRefereesByIds(@Valid @RequestBody IDRequest request) {
         log.info("Getting referees with ids: {}", request.getIds());
         var referees = refereeRepository.findAllById(request.getIds());
         return refereeConverter.convertFromEntities(referees);

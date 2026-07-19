@@ -6,10 +6,13 @@
   <div class="page-head__actions">
     <input type="text" class="input" placeholder="Search team…"
            [value]="searchTerm()" (input)="setSearch($any($event.target).value)">
-    <!-- Filter button is a placeholder — advanced filters (referee assignment,
-         date range, etc.) are a future addition. -->
-    <button type="button" class="btn" disabled title="Filters coming soon">
+    <button type="button" class="btn" [class.btn--filter-active]="activeFilterCount() > 0"
+            [attr.aria-expanded]="filtersOpen()"
+            (click)="toggleFilters()" title="Filter matches">
       <app-icon name="filter" [size]="12"></app-icon>Filter
+      @if (activeFilterCount() > 0) {
+        <span class="filter-count">{{ activeFilterCount() }}</span>
+      }
     </button>
     <button type="button" class="btn btn--primary" (click)="addMatch()">
       <app-icon name="plus" [size]="12"></app-icon>New match
@@ -17,9 +20,34 @@
   </div>
 </div>
 
+@if (filtersOpen()) {
+  <div class="filter-bar">
+    <div class="filter-bar__group">
+      <span class="filter-bar__label">Result</span>
+      <app-seg [options]="resultOptions" [value]="resultFilter()"
+               (valueChange)="resultFilter.set($event)"></app-seg>
+    </div>
+    <div class="filter-bar__group">
+      <span class="filter-bar__label">Referee</span>
+      <app-seg [options]="refereeOptions" [value]="refereeFilter()"
+               (valueChange)="refereeFilter.set($event)"></app-seg>
+    </div>
+    @if (activeFilterCount() > 0) {
+      <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
+        <app-icon name="x" [size]="12"></app-icon>Clear
+      </button>
+    }
+  </div>
+}
+
 <div class="panel">
   <div class="panel__head">
     <div class="seg">
+      @if (availableQueues().length > 0) {
+        <button type="button" [class.active]="selectedQueue() === null" (click)="selectQueue(null)">
+          All queues
+        </button>
+      }
       @for (q of availableQueues(); track q) {
         <button type="button" [class.active]="q === selectedQueue()" (click)="selectQueue(q)">
           Queue {{ q }}
@@ -31,69 +59,75 @@
     </div>
     <div class="muted">{{ visibleMatches().length }} matches</div>
   </div>
-  <table class="tbl">
-    <thead>
-      <tr>
-        <th>Home</th>
-        <th>Away</th>
-        <th class="num right col-score">Score</th>
-        <th class="col-referee">Referee</th>
-        <th class="num right col-grade">Ref grade</th>
-        <th class="col-actions"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (match of visibleMatches(); track match.id) {
-        <tr class="match-row" (click)="openDetail(match)">
-          <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
-          <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
-          <td class="num right score-cell">
-            @if (scoreOrPlaceholder(match); as score) {
-              <strong>{{ score }}</strong>
-            } @else {
-              <span class="muted">—</span>
-            }
-          </td>
-          <td>
-            @if (getReferee(match.refereeId); as ref) {
-              <app-ref-avatar [referee]="ref"></app-ref-avatar>
-            } @else {
-              <span class="muted">unassigned</span>
-            }
-          </td>
-          <td class="num right">
-            @if (getGrade(match.gradeId); as grade) {
-              <app-meter [value]="gradeAsMeter(grade)" [max]="100"></app-meter>
-            } @else {
-              <span class="muted">—</span>
-            }
-          </td>
-          <td class="col-actions">
-            <div class="row-actions">
-              <button type="button" class="btn btn--ghost btn--sm"
-                      (click)="editMatch(match, $event)" title="Edit match">
-                <app-icon name="edit" [size]="12"></app-icon>
-              </button>
-              <button type="button" class="btn btn--ghost btn--sm btn--danger"
-                      (click)="askDelete(match, $event)" title="Delete match">
-                <app-icon name="trash" [size]="12"></app-icon>
-              </button>
-            </div>
-          </td>
-        </tr>
-      } @empty {
+  <div class="tbl-scroll">
+    <table class="tbl">
+      <thead>
         <tr>
-          <td colspan="6" class="empty-row">
-            @if (searchTerm()) {
-              <span class="muted">No matches match "{{ searchTerm() }}".</span>
-            } @else {
-              <span class="muted">No matches in this queue.</span>
-            }
-          </td>
+          <th>Home</th>
+          <th>Away</th>
+          <th class="num right col-score">Score</th>
+          <th class="col-referee">Referee</th>
+          <th class="num right col-grade">Ref grade</th>
+          <th class="col-actions"></th>
         </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (match of visibleMatches(); track match.id) {
+          <tr class="match-row" (click)="openDetail(match)">
+            <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
+            <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
+            <td class="num right score-cell">
+              @if (scoreOrPlaceholder(match); as score) {
+                <strong>{{ score }}</strong>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td>
+              @if (getReferee(match.refereeId); as ref) {
+                <app-ref-avatar [referee]="ref"></app-ref-avatar>
+              } @else {
+                <span class="muted">unassigned</span>
+              }
+            </td>
+            <td class="num right">
+              @if (getGrade(match.gradeId); as grade) {
+                <app-meter [value]="gradeAsMeter(grade)" [max]="100"></app-meter>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td class="col-actions">
+              <div class="row-actions">
+                <button type="button" class="btn btn--ghost btn--sm"
+                        (click)="editMatch(match, $event)" title="Edit match">
+                  <app-icon name="edit" [size]="12"></app-icon>
+                </button>
+                <button type="button" class="btn btn--ghost btn--sm btn--danger"
+                        (click)="askDelete(match, $event)" title="Delete match">
+                  <app-icon name="trash" [size]="12"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="empty-row">
+              @if (searchTerm()) {
+                <span class="muted">No matches match "{{ searchTerm() }}".</span>
+              } @else if (activeFilterCount() > 0) {
+                <span class="muted">No matches match the current filters.</span>
+              } @else if (selectedQueue() === null) {
+                <span class="muted">No matches yet.</span>
+              } @else {
+                <span class="muted">No matches in this queue.</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>
 
 @if (formOpen()) {

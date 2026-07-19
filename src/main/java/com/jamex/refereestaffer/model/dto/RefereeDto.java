@@ -1,20 +1,22 @@
 package com.jamex.refereestaffer.model.dto;
 
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class RefereeDto {
 
-    @NotNull
+    @NotNull(groups = OnUpdate.class)
     private final Long id;
 
-    @NotNull
+    @NotBlank
     private final String firstName;
 
-    @NotNull
+    @NotBlank
     private final String lastName;
 
-    @NotNull
+    @NotBlank
     @Email
     private final String email;
 

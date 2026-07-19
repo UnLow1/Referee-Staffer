@@ -207,6 +207,11 @@ label.field .req { color: var(--danger); margin-left: 2px; }
 .page-head__sub { color: var(--ink-3); font-size: 13px; margin-top: 4px; }
 
 // ——— Tables ———
+// Every data table sits inside this wrapper so that on narrow viewports the table
+// scrolls horizontally within its panel instead of stretching the whole page.
+.tbl-scroll {
+  overflow-x: auto;
+}
 .tbl {
   width: 100%; border-collapse: collapse;
   font-size: 13px;
@@ -510,6 +515,94 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
   background: var(--panel);
   color: var(--ink);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+// ——— Mobile nav backdrop (shell) ———
+// Rendered only while the off-canvas nav is open; on desktop the sidenav is a static
+// grid column, so the backdrop stays hidden regardless of the open flag.
+.sidenav-backdrop {
+  display: none;
+}
+
+// ——— Responsive: single 768px breakpoint (RS-85) ———
+// The app stays desktop-first; below 768px the shell collapses to a topbar with an
+// off-canvas sidenav, drawers span the full viewport and multi-column grids stack.
+// Screen-specific grids collapse in their component stylesheets at the same width.
+@media (max-width: 767px) {
+  // Shell: drop the fixed 240px sidebar column — the brand block keeps an auto column
+  // in the top row and the main pane takes the full width below.
+  .shell {
+    grid-template-columns: auto 1fr;
+  }
+  .main {
+    grid-column: 1 / -1;
+    padding: 16px 14px 64px;
+  }
+  .topbar { padding: 0 14px; }
+  .brand { padding: 0 14px; }
+
+  // Sidenav becomes an off-canvas panel under the 56px topbar, toggled by the
+  // hamburger in ShellComponent. Kept below .drawer (50) and .modal-backdrop (60)
+  // so overlays opened from a screen still stack above the nav.
+  .sidenav {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    width: 260px;
+    z-index: 45;
+    transform: translateX(-100%);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    border-right: 1px solid var(--line);
+  }
+  .sidenav--open {
+    transform: translateX(0);
+    box-shadow: 0 8px 26px rgb(0 0 0 / 0.28);
+  }
+  .sidenav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 56px 0 0 0;
+    background: rgb(0 0 0 / 0.4);
+    z-index: 44;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    animation: fade 0.18s ease;
+  }
+
+  // Page headers: let the action row (search, buttons) wrap under the title.
+  .page-head {
+    flex-wrap: wrap;
+  }
+  .page-head__actions {
+    flex-wrap: wrap;
+  }
+  .page-head__actions .input {
+    flex: 1 1 160px;
+    min-width: 0;
+  }
+
+  // Drawers (detail + form) take the full viewport width.
+  .drawer,
+  .drawer--wide {
+    width: 100%;
+    border-left: none;
+  }
+
+  // Form grids stack to a single column; the "vs" divider between the two team
+  // selects becomes a centered row of its own.
+  .form-grid,
+  .form-row.cols-2,
+  .form-row.cols-3 {
+    grid-template-columns: 1fr;
+  }
+  .vs-split {
+    grid-template-columns: 1fr;
+  }
+  .vs-split .vs-mark {
+    padding-bottom: 0;
+  }
 }
 
 // ——— Tooltip ———

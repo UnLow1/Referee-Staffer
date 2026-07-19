@@ -15,9 +15,9 @@
 
     <properties>
         <java.version>25</java.version>
-        <gmaven.plus.version>5.0.0</gmaven.plus.version>
+        <gmaven.plus.version>5.1.0</gmaven.plus.version>
         <openapi.version>3.0.3</openapi.version>
-        <groovy.version>5.0.6</groovy.version>
+        <groovy.version>5.0.7</groovy.version>
         <spock.version>2.4-groovy-5.0</spock.version>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
@@ -134,6 +134,10 @@
                     <includes>
                         <include>**/*Spec.java</include>
                     </includes>
+                    <!-- Controller specs assert Hibernate Validator's default constraint
+                         messages, which are resolved against the JVM locale — pin English
+                         so the suite passes on non-English machines too. -->
+                    <argLine>@{argLine} -Duser.language=en -Duser.country=US</argLine>
                 </configuration>
             </plugin>
 

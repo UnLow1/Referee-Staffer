@@ -1,4 +1,4 @@
-import {Component, computed, inject, signal} from '@angular/core';
+import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {forkJoin} from 'rxjs';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -42,6 +42,7 @@ const NUMBER_OF_EDGE_TEAMS = 3;
   selector: 'app-staffer',
   templateUrl: './staffer.component.html',
   styleUrl: './staffer.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent,
     ChipComponent, KpiComponent, DrawerComponent

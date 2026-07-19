@@ -4,10 +4,13 @@ import com.jamex.refereestaffer.model.converter.TeamConverter;
 import com.jamex.refereestaffer.model.dto.TeamDto;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import com.jamex.refereestaffer.service.TeamService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,14 +54,14 @@ public class TeamController {
     }
 
     @PostMapping
-    public void createTeam(@RequestBody TeamDto teamDto) {
+    public void createTeam(@Valid @RequestBody TeamDto teamDto) {
         log.info("Adding new team");
         var team = teamConverter.convertFromDto(teamDto);
         teamRepository.save(team);
     }
 
     @PutMapping
-    public void updateTeam(@RequestBody TeamDto teamDto) {
+    public void updateTeam(@Validated(OnUpdate.class) @RequestBody TeamDto teamDto) {
         log.info("Updating team with id {}", teamDto.getId());
         // Load-and-mutate instead of replacing the entity: the incoming DTO carries the
         // computed `short` fallback (GET always fills it), so a full replace would persist
@@ -71,7 +74,7 @@ public class TeamController {
     }
 
     @PostMapping("/byIds")
-    public Collection<TeamDto> getTeamsByIds(@RequestBody IDRequest request) {
+    public Collection<TeamDto> getTeamsByIds(@Valid @RequestBody IDRequest request) {
         log.info("Getting teams with ids: {}", request.getIds());
         var teams = teamRepository.findAllById(request.getIds());
         return teamConverter.convertFromEntities(teams);

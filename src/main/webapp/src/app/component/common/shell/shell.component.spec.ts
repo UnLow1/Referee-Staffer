@@ -94,4 +94,63 @@ describe('ShellComponent', () => {
 
     expect(settings.toggleDark).toHaveBeenCalled();
   });
+
+  describe('mobile off-canvas nav', () => {
+    function sidenav(): HTMLElement {
+      return el().querySelector('.sidenav') as HTMLElement;
+    }
+
+    function hamburger(): HTMLButtonElement {
+      return el().querySelector('.topbar__menu') as HTMLButtonElement;
+    }
+
+    it('toggles the nav and its backdrop from the hamburger', () => {
+      expect(sidenav().classList).not.toContain('sidenav--open');
+      expect(el().querySelector('.sidenav-backdrop')).toBeNull();
+
+      hamburger().click();
+      fixture.detectChanges();
+      expect(sidenav().classList).toContain('sidenav--open');
+      expect(el().querySelector('.sidenav-backdrop')).not.toBeNull();
+      expect(hamburger().getAttribute('aria-expanded')).toBe('true');
+
+      hamburger().click();
+      fixture.detectChanges();
+      expect(sidenav().classList).not.toContain('sidenav--open');
+      expect(el().querySelector('.sidenav-backdrop')).toBeNull();
+    });
+
+    it('closes the nav from the backdrop', () => {
+      hamburger().click();
+      fixture.detectChanges();
+
+      (el().querySelector('.sidenav-backdrop') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(sidenav().classList).not.toContain('sidenav--open');
+    });
+
+    it('closes the nav when a nav item is clicked', () => {
+      hamburger().click();
+      fixture.detectChanges();
+
+      // ctrlKey makes RouterLink skip the actual navigation (browser would open a new
+      // tab), so this exercises only the (click) handler without needing route config.
+      el().querySelector('a.nav-item')!
+        .dispatchEvent(new MouseEvent('click', {ctrlKey: true}));
+      fixture.detectChanges();
+
+      expect(sidenav().classList).not.toContain('sidenav--open');
+    });
+
+    it('closes the nav on Escape', () => {
+      hamburger().click();
+      fixture.detectChanges();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
+      fixture.detectChanges();
+
+      expect(sidenav().classList).not.toContain('sidenav--open');
+    });
+  });
 });

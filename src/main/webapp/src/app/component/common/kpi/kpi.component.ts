@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 
 /**
  * Single KPI cell — label, big mono value, optional delta line. Stack horizontally
@@ -14,6 +14,7 @@ import {Component, Input} from '@angular/core';
  */
 @Component({
   selector: 'app-kpi',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="kpi">
       <div class="kpi__label">{{ label }}</div>

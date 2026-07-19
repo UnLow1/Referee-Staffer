@@ -12,65 +12,67 @@
 </div>
 
 <div class="panel">
-  <table class="tbl">
-    <thead>
-      <tr>
-        <th class="col-pos">#</th>
-        <th>Team</th>
-        <th>City</th>
-        <th class="num right col-stat">P</th>
-        <th class="num right col-stat">W</th>
-        <th class="num right col-stat">D</th>
-        <th class="num right col-stat">L</th>
-        <th class="num right col-goals">GF</th>
-        <th class="num right col-goals">GA</th>
-        <th class="num right col-goals">GD</th>
-        <th class="num right col-pts">Pts</th>
-        <th class="col-form"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (row of visibleRows(); track row.team.id) {
+  <div class="tbl-scroll">
+    <table class="tbl">
+      <thead>
         <tr>
-          <td class="num pos-cell">{{ row.pos }}</td>
-          <td>
-            <span class="team-cell">
-              @if (row.zone) {
-                <span class="dot" [class.dot--accent]="row.zone === 'accent'"
-                      [class.dot--danger]="row.zone === 'danger'"></span>
-              }
-              <app-team-pill [team]="row.team"></app-team-pill>
-            </span>
-          </td>
-          <td class="city-cell">{{ row.team.city }}</td>
-          <td class="num right">{{ row.played }}</td>
-          <td class="num right">{{ row.wins }}</td>
-          <td class="num right">{{ row.draws }}</td>
-          <td class="num right">{{ row.losses }}</td>
-          <td class="num right">{{ row.goalsFor }}</td>
-          <td class="num right">{{ row.goalsAgainst }}</td>
-          <td class="num right"
-              [class.gd-positive]="goalDiff(row) > 0"
-              [class.gd-negative]="goalDiff(row) < 0"
-              [class.gd-zero]="goalDiff(row) === 0">{{ formatGoalDiff(row) }}</td>
-          <td class="num right pts-cell">{{ row.team.points ?? '—' }}</td>
-          <td>
-            <div class="bar">
-              <i [style.width.%]="barPct(row)"
-                 [class.bar--danger]="row.zone === 'danger'"
-                 [class.bar--neutral]="row.zone === null"></i>
-            </div>
-          </td>
+          <th class="col-pos">#</th>
+          <th>Team</th>
+          <th>City</th>
+          <th class="num right col-stat">P</th>
+          <th class="num right col-stat">W</th>
+          <th class="num right col-stat">D</th>
+          <th class="num right col-stat">L</th>
+          <th class="num right col-goals">GF</th>
+          <th class="num right col-goals">GA</th>
+          <th class="num right col-goals">GD</th>
+          <th class="num right col-pts">Pts</th>
+          <th class="col-form"></th>
         </tr>
-      } @empty {
-        <tr>
-          <td colspan="12" class="empty-row">
-            <span class="muted">No standings yet — import data or add teams first.</span>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @for (row of visibleRows(); track row.team.id) {
+          <tr>
+            <td class="num pos-cell">{{ row.pos }}</td>
+            <td>
+              <span class="team-cell">
+                @if (row.zone) {
+                  <span class="dot" [class.dot--accent]="row.zone === 'accent'"
+                        [class.dot--danger]="row.zone === 'danger'"></span>
+                }
+                <app-team-pill [team]="row.team"></app-team-pill>
+              </span>
+            </td>
+            <td class="city-cell">{{ row.team.city }}</td>
+            <td class="num right">{{ row.played }}</td>
+            <td class="num right">{{ row.wins }}</td>
+            <td class="num right">{{ row.draws }}</td>
+            <td class="num right">{{ row.losses }}</td>
+            <td class="num right">{{ row.goalsFor }}</td>
+            <td class="num right">{{ row.goalsAgainst }}</td>
+            <td class="num right"
+                [class.gd-positive]="goalDiff(row) > 0"
+                [class.gd-negative]="goalDiff(row) < 0"
+                [class.gd-zero]="goalDiff(row) === 0">{{ formatGoalDiff(row) }}</td>
+            <td class="num right pts-cell">{{ row.team.points ?? '—' }}</td>
+            <td>
+              <div class="bar">
+                <i [style.width.%]="barPct(row)"
+                   [class.bar--danger]="row.zone === 'danger'"
+                   [class.bar--neutral]="row.zone === null"></i>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="12" class="empty-row">
+              <span class="muted">No standings yet — import data or add teams first.</span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <div class="legend">
