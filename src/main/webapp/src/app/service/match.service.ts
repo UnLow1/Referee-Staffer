@@ -41,4 +41,8 @@ export class MatchService {
   public getDifficultyBreakdown(matchId: number): Observable<DifficultyBreakdown> {
     return this.http.get<DifficultyBreakdown>(`${this.matchesUrl}/${matchId}/difficulty`)
   }
+
+  public downloadAssignmentsPdf(queue: number): Observable<Blob> {
+    return this.http.get(`${this.matchesUrl}/queue/${queue}/pdf`, {responseType: 'blob'})
+  }
 }

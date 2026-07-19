@@ -19,6 +19,7 @@
         <openapi.version>3.0.3</openapi.version>
         <groovy.version>5.0.6</groovy.version>
         <spock.version>2.4-groovy-5.0</spock.version>
+        <openpdf.version>3.0.5</openpdf.version>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
              Override with -DskipFrontend=true. -->
@@ -52,6 +53,13 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- PDF generation (assignment sheets) -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>${openpdf.version}</version>
         </dependency>
 
         <!-- Swagger -->

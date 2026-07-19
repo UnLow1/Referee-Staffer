@@ -89,7 +89,8 @@ describe('StafferComponent', () => {
     stafferService = jasmine.createSpyObj('StafferService', ['staffReferees']);
     teamService = jasmine.createSpyObj('TeamService', ['getStandings']);
     refereeService = jasmine.createSpyObj('RefereeService', ['findRefereesAvailableForQueue']);
-    matchService = jasmine.createSpyObj('MatchService', ['getDifficultyBreakdown', 'updateList']);
+    matchService = jasmine.createSpyObj('MatchService',
+      ['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
     explainerVisible = signal(false);
 
     stafferService.staffReferees.and.returnValue(of(matches));
@@ -362,6 +363,56 @@ describe('StafferComponent', () => {
 
       expect(matchService.updateList).not.toHaveBeenCalled();
       expect(component.savedAt()).toBeNull();
+    });
+  });
+
+  describe('exportPdf', () => {
+    let createdAnchor: HTMLAnchorElement;
+
+    beforeEach(() => {
+      matchService.downloadAssignmentsPdf.and.returnValue(of(new Blob(['%PDF-'], {type: 'application/pdf'})));
+      spyOn(URL, 'createObjectURL').and.returnValue('blob:fake');
+      spyOn(URL, 'revokeObjectURL');
+      const realCreateElement = document.createElement.bind(document);
+      spyOn(document, 'createElement').and.callFake((tag: string) => {
+        const el = realCreateElement(tag);
+        if (tag === 'a') {
+          createdAnchor = el as HTMLAnchorElement;
+          spyOn(createdAnchor, 'click');
+        }
+        return el;
+      });
+    });
+
+    it('downloads the PDF for the selected queue and triggers a browser download', () => {
+      component.incQueue();
+
+      component.exportPdf();
+
+      expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(2);
+      expect(createdAnchor.download).toBe('referee-assignments-queue-2.pdf');
+      expect(createdAnchor.click).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:fake');
+      expect(component.exporting()).toBeFalse();
+    });
+
+    it('keeps exporting true until the download completes', () => {
+      const pdfSubject = new Subject<Blob>();
+      matchService.downloadAssignmentsPdf.and.returnValue(pdfSubject);
+
+      component.exportPdf();
+      expect(component.exporting()).toBeTrue();
+
+      pdfSubject.next(new Blob());
+      expect(component.exporting()).toBeFalse();
+    });
+
+    it('clears the exporting flag on error', () => {
+      matchService.downloadAssignmentsPdf.and.returnValue(throwError(() => new Error('empty queue')));
+
+      component.exportPdf();
+
+      expect(component.exporting()).toBeFalse();
     });
   });
 
