@@ -12,7 +12,15 @@ export const httpErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const toastService = inject(ToastService);
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      toastService.show(messageFor(error), 'error');
+      // Requests made with responseType 'blob' (PDF download) get their ProblemDetail
+      // wrapped in a Blob — read it asynchronously; the toast can arrive a tick late.
+      if (error.error instanceof Blob && error.error.type.includes('json')) {
+        error.error.text().then(
+          text => toastService.show(messageFromProblemJson(error, text), 'error'),
+          () => toastService.show(fallbackMessage(error), 'error'));
+      } else {
+        toastService.show(messageFor(error), 'error');
+      }
       return throwError(() => error);
     })
   );
@@ -28,5 +36,21 @@ function messageFor(error: HttpErrorResponse): string {
   if (typeof detail === 'string' && detail.length > 0) {
     return detail;
   }
+  return fallbackMessage(error);
+}
+
+function messageFromProblemJson(error: HttpErrorResponse, text: string): string {
+  try {
+    const detail = JSON.parse(text)?.detail;
+    if (typeof detail === 'string' && detail.length > 0) {
+      return detail;
+    }
+  } catch {
+    // fall through — not valid JSON after all
+  }
+  return fallbackMessage(error);
+}
+
+function fallbackMessage(error: HttpErrorResponse): string {
   return `Request failed (HTTP ${error.status})`;
 }
