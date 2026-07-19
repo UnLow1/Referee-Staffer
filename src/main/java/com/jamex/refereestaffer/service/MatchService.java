@@ -1,13 +1,19 @@
 package com.jamex.refereestaffer.service;
 
+import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.DifficultyBreakdownDto;
+import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.entity.ConfigName;
+import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
+import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
+import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +22,9 @@ import org.springframework.stereotype.Service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -31,13 +40,72 @@ public class MatchService {
     private final GradeRepository gradeRepository;
     private final ConfigurationRepository configurationRepository;
     private final TeamRepository teamRepository;
+    private final RefereeRepository refereeRepository;
+    private final MatchConverter matchConverter;
 
     public MatchService(MatchRepository matchRepository, GradeRepository gradeRepository,
-                        ConfigurationRepository configurationRepository, TeamRepository teamRepository) {
+                        ConfigurationRepository configurationRepository, TeamRepository teamRepository,
+                        RefereeRepository refereeRepository, MatchConverter matchConverter) {
         this.matchRepository = matchRepository;
         this.gradeRepository = gradeRepository;
         this.configurationRepository = configurationRepository;
         this.teamRepository = teamRepository;
+        this.refereeRepository = refereeRepository;
+        this.matchConverter = matchConverter;
+    }
+
+    public MatchDto saveMatch(MatchDto matchDto) {
+        var match = resolveAndConvert(List.of(matchDto)).get(0);
+        var savedMatch = matchRepository.save(match);
+        return matchConverter.convertFromEntity(savedMatch);
+    }
+
+    public void updateMatches(List<MatchDto> matchesDtos) {
+        var matches = resolveAndConvert(matchesDtos);
+        matchRepository.saveAll(matches);
+    }
+
+    /**
+     * Resolves the id references of each dto (teams, referee, grade) with one bulk
+     * query per repository and hands the ready entities to the converter — the
+     * converter itself does no repository access. A missing team is an error
+     * (404 via {@link TeamNotFoundException}); a missing referee or grade id maps
+     * to null, which is what the pre-refactor per-id lookups did too.
+     */
+    private List<Match> resolveAndConvert(List<MatchDto> matchesDtos) {
+        var teams = findByIds(teamRepository::findAllById, matchesDtos.stream()
+                .flatMap(dto -> Stream.of(dto.getHomeTeamId(), dto.getAwayTeamId())), Team::getId);
+        var referees = findByIds(refereeRepository::findAllById, matchesDtos.stream()
+                .map(MatchDto::getRefereeId), Referee::getId);
+        var grades = findByIds(gradeRepository::findAllById, matchesDtos.stream()
+                .map(MatchDto::getGradeId), Grade::getId);
+
+        return matchesDtos.stream()
+                .map(dto -> matchConverter.convertFromDto(dto,
+                        requireTeam(teams, dto.getHomeTeamId()),
+                        requireTeam(teams, dto.getAwayTeamId()),
+                        resolveOptional(referees, dto.getRefereeId()),
+                        resolveOptional(grades, dto.getGradeId())))
+                .toList();
+    }
+
+    private static <E> E resolveOptional(Map<Long, E> entitiesById, Long id) {
+        return id == null ? null : entitiesById.get(id);
+    }
+
+    private <E> Map<Long, E> findByIds(Function<List<Long>, List<E>> bulkFinder, Stream<Long> ids, Function<E, Long> idGetter) {
+        var distinctIds = ids.filter(Objects::nonNull).distinct().toList();
+        if (distinctIds.isEmpty())
+            return Map.of();
+        return bulkFinder.apply(distinctIds).stream()
+                .collect(Collectors.toMap(idGetter, Function.identity()));
+    }
+
+    private Team requireTeam(Map<Long, Team> teams, Long teamId) {
+        var team = teams.get(teamId);
+        if (team == null)
+            throw new TeamNotFoundException(teamId);
+        return team;
     }
 
     public void calculatePointsForTeams(List<Match> matches) {
