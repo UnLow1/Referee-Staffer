@@ -122,7 +122,7 @@
               @if (getGrade(match.gradeId); as g) {
                 <div class="grade-cell">
                   <app-meter [value]="gradeAsMeter(g)" [max]="100"></app-meter>
-                  <span class="mono grade-cell__value">{{ g.value.toFixed(1) }}</span>
+                  <span class="mono grade-cell__value">{{ displayGrade(g) }}</span>
                 </div>
               } @else {
                 <span class="muted">—</span>

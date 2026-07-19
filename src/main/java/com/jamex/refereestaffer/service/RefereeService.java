@@ -123,7 +123,7 @@ public class RefereeService {
             return DEFAULT_GRADE;
         }
         var refereeGrades = matchesWithGrade.stream()
-                .map(Grade::getValue)
+                .map(Grade::getEffectiveValue)
                 .reduce(0.0, Double::sum);
         return refereeGrades / matchesWithGrade.size();
     }

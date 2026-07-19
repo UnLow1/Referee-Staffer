@@ -56,7 +56,7 @@ public class RefereeStafferApplication {
 
             var grade1 = new Grade(match1, 8.3);
             var grade2 = new Grade(match2, 8.2);
-            var grade3 = new Grade(match3, 7.9);
+            var grade3 = new Grade(match3, 7.9, 8.3);
             var grade4 = new Grade(match4, 8.5);
             var grade5 = new Grade(match5, 8.1);
             var grade6 = new Grade(match6, 8.4);

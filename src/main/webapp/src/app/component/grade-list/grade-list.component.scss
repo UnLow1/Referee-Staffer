@@ -31,6 +31,11 @@
   text-align: right;
 }
 
+/* Split-grade breakdown ("7.9/8.3") shown next to the effective mean. */
+.grade-cell__split {
+  font-size: 11px;
+}
+
 .row-actions {
   display: flex;
   gap: 4px;
