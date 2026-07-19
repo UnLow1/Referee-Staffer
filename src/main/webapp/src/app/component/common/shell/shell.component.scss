@@ -37,6 +37,29 @@
   justify-content: center;
 }
 
+// Hamburger for the mobile off-canvas nav — desktop keeps the static sidebar, so the
+// button only exists below the 768px breakpoint (RS-85 responsive pass).
+.topbar__menu {
+  display: none;
+  width: 26px;
+  padding: 0;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .topbar__menu {
+    display: inline-flex;
+  }
+  // Static season/round labels are decorative — drop them to keep the narrow topbar
+  // down to the hamburger, theme toggle and avatar.
+  .topbar__crumb,
+  .topbar__sep,
+  .topbar__round,
+  .topbar__divider {
+    display: none;
+  }
+}
+
 // The explainer toggle reuses .nav-item styling on a <button> — reset the UA button look.
 button.nav-item--toggle {
   background: none;

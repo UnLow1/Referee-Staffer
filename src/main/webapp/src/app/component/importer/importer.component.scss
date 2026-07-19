@@ -94,3 +94,14 @@
   font-size: 18px;
   font-weight: 600;
 }
+
+/* ——— <768px (RS-85): upload controls stack, result counters fold to 2×2 ——— */
+@media (max-width: 767px) {
+  .upload-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .import-result__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

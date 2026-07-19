@@ -50,3 +50,10 @@
   gap: 6px;
   margin-top: 8px;
 }
+
+/* ——— <768px (RS-85): parameter fields stack in a single column ——— */
+@media (max-width: 767px) {
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -79,43 +79,45 @@
           </div>
         </div>
       </div>
-      <table class="tbl">
-        <tbody>
-          @if (breakdown(); as b) {
-            <tr>
-              <td>Base — closeness in table</td>
-              <td class="num right muted">Δ {{ b.flags.pointsDiff }} pts</td>
-              <td class="num right">+{{ round(b.parts.base) }}</td>
-            </tr>
-            <tr>
-              <td>Same city {{ b.flags.sameCity ? '(derby)' : '' }}</td>
-              <td class="num right muted">{{ b.flags.sameCity ? 'active' : 'inactive' }}</td>
-              <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
-            </tr>
-            <tr>
-              <td>Top-3 match</td>
-              <td class="num right muted">{{ b.flags.isTop ? 'active' : 'inactive' }}</td>
-              <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
-            </tr>
-            <tr>
-              <td>Relegation match</td>
-              <td class="num right muted">{{ b.flags.isBot ? 'active' : 'inactive' }}</td>
-              <td class="num right" [class.danger-text]="b.flags.isBot" [class.muted]="!b.flags.isBot">+{{ round(b.parts.bottom) }}</td>
-            </tr>
-            <tr class="total-row">
-              <td><strong>Total difficulty</strong></td>
-              <td></td>
-              <td class="num right"><strong>{{ round(b.total) }}</strong></td>
-            </tr>
-          } @else {
-            <tr>
-              <td>Total difficulty</td>
-              <td class="num right">{{ m.hardnessLvl !== null ? round(m.hardnessLvl) : '—' }}</td>
-            </tr>
-            <tr><td colspan="2" class="muted">Loading breakdown…</td></tr>
-          }
-        </tbody>
-      </table>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <tbody>
+            @if (breakdown(); as b) {
+              <tr>
+                <td>Base — closeness in table</td>
+                <td class="num right muted">Δ {{ b.flags.pointsDiff }} pts</td>
+                <td class="num right">+{{ round(b.parts.base) }}</td>
+              </tr>
+              <tr>
+                <td>Same city {{ b.flags.sameCity ? '(derby)' : '' }}</td>
+                <td class="num right muted">{{ b.flags.sameCity ? 'active' : 'inactive' }}</td>
+                <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
+              </tr>
+              <tr>
+                <td>Top-3 match</td>
+                <td class="num right muted">{{ b.flags.isTop ? 'active' : 'inactive' }}</td>
+                <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
+              </tr>
+              <tr>
+                <td>Relegation match</td>
+                <td class="num right muted">{{ b.flags.isBot ? 'active' : 'inactive' }}</td>
+                <td class="num right" [class.danger-text]="b.flags.isBot" [class.muted]="!b.flags.isBot">+{{ round(b.parts.bottom) }}</td>
+              </tr>
+              <tr class="total-row">
+                <td><strong>Total difficulty</strong></td>
+                <td></td>
+                <td class="num right"><strong>{{ round(b.total) }}</strong></td>
+              </tr>
+            } @else {
+              <tr>
+                <td>Total difficulty</td>
+                <td class="num right">{{ m.hardnessLvl !== null ? round(m.hardnessLvl) : '—' }}</td>
+              </tr>
+              <tr><td colspan="2" class="muted">Loading breakdown…</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="panel">
@@ -161,38 +163,40 @@
         </div>
       </div>
     </div>
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th class="col-idx">#</th>
-          <th>Referee</th>
-          <th class="num right col-avg">Avg</th>
-          <th class="num right col-experience">Experience</th>
-          <th class="num right col-potential">Potential</th>
-          <th class="col-actions"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (c of candidates(); track c.referee.id; let i = $index) {
-          <tr [class.candidate-row--assigned]="c.isAssigned">
-            <td class="num idx-cell">{{ i + 1 }}</td>
-            <td><app-ref-avatar [referee]="c.referee"></app-ref-avatar></td>
-            <td class="num right">{{ c.referee.averageGrade !== null && c.referee.averageGrade !== undefined ? c.referee.averageGrade.toFixed(1) : '—' }}</td>
-            <td class="num right">{{ c.referee.experience }}</td>
-            <td class="num right">{{ c.referee.potential !== null && c.referee.potential !== undefined ? round(c.referee.potential) : '—' }}</td>
-            <td class="col-actions">
-              <div class="row-actions">
-                @if (c.isAssigned) {
-                  <app-chip variant="accent">assigned</app-chip>
-                } @else {
-                  <button type="button" class="btn btn--sm" (click)="assign(c.referee)">Assign</button>
-                }
-              </div>
-            </td>
+    <div class="tbl-scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th class="col-idx">#</th>
+            <th>Referee</th>
+            <th class="num right col-avg">Avg</th>
+            <th class="num right col-experience">Experience</th>
+            <th class="num right col-potential">Potential</th>
+            <th class="col-actions"></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (c of candidates(); track c.referee.id; let i = $index) {
+            <tr [class.candidate-row--assigned]="c.isAssigned">
+              <td class="num idx-cell">{{ i + 1 }}</td>
+              <td><app-ref-avatar [referee]="c.referee"></app-ref-avatar></td>
+              <td class="num right">{{ c.referee.averageGrade !== null && c.referee.averageGrade !== undefined ? c.referee.averageGrade.toFixed(1) : '—' }}</td>
+              <td class="num right">{{ c.referee.experience }}</td>
+              <td class="num right">{{ c.referee.potential !== null && c.referee.potential !== undefined ? round(c.referee.potential) : '—' }}</td>
+              <td class="col-actions">
+                <div class="row-actions">
+                  @if (c.isAssigned) {
+                    <app-chip variant="accent">assigned</app-chip>
+                  } @else {
+                    <button type="button" class="btn btn--sm" (click)="assign(c.referee)">Assign</button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 } @else {
   <div class="panel"><div class="panel__body muted">Loading match…</div></div>
