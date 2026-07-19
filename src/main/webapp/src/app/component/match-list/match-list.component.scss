@@ -48,6 +48,14 @@
   color: var(--ink-3);
 }
 
+// ——— <768px (RS-85): the two filter groups + Clear wrap into rows ———
+@media (max-width: 767px) {
+  .filter-bar {
+    flex-wrap: wrap;
+    gap: 10px 20px;
+  }
+}
+
 .match-row {
   cursor: pointer;
 }
