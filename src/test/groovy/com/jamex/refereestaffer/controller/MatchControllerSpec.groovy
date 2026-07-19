@@ -233,6 +233,21 @@ class MatchControllerSpec extends Specification {
         json.detail == "[1].awayTeamId: must not be null; [1].homeTeamId: must not be null; [1].queue: must not be null"
     }
 
+    def "should reject bulk match update when an element has no id"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "[1].id: must not be null"
+    }
+
     def "should delete all matches"() {
         when:
         def response = mockMvc.perform(delete("/api/matches")).andReturn().response

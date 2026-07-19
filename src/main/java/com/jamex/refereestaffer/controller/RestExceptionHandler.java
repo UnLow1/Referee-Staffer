@@ -5,6 +5,7 @@ import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.model.exception.ImportException;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
+import com.jamex.refereestaffer.model.exception.RequestValidationException;
 import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.exception.VacationNotFoundException;
@@ -100,6 +101,17 @@ public class RestExceptionHandler {
                 .collect(Collectors.joining("; "));
         log.debug("Request body validation failed: {}", detail);
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+    }
+
+    /**
+     * Hand-written request checks that bean validation cannot express (e.g. the id
+     * presence check on bulk list bodies). The message already follows the same
+     * {@code field: message} format as the two handlers above.
+     */
+    @ExceptionHandler(RequestValidationException.class)
+    public ProblemDetail handleRequestValidation(RequestValidationException ex) {
+        log.debug("Request body validation failed: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     private static String describe(MessageSourceResolvable error) {
