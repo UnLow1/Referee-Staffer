@@ -76,6 +76,7 @@ export class StafferComponent {
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
+  readonly exporting = signal(false);
 
   // ——— Derived state ———
 
@@ -136,6 +137,29 @@ export class StafferComponent {
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
+    });
+  }
+
+  /**
+   * Downloads the assignment sheet PDF for the selected queue. The backend renders
+   * persisted assignments, so unsaved edits (swaps not yet saved) are not included.
+   */
+  exportPdf(): void {
+    this.exporting.set(true);
+    this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `referee-assignments-queue-${this.queue()}.pdf`;
+        // Firefox needs the anchor in the DOM for a programmatic download click.
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => this.exporting.set(false)
     });
   }
 
