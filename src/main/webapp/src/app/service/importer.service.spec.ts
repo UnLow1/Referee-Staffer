@@ -1,6 +1,7 @@
 import {TestBed} from '@angular/core/testing';
 import {HttpErrorResponse, provideHttpClient, withInterceptors} from '@angular/common/http';
 import {HttpTestingController, provideHttpClientTesting} from '@angular/common/http/testing';
+import {firstValueFrom} from 'rxjs';
 
 import {ImporterService} from './importer.service';
 import {ToastService} from './toast.service';
@@ -73,6 +74,24 @@ describe('ImporterService', () => {
 
     expect(error?.status).toBe(400);
     expect(toastService.toast()).toEqual({message: 'Import failed: invalid CSV header', kind: 'error'});
+  });
+
+  it('extracts the ProblemDetail message from a JSON-typed Blob error body', async () => {
+    // Blob download errors carry the body as a Blob — the interceptor reads it
+    // asynchronously, so the error is awaited instead of asserted synchronously.
+    const errorPromise = firstValueFrom(service.downloadExampleFile())
+      .then(() => fail('expected an error'), (e: HttpErrorResponse) => e);
+
+    const problemDetail = new Blob(
+      [JSON.stringify({detail: 'Example file is missing'})],
+      {type: 'application/problem+json'},
+    );
+    httpTesting.expectOne(`${importerUrl}/example`)
+      .flush(problemDetail, {status: 404, statusText: 'Not Found'});
+
+    const error = await errorPromise as HttpErrorResponse;
+    expect(error.status).toBe(404);
+    expect(toastService.toast()).toEqual({message: 'Example file is missing', kind: 'error'});
   });
 
   it('surfaces a 500 without ProblemDetail as a generic error toast and rethrows', () => {
