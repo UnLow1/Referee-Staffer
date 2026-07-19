@@ -6,10 +6,13 @@
   <div class="page-head__actions">
     <input type="text" class="input" placeholder="Search team…"
            [value]="searchTerm()" (input)="setSearch($any($event.target).value)">
-    <!-- Filter button is a placeholder — advanced filters (referee assignment,
-         date range, etc.) are a future addition. -->
-    <button type="button" class="btn" disabled title="Filters coming soon">
+    <button type="button" class="btn" [class.btn--filter-active]="activeFilterCount() > 0"
+            [attr.aria-expanded]="filtersOpen()"
+            (click)="toggleFilters()" title="Filter matches">
       <app-icon name="filter" [size]="12"></app-icon>Filter
+      @if (activeFilterCount() > 0) {
+        <span class="filter-count">{{ activeFilterCount() }}</span>
+      }
     </button>
     <button type="button" class="btn btn--primary" (click)="addMatch()">
       <app-icon name="plus" [size]="12"></app-icon>New match
@@ -17,9 +20,34 @@
   </div>
 </div>
 
+@if (filtersOpen()) {
+  <div class="filter-bar">
+    <div class="filter-bar__group">
+      <span class="filter-bar__label">Result</span>
+      <app-seg [options]="resultOptions" [value]="resultFilter()"
+               (valueChange)="resultFilter.set($event)"></app-seg>
+    </div>
+    <div class="filter-bar__group">
+      <span class="filter-bar__label">Referee</span>
+      <app-seg [options]="refereeOptions" [value]="refereeFilter()"
+               (valueChange)="refereeFilter.set($event)"></app-seg>
+    </div>
+    @if (activeFilterCount() > 0) {
+      <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
+        <app-icon name="x" [size]="12"></app-icon>Clear
+      </button>
+    }
+  </div>
+}
+
 <div class="panel">
   <div class="panel__head">
     <div class="seg">
+      @if (availableQueues().length > 0) {
+        <button type="button" [class.active]="selectedQueue() === null" (click)="selectQueue(null)">
+          All queues
+        </button>
+      }
       @for (q of availableQueues(); track q) {
         <button type="button" [class.active]="q === selectedQueue()" (click)="selectQueue(q)">
           Queue {{ q }}
@@ -86,6 +114,10 @@
           <td colspan="6" class="empty-row">
             @if (searchTerm()) {
               <span class="muted">No matches match "{{ searchTerm() }}".</span>
+            } @else if (activeFilterCount() > 0) {
+              <span class="muted">No matches match the current filters.</span>
+            } @else if (selectedQueue() === null) {
+              <span class="muted">No matches yet.</span>
             } @else {
               <span class="muted">No matches in this queue.</span>
             }
