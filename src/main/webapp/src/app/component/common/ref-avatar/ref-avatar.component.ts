@@ -1,4 +1,4 @@
-import {Component, computed, input} from '@angular/core';
+import {Component, computed, input, ChangeDetectionStrategy} from '@angular/core';
 import {Referee} from '../../../model/referee';
 
 /**
@@ -21,6 +21,7 @@ import {Referee} from '../../../model/referee';
       </span>
     </span>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .ref-avatar {
       display: inline-flex;

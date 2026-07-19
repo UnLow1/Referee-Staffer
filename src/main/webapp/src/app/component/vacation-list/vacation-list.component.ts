@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {DatePipe} from '@angular/common';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Vacation} from '../../model/vacation';
@@ -24,6 +24,7 @@ export type VacationStatus = 'upcoming' | 'active' | 'past';
   selector: 'app-vacation-list',
   templateUrl: './vacation-list.component.html',
   styleUrls: ['./vacation-list.component.scss'],
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     DatePipe, IconComponent, RefAvatarComponent, ChipComponent, ConfirmDialogComponent, VacationFormComponent
   ]

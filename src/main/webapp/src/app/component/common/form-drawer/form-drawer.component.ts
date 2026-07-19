@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, signal} from '@angular/core';
+import {Component, EventEmitter, Input, Output, signal, ChangeDetectionStrategy} from '@angular/core';
 import {DrawerComponent} from '../drawer/drawer.component';
 import {ConfirmDialogComponent} from '../confirm-dialog/confirm-dialog.component';
 import {IconComponent} from '../icon/icon.component';
@@ -38,6 +38,7 @@ import {ModalData} from '../../../model/modalData';
                         (confirmed)="discard()" (cancelled)="confirmOpen.set(false)">
     </app-confirm-dialog>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .fdrawer__dirty {
       font-size: 12px;

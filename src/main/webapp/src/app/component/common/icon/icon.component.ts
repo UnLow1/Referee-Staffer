@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 
 /**
  * Single-path SVG icon, sized to the design's 16/14/24 grid. Paths come from lucide
@@ -13,6 +13,7 @@ import {Component, Input} from '@angular/core';
       <path [attr.d]="path"></path>
     </svg>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [':host { display: inline-flex; align-items: center; justify-content: center; }']
 })
 export class IconComponent {

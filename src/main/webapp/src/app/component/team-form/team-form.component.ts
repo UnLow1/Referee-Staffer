@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Team} from '../../model/team';
 import {TeamService} from '../../service/team.service';
@@ -15,6 +15,7 @@ import {IconComponent} from '../common/icon/icon.component';
 @Component({
   selector: 'app-team-form',
   templateUrl: './team-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, FormDrawerComponent, IconComponent]
 })
 export class TeamFormComponent implements OnInit {
