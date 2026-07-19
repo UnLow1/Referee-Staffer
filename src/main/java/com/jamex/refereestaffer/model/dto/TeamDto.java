@@ -1,17 +1,19 @@
 package com.jamex.refereestaffer.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class TeamDto {
 
-    @NotNull
+    @NotNull(groups = OnUpdate.class)
     private final Long id;
 
-    @NotNull
+    @NotBlank
     private final String name;
 
-    @NotNull
+    @NotBlank
     private final String city;
 
     /**

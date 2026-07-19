@@ -1,11 +1,12 @@
 package com.jamex.refereestaffer.model.dto;
 
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 public class VacationDto {
 
-    @NotNull
+    @NotNull(groups = OnUpdate.class)
     private final Long id;
 
     @NotNull

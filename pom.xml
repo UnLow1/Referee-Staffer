@@ -134,6 +134,10 @@
                     <includes>
                         <include>**/*Spec.java</include>
                     </includes>
+                    <!-- Controller specs assert Hibernate Validator's default constraint
+                         messages, which are resolved against the JVM locale — pin English
+                         so the suite passes on non-English machines too. -->
+                    <argLine>@{argLine} -Duser.language=en -Duser.country=US</argLine>
                 </configuration>
             </plugin>
 

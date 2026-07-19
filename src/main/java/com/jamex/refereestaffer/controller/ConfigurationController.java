@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.entity.Config;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,7 +33,7 @@ public class ConfigurationController {
     }
 
     @PutMapping
-    public Collection<Config> updateConfiguration(@RequestBody List<Config> config) {
+    public Collection<Config> updateConfiguration(@RequestBody List<@Valid Config> config) {
         log.info("Updating configuration");
         return configurationRepository.saveAll(config);
     }
