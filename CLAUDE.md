@@ -85,6 +85,18 @@ GitHub Actions workflows under `.github/workflows/`, split by concern:
 - npm: `angular`, `eslint`, `karma-jasmine`, `types`.
 - GitHub Actions: ungrouped, monthly.
 
+## Dependency & version policy
+
+How we decide which versions to move to (applies to manual bumps, Dependabot triage, and the weekly deps-radar routines):
+
+- **Latest stable wins — LTS is not required.** Bumping any dependency to its newest **stable** release is acceptable, including non-LTS lines. This explicitly covers the toolchain runtimes:
+  - **JDK**: a non-LTS feature release is fine (e.g. `java.version` 25 → 26), accepting the shorter support window and that the next feature release will need another bump.
+  - **Node**: the non-LTS / "Current" line is allowed, not only the active LTS line — **but** it must stay within the range the installed Angular supports. That Angular↔Node compatibility range is a **hard constraint**, not a preference: never move Node outside it.
+- **Stable only — no pre-releases.** Exclude alpha / beta / RC / milestone / snapshot / `next` builds (e.g. `Groovy 6.0.0-alpha-*`). Treat non-LTS stable versions as real bump candidates; do not auto-reject them for being non-LTS.
+- **Majors still go through their migration path**, not a blind version bump — Angular majors via `ng update` schematics, Spring Boot majors deliberately (see the tech-stack gotchas above). This policy governs *which* target version is acceptable, not *how* you get there.
+
+The weekly `Backend deps radar` / `Frontend deps radar` cloud routines reference this section; keep it in sync if the policy changes.
+
 ## CD
 
 **None.** There is no active hosted environment. The `prod` profile exists but nothing runs it anywhere.
