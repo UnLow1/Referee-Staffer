@@ -8,6 +8,10 @@ Spring Boot application for assigning football referees to matches. Personal / n
 
 Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 
+## Dependency & version policy
+
+**We do not restrict ourselves to LTS releases.** Bumping any dependency — backend or frontend — to its newest *stable* version is acceptable, including non-LTS feature releases. This explicitly covers the JDK: moving `java.version` to a non-LTS Java feature release (e.g. 25 → 26) is fine, even though it means a shorter support window and a follow-up bump when the next feature release ships. The only things still off-limits without a deliberate decision are pre-release artifacts — alpha/beta/RC/milestone/snapshot builds (e.g. Groovy `6.0.0-alpha-*`) — and the existing hard rules elsewhere in this file (no Lombok; the Spock classifier must match the Groovy major; etc.). The weekly dependency-radar routines (backend + frontend) follow this policy.
+
 ## Tech stack
 
 - **Backend:** Spring Boot 4.1.0 (4.0.6 → 4.1.0 on 2026-07-02 in a Dependabot catch-up pass; originally bumped from 3.5.6 on 2026-04-23), Java 25 (Corretto 25.0.2), Maven. Pulls in Spring Framework 7, Spring Security 7 (not used), Hibernate 7.1. Uses `jakarta.*` (JPA, validation) — migrated from `javax.*` in 2026-04. Jackson 2 still ships in SB 4 as deprecated — the single `@JsonIgnore` in `Grade.java` still imports from `com.fasterxml.jackson.annotation.*` and works; a future migration to Jackson 3 (`tools.jackson.*`) is possible but not urgent.
