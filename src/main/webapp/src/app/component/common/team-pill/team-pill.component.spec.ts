@@ -3,7 +3,9 @@ import {TeamPillComponent} from './team-pill.component';
 import {Team} from '../../../model/team';
 
 describe('TeamPillComponent', () => {
-  const team: Team = {id: 1, name: 'Legia Warszawa', city: 'Warszawa', points: 30, short: 'LEG'};
+  // short deliberately differs from the name-derived prefix ("LEG") so the tests can
+  // tell the backend code apart from the fallback.
+  const team: Team = {id: 1, name: 'Legia Warszawa', city: 'Warszawa', points: 30, short: 'LGW'};
 
   let fixture: ComponentFixture<TeamPillComponent>;
 
@@ -24,7 +26,7 @@ describe('TeamPillComponent', () => {
     fixture.componentRef.setInput('team', team);
     fixture.detectChanges();
 
-    expect(shortEl().textContent?.trim()).toBe('LEG');
+    expect(shortEl().textContent?.trim()).toBe('LGW');
     expect(el().querySelector('.team-pill__name')?.textContent).toContain('Legia Warszawa');
   });
 
