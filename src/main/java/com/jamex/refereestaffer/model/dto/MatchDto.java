@@ -4,90 +4,37 @@ import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
-public class MatchDto {
+public record MatchDto(
 
-    @NotNull(groups = OnUpdate.class)
-    private final Long id;
+        @NotNull(groups = OnUpdate.class)
+        Long id,
 
-    @NotNull
-    private final Short queue;
+        @NotNull
+        Short queue,
 
-    @NotNull
-    private final Long homeTeamId;
+        @NotNull
+        Long homeTeamId,
 
-    @NotNull
-    private final Long awayTeamId;
+        @NotNull
+        Long awayTeamId,
 
-    private final LocalDateTime date;
+        LocalDateTime date,
 
-    private final Long refereeId;
+        Long refereeId,
 
-    private final Short homeScore;
+        Short homeScore,
 
-    private final Short awayScore;
+        Short awayScore,
 
-    private final Long gradeId;
+        Long gradeId,
 
-    /**
-     * Computed match difficulty (the entity field is @Transient, recalculated on every
-     * staffing run). Exposed so the Staffer screen can sort and visualise; the
-     * per-component breakdown lives on GET /api/matches/{id}/difficulty.
-     */
-    private final Double hardnessLvl;
-
-    public MatchDto(Long id, Short queue, Long homeTeamId, Long awayTeamId, LocalDateTime date,
-                    Long refereeId, Short homeScore, Short awayScore, Long gradeId, Double hardnessLvl) {
-        this.id = id;
-        this.queue = queue;
-        this.homeTeamId = homeTeamId;
-        this.awayTeamId = awayTeamId;
-        this.date = date;
-        this.refereeId = refereeId;
-        this.homeScore = homeScore;
-        this.awayScore = awayScore;
-        this.gradeId = gradeId;
-        this.hardnessLvl = hardnessLvl;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Short getQueue() {
-        return queue;
-    }
-
-    public Long getHomeTeamId() {
-        return homeTeamId;
-    }
-
-    public Long getAwayTeamId() {
-        return awayTeamId;
-    }
-
-    public LocalDateTime getDate() {
-        return date;
-    }
-
-    public Long getRefereeId() {
-        return refereeId;
-    }
-
-    public Short getHomeScore() {
-        return homeScore;
-    }
-
-    public Short getAwayScore() {
-        return awayScore;
-    }
-
-    public Long getGradeId() {
-        return gradeId;
-    }
-
-    public Double getHardnessLvl() {
-        return hardnessLvl;
-    }
+        /**
+         * Computed match difficulty (the entity field is @Transient, recalculated on every
+         * staffing run). Exposed so the Staffer screen can sort and visualise; the
+         * per-component breakdown lives on GET /api/matches/{id}/difficulty.
+         */
+        Double hardnessLvl
+) {
 
     public static Builder builder() {
         return new Builder();

@@ -47,25 +47,25 @@ public class MatchConverter implements BaseConverter<Match, MatchDto> {
 
     @Override
     public Match convertFromDto(MatchDto dto) {
-        var homeTeam = teamRepository.findById(dto.getHomeTeamId())
-                .orElseThrow(() -> new TeamNotFoundException(dto.getHomeTeamId()));
-        var awayTeam = teamRepository.findById(dto.getAwayTeamId())
-                .orElseThrow(() -> new TeamNotFoundException(dto.getAwayTeamId()));
-        var referee = Optional.ofNullable(dto.getRefereeId())
+        var homeTeam = teamRepository.findById(dto.homeTeamId())
+                .orElseThrow(() -> new TeamNotFoundException(dto.homeTeamId()));
+        var awayTeam = teamRepository.findById(dto.awayTeamId())
+                .orElseThrow(() -> new TeamNotFoundException(dto.awayTeamId()));
+        var referee = Optional.ofNullable(dto.refereeId())
                 .flatMap(refereeRepository::findById);
-        var grade = Optional.ofNullable(dto.getGradeId())
+        var grade = Optional.ofNullable(dto.gradeId())
                 .flatMap(gradeRepository::findById);
 
         return new Match(
-                dto.getId(),
-                dto.getQueue(),
+                dto.id(),
+                dto.queue(),
                 homeTeam,
                 awayTeam,
-                dto.getDate(),
+                dto.date(),
                 referee.orElse(null),
                 grade.orElse(null),
-                dto.getHomeScore(),
-                dto.getAwayScore(),
+                dto.homeScore(),
+                dto.awayScore(),
                 0.0);
     }
 }

@@ -77,7 +77,7 @@ public class MatchController {
     // TODO is this id needed?
     @PutMapping("/{id}")
     public MatchDto updateMatch(@Validated(OnUpdate.class) @RequestBody MatchDto matchDto, @PathVariable Long id) {
-        log.info("Updating match with id {}", matchDto.getId());
+        log.info("Updating match with id {}", matchDto.id());
         var match = matchConverter.convertFromDto(matchDto);
         var updatedMatch = matchRepository.save(match);
         return matchConverter.convertFromEntity(updatedMatch);
@@ -87,7 +87,7 @@ public class MatchController {
     public void updateMatches(@RequestBody List<@Valid MatchDto> matchesDtos) {
         requireIds(matchesDtos);
         var matchIds = matchesDtos.stream()
-                .map(MatchDto::getId)
+                .map(MatchDto::id)
                 .toList();
         log.info("Updating matches with ids: {}", matchIds);
         var matches = matchConverter.convertFromDtos(matchesDtos);
@@ -114,7 +114,7 @@ public class MatchController {
     private static void requireIds(List<MatchDto> matchesDtos) {
         var errors = new ArrayList<String>();
         for (int i = 0; i < matchesDtos.size(); i++) {
-            if (matchesDtos.get(i).getId() == null) {
+            if (matchesDtos.get(i).id() == null) {
                 errors.add("[" + i + "].id: must not be null");
             }
         }
