@@ -5,105 +5,50 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public class RefereeDto {
+// A record has exactly one (canonical) constructor, so Jackson resolves @RequestBody JSON
+// through it by component names — no risk of ambiguous creator resolution.
+public record RefereeDto(
 
-    @NotNull(groups = OnUpdate.class)
-    private final Long id;
+        @NotNull(groups = OnUpdate.class)
+        Long id,
 
-    @NotBlank
-    private final String firstName;
+        @NotBlank
+        String firstName,
 
-    @NotBlank
-    private final String lastName;
+        @NotBlank
+        String lastName,
 
-    @NotBlank
-    @Email
-    private final String email;
+        @NotBlank
+        @Email
+        String email,
 
-    @NotNull
-    private final Integer experience;
+        @NotNull
+        Integer experience,
 
-    /**
-     * Average observer grade across the referee's match history. Null until at least one
-     * graded match exists — frontend treats null as "no grades yet". Populated by
-     * {@link com.jamex.refereestaffer.service.RefereeService#enrichWithStats} for the
-     * read-only endpoints; create/update flow leaves it null.
-     */
-    private final Double averageGrade;
+        /**
+         * Average observer grade across the referee's match history. Null until at least one
+         * graded match exists — frontend treats null as "no grades yet". Populated by
+         * {@link com.jamex.refereestaffer.service.RefereeService#enrichWithStats} for the
+         * read-only endpoints; create/update flow leaves it null.
+         */
+        Double averageGrade,
 
-    /** Highest queue this referee has ever been assigned to. Null when never assigned. */
-    private final Short lastQueue;
+        /** Highest queue this referee has ever been assigned to. Null when never assigned. */
+        Short lastQueue,
 
-    /** Computed potential: α·avg + β·experience. Null when not enriched. */
-    private final Double potential;
+        /** Computed potential: α·avg + β·experience. Null when not enriched. */
+        Double potential,
 
-    /**
-     * Number of past matches officiated by this referee where the home team won.
-     * Together with {@link #awayWins} this is the fairness signal rendered as a
-     * side-by-side bar on the redesigned Profile screen. Null until enrichment runs.
-     */
-    private final Short homeWins;
+        /**
+         * Number of past matches officiated by this referee where the home team won.
+         * Together with {@link #awayWins} this is the fairness signal rendered as a
+         * side-by-side bar on the redesigned Profile screen. Null until enrichment runs.
+         */
+        Short homeWins,
 
-    /** Number of past matches officiated where the away team won. See {@link #homeWins}. */
-    private final Short awayWins;
-
-    // Deliberately the only constructor — Jackson resolves @RequestBody JSON through it by
-    // parameter names. A second constructor makes creator resolution ambiguous and breaks
-    // deserialization of POST/PUT bodies.
-    public RefereeDto(Long id, String firstName, String lastName, String email, Integer experience,
-                      Double averageGrade, Short lastQueue, Double potential,
-                      Short homeWins, Short awayWins) {
-        this.id = id;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.experience = experience;
-        this.averageGrade = averageGrade;
-        this.lastQueue = lastQueue;
-        this.potential = potential;
-        this.homeWins = homeWins;
-        this.awayWins = awayWins;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public Integer getExperience() {
-        return experience;
-    }
-
-    public Double getAverageGrade() {
-        return averageGrade;
-    }
-
-    public Short getLastQueue() {
-        return lastQueue;
-    }
-
-    public Double getPotential() {
-        return potential;
-    }
-
-    public Short getHomeWins() {
-        return homeWins;
-    }
-
-    public Short getAwayWins() {
-        return awayWins;
-    }
+        /** Number of past matches officiated where the away team won. See {@link #homeWins}. */
+        Short awayWins
+) {
 
     public static Builder builder() {
         return new Builder();
