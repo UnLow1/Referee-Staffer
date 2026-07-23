@@ -24,6 +24,12 @@
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Playwright E2E
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
 # misc
 /.angular/cache
 /.sass-cache
