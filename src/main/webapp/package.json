@@ -6,7 +6,8 @@
     "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "e2e": "playwright test"
   },
   "private": true,
   "overrides": {
@@ -33,6 +34,7 @@
     "@angular/compiler-cli": "^22.0.5",
     "@angular/language-service": "^22.0.5",
     "@eslint/js": "^10.0.0",
+    "@playwright/test": "^1.56.1",
     "@types/file-saver": "^2.0.7",
     "@types/jasmine": "~6.0.0",
     "@types/node": "^26.1.0",
