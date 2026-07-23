@@ -42,7 +42,9 @@ export default defineConfig({
     timeout: 120_000,
     // Locally, reuse a jar you already have running; in CI always boot a clean one.
     reuseExistingServer: !process.env.CI,
-    stdout: 'ignore',
+    // Surface the Spring Boot boot log: if the jar fails to start, the webServer
+    // timeout alone is opaque, so pipe both streams into the Playwright output.
+    stdout: 'pipe',
     stderr: 'pipe',
   },
 });
