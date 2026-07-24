@@ -42,8 +42,8 @@ public class RefereeController {
     public Collection<RefereeDto> getReferees() {
         log.info("Getting all referees");
         var referees = refereeRepository.findAll();
-        // Enrich with averages, last queue, and potential so the redesigned Referee list /
-        // Profile / Dashboard screens get the fields they show without a second round-trip.
+        // Enrich with averages, last queue, and potential so the Referee list / Profile /
+        // Dashboard screens get the fields they show without a second round-trip.
         refereeService.enrichWithStats(referees);
         return refereeConverter.convertFromEntities(referees);
     }

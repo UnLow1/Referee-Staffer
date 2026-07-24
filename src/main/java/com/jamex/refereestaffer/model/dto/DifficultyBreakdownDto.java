@@ -2,7 +2,7 @@ package com.jamex.refereestaffer.model.dto;
 
 /**
  * Per-component breakdown of a match's hardness level. Mirrors the shape consumed by
- * the redesigned UI's Staffer drawer + Match detail panels:
+ * the UI's Staffer drawer + Match detail panels:
  *
  * <pre>
  *   total = parts.base + parts.sameCity + parts.top + parts.bottom

@@ -1,6 +1,6 @@
 // Most of the shell's layout/colour rules live in the global styles.scss so that the
-// design tokens stay centralized. The styles below are shell-specific extras that the
-// prototype expressed as inline JSX styles — they don't have a home in the global file.
+// design tokens stay centralized. The styles below are shell-specific extras that don't
+// have a home in the global file.
 
 .topbar__left {
   display: flex;
