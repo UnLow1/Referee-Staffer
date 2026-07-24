@@ -5,8 +5,7 @@ import {IconComponent, IconName} from '../icon/icon.component';
 
 /**
  * Application shell — sidebar + topbar + scrollable main pane with router-outlet.
- * Replaced the legacy header/footer pair in the 2026-06 redesign. All workspace
- * screens are children of this component via the router.
+ * All workspace screens are children of this component via the router.
  */
 @Component({
   selector: 'app-shell',
@@ -38,9 +37,8 @@ export class ShellComponent {
     this.closeNav();
   }
 
-  // Three nav groups mirroring the prototype. `count` is left blank for now — wiring
-  // it up requires service calls that should arrive together with the screens that
-  // already query those endpoints (step 4+).
+  // Three nav groups. `count` is left blank — wiring it up requires service calls that
+  // should arrive together with the screens that already query those endpoints.
   readonly workspaceNav: NavItem[] = [
     {path: '/dashboard', label: 'Overview', icon: 'grid'},
     {path: '/staffer', label: 'Staffer', icon: 'whistle'},

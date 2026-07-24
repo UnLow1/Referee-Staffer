@@ -72,7 +72,7 @@ public class RefereeService {
 
             // Win-distribution counters: split played matches by who won. Draws and
             // unfinished matches contribute to neither — they don't tell us anything about
-            // home/away balance. The redesign's profile screen renders these as a
+            // home/away balance. The profile screen renders these as a
             // side-by-side bar (fairness signal: lopsided counts can flag a referee worth
             // a closer look, though they don't prove bias on their own).
             short homeWins = 0;
@@ -93,11 +93,11 @@ public class RefereeService {
     }
 
     /**
-     * Populates everything the redesigned Referee list / Profile / Dashboard screens need:
+     * Populates everything the Referee list / Profile / Dashboard screens need:
      * averages, last queue, and computed potential. Use for read-only endpoints that serve
      * the UI (`GET /api/referees`, `GET /api/referees/{id}`).
      *
-     * <p>The potential formula matches the design's prototype: {@code P = α·avg + β·experience},
+     * <p>The potential formula is {@code P = α·avg + β·experience},
      * where α = AVERAGE_GRADE_MULTIPLIER and β = EXPERIENCE_MULTIPLIER. This is a simpler
      * variant than {@link StafferService#staffReferees} uses internally — staffer's score
      * subtracts fairness penalties that depend on the candidate match.

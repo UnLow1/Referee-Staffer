@@ -79,7 +79,7 @@ public class MatchService {
         var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
 
         // Config values and the team count are constant for the whole request — load them
-        // once here instead of per match (used to be 4-5 findByName + count per iteration).
+        // once here instead of per match to avoid repeated lookups per iteration.
         var config = configurationRepository.findAllAsMap();
         var numberOfTeams = teamRepository.count();
         matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(computeBreakdown(match, config, numberOfTeams).total()));
@@ -89,7 +89,7 @@ public class MatchService {
     }
 
     /**
-     * Public entry-point for the redesigned Staffer drawer + Match detail screens. Loads
+     * Public entry-point for the Staffer drawer + Match detail screens. Loads
      * the match (404 if missing), then recomputes points/places against the latest finished
      * matches so `place` is fresh, and returns the per-component breakdown.
      */

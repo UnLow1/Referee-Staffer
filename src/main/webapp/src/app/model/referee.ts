@@ -16,8 +16,8 @@ export interface Referee {
   potential?: number;
   /**
    * Number of past matches officiated where the home team won. Paired with
-   * {@link awayWins} this is the win-distribution signal surfaced on the redesigned
-   * Profile screen as a side-by-side bar. Null when not enriched.
+   * {@link awayWins} this is the win-distribution signal surfaced on the Profile
+   * screen as a side-by-side bar. Null when not enriched.
    */
   homeWins?: number;
   /** Number of past matches officiated where the away team won. See homeWins. */

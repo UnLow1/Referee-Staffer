@@ -47,8 +47,8 @@ public class Referee {
     /**
      * Highest queue this referee has been assigned to. Set by
      * {@link com.jamex.refereestaffer.service.RefereeService#calculateStats}; null when
-     * the referee has never been assigned. Surfaced by RefereeDto for the redesigned
-     * Referee list and Profile screens.
+     * the referee has never been assigned. Surfaced by RefereeDto for the Referee list
+     * and Profile screens.
      */
     @Transient
     private Short lastQueue;
