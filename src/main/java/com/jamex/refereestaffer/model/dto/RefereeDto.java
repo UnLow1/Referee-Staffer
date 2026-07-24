@@ -40,7 +40,7 @@ public class RefereeDto {
     /**
      * Number of past matches officiated by this referee where the home team won.
      * Together with {@link #awayWins} this is the fairness signal rendered as a
-     * side-by-side bar on the redesigned Profile screen. Null until enrichment runs.
+     * side-by-side bar on the Profile screen. Null until enrichment runs.
      */
     private final Short homeWins;
 

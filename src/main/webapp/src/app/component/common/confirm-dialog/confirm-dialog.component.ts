@@ -55,7 +55,7 @@ import {ModalData} from '../../../model/modalData';
       height: fit-content;
       z-index: 61;
     }
-    /* Danger-filled primary for destructive confirms (prototype inline-styles this). */
+    /* Danger-filled primary for destructive confirms. */
     .btn--primary-danger {
       background: var(--danger);
       border-color: var(--danger);

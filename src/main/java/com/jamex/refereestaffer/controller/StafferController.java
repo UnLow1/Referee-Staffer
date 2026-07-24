@@ -23,10 +23,6 @@ public class StafferController {
         this.stafferService = stafferService;
     }
 
-    /**
-     * POST, not GET: staffing assigns referees and persists the result, so the verb must
-     * signal the state change (was GET until 2026-07, which broke HTTP semantics).
-     */
     @PostMapping("/{queue}")
     public Collection<MatchDto> staffReferees(@PathVariable short queue) {
         log.info("Generating cast for queue {}", queue);
