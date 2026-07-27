@@ -69,18 +69,14 @@ public class MatchController {
     @PostMapping
     public MatchDto createMatch(@Valid @RequestBody MatchDto matchDto) {
         log.info("Adding new match");
-        var match = matchConverter.convertFromDto(matchDto);
-        var savedMatch = matchRepository.save(match);
-        return matchConverter.convertFromEntity(savedMatch);
+        return matchService.saveMatch(matchDto);
     }
 
     // TODO is this id needed?
     @PutMapping("/{id}")
     public MatchDto updateMatch(@Validated(OnUpdate.class) @RequestBody MatchDto matchDto, @PathVariable Long id) {
         log.info("Updating match with id {}", matchDto.getId());
-        var match = matchConverter.convertFromDto(matchDto);
-        var updatedMatch = matchRepository.save(match);
-        return matchConverter.convertFromEntity(updatedMatch);
+        return matchService.saveMatch(matchDto);
     }
 
     @PutMapping
@@ -90,8 +86,7 @@ public class MatchController {
                 .map(MatchDto::getId)
                 .toList();
         log.info("Updating matches with ids: {}", matchIds);
-        var matches = matchConverter.convertFromDtos(matchesDtos);
-        matchRepository.saveAll(matches);
+        matchService.updateMatches(matchesDtos);
     }
 
     @DeleteMapping
