@@ -122,7 +122,14 @@
                     <!-- gmavenplus 5.1.0 validates targetBytecode against its own list, which
                          stops at 25 and rejects 26. Groovy 5.0.7 maps "26" to Opcodes.V26
                          (CompilerConfiguration.JDK26), so the plugin's check is stale, not the
-                         compiler. Drop this once gmavenplus knows about 26. -->
+                         compiler.
+                         HOW TO DROP IT (re-check on every gmavenplus bump and at the next JDK
+                         bump): remove this flag and run `mvn -DskipFrontend=true clean test`.
+                         If the build passes, the flag is obsolete — keep it only while the build
+                         still fails with "Unrecognized target bytecode". Either way confirm with
+                         `javap -v` on a compiled *Spec class that the major version still matches
+                         java.version (26 -> 70). The weekly backend deps radar also watches for a
+                         gmavenplus release newer than the one pinned here. -->
                     <skipBytecodeCheck>true</skipBytecodeCheck>
                 </configuration>
                 <executions>
