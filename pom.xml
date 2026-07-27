@@ -14,7 +14,7 @@
     <description>Application for assigning football referees to matches</description>
 
     <properties>
-        <java.version>25</java.version>
+        <java.version>26</java.version>
         <gmaven.plus.version>5.1.0</gmaven.plus.version>
         <openapi.version>3.0.3</openapi.version>
         <groovy.version>5.0.7</groovy.version>
@@ -119,6 +119,11 @@
                 <configuration>
                     <!-- Groovy 5 rejects the plugin's 1.8 default -->
                     <targetBytecode>${java.version}</targetBytecode>
+                    <!-- gmavenplus 5.1.0 validates targetBytecode against its own list, which
+                         stops at 25 and rejects 26. Groovy 5.0.7 maps "26" to Opcodes.V26
+                         (CompilerConfiguration.JDK26), so the plugin's check is stale, not the
+                         compiler. Drop this once gmavenplus knows about 26. -->
+                    <skipBytecodeCheck>true</skipBytecodeCheck>
                 </configuration>
                 <executions>
                     <execution>
