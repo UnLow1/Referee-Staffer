@@ -55,14 +55,15 @@
               "sourceMap": false,
               "namedChunks": false,
               "extractLicenses": true
-            }
+            },
+            "development": {}
           },
-          "defaultConfiguration": ""
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
           "options": {
-            "buildTarget": "webapp:build"
+            "buildTarget": "webapp:build:development"
           },
           "configurations": {
             "production": {
@@ -73,7 +74,7 @@
         "extract-i18n": {
           "builder": "@angular/build:extract-i18n",
           "options": {
-            "buildTarget": "webapp:build"
+            "buildTarget": "webapp:build:development"
           }
         },
         "test": {
