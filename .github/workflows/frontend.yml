@@ -29,7 +29,7 @@ jobs:
       # Keep node-version in sync with nodeVersion in pom.xml
       # (frontend-maven-plugin), which is what the Maven build uses.
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '26.5.1'
           cache: 'npm'
