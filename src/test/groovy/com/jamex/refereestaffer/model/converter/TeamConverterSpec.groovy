@@ -62,5 +62,8 @@ class TeamConverterSpec extends Specification {
         result.city == teamDto.city
         and: "the entity falls back to the name prefix, proving nothing was stored"
         result.shortCode == "KOR"
+
+        and: "the entity starts unranked until standings are computed"
+        result.place == null
     }
 }
