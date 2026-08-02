@@ -65,7 +65,7 @@
                [delta]="'Σ across ' + ms.length + ' matches'"></app-kpi>
       <app-kpi label="Locked assignments"
                [value]="lockCount() + '/' + ms.length"
-               [delta]="lockCount() > 0 ? 'Not yet preserved on regenerate' : 'All flexible'"></app-kpi>
+               [delta]="lockCount() > 0 ? 'Preserved on regenerate' : 'All flexible'"></app-kpi>
     </div>
   </div>
 

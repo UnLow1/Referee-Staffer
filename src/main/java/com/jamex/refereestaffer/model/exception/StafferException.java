@@ -7,4 +7,8 @@ public class StafferException extends RuntimeException {
     public StafferException() {
         super(NOT_ENOUGH_REFEREES);
     }
+
+    public StafferException(String message) {
+        super(message);
+    }
 }

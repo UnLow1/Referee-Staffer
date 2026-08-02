@@ -33,10 +33,8 @@ const NUMBER_OF_EDGE_TEAMS = 3;
 
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
- * swap individual rows, then save.
- *
- * Referee potential and the difficulty breakdown come from the backend; the one open
- * backend follow-up is lock-aware regenerate (see the `locks` field comment).
+ * swap individual rows, then save. Locked pairs are sent with the staffing request,
+ * so a regenerate preserves them server-side and reshuffles only the rest.
  */
 @Component({
   selector: 'app-staffer',
@@ -66,10 +64,10 @@ export class StafferComponent {
   readonly totalTeams = signal(0);
 
   /**
-   * UI-only lock map. A planned backend addition turns this into a backend-aware
-   * concept where `staffReferees(queue, locks)` accepts a list of pre-pinned
-   * (matchId, refereeId) pairs. For now, locks are visual flags only; clicking
-   * Generate cast re-staffs the whole queue without preserving them.
+   * Map<matchId, refereeId> of locked assignments. Sent with the staffing request:
+   * the backend pins each pair and re-staffs only the remaining matches, so locks
+   * survive a regenerate. Cleared on queue change — they reference matches of the
+   * previously generated queue.
    */
   readonly locks = signal<Map<number, number>>(new Map());
   readonly drawerMatchId = signal<number | null>(null);
@@ -102,10 +100,12 @@ export class StafferComponent {
 
   incQueue(): void {
     this.queue.update(q => q + 1);
+    this.clearLocks();
   }
 
   decQueue(): void {
     this.queue.update(q => Math.max(1, q - 1));
+    this.clearLocks();
   }
 
   clearLocks(): void {
@@ -115,8 +115,9 @@ export class StafferComponent {
   generate(): void {
     this.loading.set(true);
     this.savedAt.set(null);
+    const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
     forkJoin({
-      matches: this.stafferService.staffReferees(this.queue()),
+      matches: this.stafferService.staffReferees(this.queue(), locks),
       standings: this.teamService.getStandings(),
       referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
     }).subscribe({
