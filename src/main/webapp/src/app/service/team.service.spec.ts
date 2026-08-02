@@ -6,6 +6,7 @@ import {TeamService} from './team.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
 import {Team} from '../model/team';
+import {Standings} from '../model/standing';
 
 describe('TeamService', () => {
   const teamsUrl = '/api/teams';
@@ -93,14 +94,18 @@ describe('TeamService', () => {
   });
 
   it('getStandings GETs the standings endpoint', () => {
-    let result: Team[] | undefined;
-    service.getStandings().subscribe(teams => result = teams);
+    const standings: Standings = {
+      afterQueue: 12,
+      rows: [{...team, place: 1, played: 10, wins: 8, draws: 1, losses: 1, goalsFor: 20, goalsAgainst: 7}]
+    };
+    let result: Standings | undefined;
+    service.getStandings().subscribe(response => result = response);
 
     const req = httpTesting.expectOne(`${teamsUrl}/standings`);
     expect(req.request.method).toBe('GET');
-    req.flush([team]);
+    req.flush(standings);
 
-    expect(result).toEqual([team]);
+    expect(result).toEqual(standings);
   });
 
   it('delete DELETEs the team by id', () => {

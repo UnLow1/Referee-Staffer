@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
 import {Team} from "../model/team";
+import {Standings} from "../model/standing";
 import {environment} from "../../environments/environment";
 
 @Injectable({
@@ -38,8 +39,8 @@ export class TeamService {
     return this.http.put<Team>(this.teamsUrl, team)
   }
 
-  public getStandings(): Observable<Team[]> {
-    return this.http.get<Team[]>(`${this.teamsUrl}/standings`)
+  public getStandings(): Observable<Standings> {
+    return this.http.get<Standings>(`${this.teamsUrl}/standings`)
   }
 
   public delete(id: number): Observable<void> {

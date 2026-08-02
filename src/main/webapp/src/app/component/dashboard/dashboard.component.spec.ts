@@ -7,7 +7,7 @@ import {RefereeService} from '../../service/referee.service';
 import {TeamService} from '../../service/team.service';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
-import {Team} from '../../model/team';
+import {Standing, Standings} from '../../model/standing';
 
 describe('DashboardComponent', () => {
   let matchService: jasmine.SpyObj<MatchService>;
@@ -15,9 +15,12 @@ describe('DashboardComponent', () => {
   let teamService: jasmine.SpyObj<TeamService>;
 
   // /api/teams/standings returns table order; 8 teams so both edge zones exist.
-  const standings: Team[] = Array.from({length: 8}, (_, i) => ({
-    id: i + 1, name: `Team ${i + 1}`, city: `City ${i + 1}`, points: 40 - i * 5
+  const rows: Standing[] = Array.from({length: 8}, (_, i) => ({
+    id: i + 1, name: `Team ${i + 1}`, city: `City ${i + 1}`, points: 40 - i * 5,
+    place: i + 1, played: 10, wins: 8 - i, draws: i, losses: 2,
+    goalsFor: 20 - i, goalsAgainst: 10 + i
   }));
+  const standings: Standings = {afterQueue: 10, rows};
 
   function makeMatch(id: number, overrides: Partial<Match> = {}): Match {
     return {
@@ -146,7 +149,7 @@ describe('DashboardComponent', () => {
   });
 
   it('suppresses the relegation zone in a league too small for both zones', () => {
-    teamService.getStandings.and.returnValue(of(standings.slice(0, 5)));
+    teamService.getStandings.and.returnValue(of({afterQueue: 10, rows: rows.slice(0, 5)}));
 
     const component = create().componentInstance;
 
@@ -157,8 +160,8 @@ describe('DashboardComponent', () => {
   it('scales points bars against the leader and flags three-digit difficulty', () => {
     const component = create().componentInstance;
 
-    expect(component.pointsBarPct(standings[0])).toBe(100);
-    expect(component.pointsBarPct(standings[4])).toBe(50);
+    expect(component.pointsBarPct(rows[0])).toBe(100);
+    expect(component.pointsBarPct(rows[4])).toBe(50);
     expect(component.difficultyKind(99)).toBe('default');
     expect(component.difficultyKind(100)).toBe('warn');
     expect(component.getTeam(3)?.name).toBe('Team 3');

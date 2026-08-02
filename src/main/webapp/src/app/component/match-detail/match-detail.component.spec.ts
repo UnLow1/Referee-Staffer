@@ -6,7 +6,7 @@ import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
 import {Match} from '../../model/match';
-import {Team} from '../../model/team';
+import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 
@@ -16,18 +16,24 @@ describe('MatchDetailComponent', () => {
   let refereeService: jasmine.SpyObj<RefereeService>;
   let navigateSpy: jasmine.Spy;
 
-  // Standings order defines place: index 0 = 1st. Teams 1 and 2 share a city so the
-  // local same-city fallback has something to detect.
-  const standings: Team[] = [
-    {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Krakow', points: 35},
-    {id: 3, name: 'Gamma', city: 'Gdansk', points: 30},
-    {id: 4, name: 'Delta', city: 'Poznan', points: 25},
-    {id: 5, name: 'Epsilon', city: 'Lodz', points: 20},
-    {id: 6, name: 'Zeta', city: 'Wroclaw', points: 15},
-    {id: 7, name: 'Eta', city: 'Radom', points: 10},
-    {id: 8, name: 'Theta', city: 'Opole', points: 5}
-  ];
+  // Backend rows carry `place`. Teams 1 and 2 share a city so the local same-city
+  // fallback has something to detect.
+  const standings: Standings = {
+    afterQueue: 10,
+    rows: [
+      {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
+      {id: 2, name: 'Beta', city: 'Krakow', points: 35},
+      {id: 3, name: 'Gamma', city: 'Gdansk', points: 30},
+      {id: 4, name: 'Delta', city: 'Poznan', points: 25},
+      {id: 5, name: 'Epsilon', city: 'Lodz', points: 20},
+      {id: 6, name: 'Zeta', city: 'Wroclaw', points: 15},
+      {id: 7, name: 'Eta', city: 'Radom', points: 10},
+      {id: 8, name: 'Theta', city: 'Opole', points: 5}
+    ].map((team, i) => ({
+      ...team, place: i + 1, played: 10, wins: 8 - i, draws: i, losses: 2,
+      goalsFor: 20 - i, goalsAgainst: 10 + i
+    }))
+  };
 
   function makeReferee(id: number, overrides: Partial<Referee> = {}): Referee {
     return {
@@ -173,12 +179,17 @@ describe('MatchDetailComponent', () => {
     expect(component.assignedReferee()?.id).toBe(102);
   });
 
-  it('builds the compare rows from the joined teams', async () => {
+  it('builds the compare rows from the joined standings rows', async () => {
     const component = (await create(11)).componentInstance;
 
     expect(component.compareRows()).toEqual([
       {label: 'Position', home: '#1', away: '#2', bar: false},
-      {label: 'Points', home: 40, away: 35, bar: true}
+      {label: 'Points', home: 40, away: 35, bar: true},
+      {label: 'Wins', home: 8, away: 7, bar: true},
+      {label: 'Draws', home: 0, away: 1, bar: true},
+      {label: 'Losses', home: 2, away: 2, bar: true},
+      {label: 'Goals for', home: 20, away: 19, bar: true},
+      {label: 'Goals against', home: 10, away: 11, bar: true}
     ]);
   });
 
