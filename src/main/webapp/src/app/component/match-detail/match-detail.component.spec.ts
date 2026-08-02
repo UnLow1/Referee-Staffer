@@ -1,10 +1,12 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {signal, WritableSignal} from '@angular/core';
 import {ActivatedRoute, convertToParamMap, provideRouter, Router} from '@angular/router';
 import {of} from 'rxjs';
 import {MatchDetailComponent} from './match-detail.component';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {Match} from '../../model/match';
 import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
@@ -14,6 +16,7 @@ describe('MatchDetailComponent', () => {
   let matchService: jasmine.SpyObj<MatchService>;
   let teamService: jasmine.SpyObj<TeamService>;
   let refereeService: jasmine.SpyObj<RefereeService>;
+  let edgeTeams: WritableSignal<number>;
   let navigateSpy: jasmine.Spy;
 
   // Backend rows carry `place`. Teams 1 and 2 share a city so the local same-city
@@ -86,6 +89,7 @@ describe('MatchDetailComponent', () => {
     matchService.getDifficultyBreakdown.and.returnValue(of(breakdown));
     teamService.getStandings.and.returnValue(of(standings));
     refereeService.findAll.and.returnValue(of(referees));
+    edgeTeams = signal(3);
   });
 
   async function create(id?: number): Promise<ComponentFixture<MatchDetailComponent>> {
@@ -98,6 +102,7 @@ describe('MatchDetailComponent', () => {
         {provide: MatchService, useValue: matchService},
         {provide: TeamService, useValue: teamService},
         {provide: RefereeService, useValue: refereeService},
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}},
         {
           provide: ActivatedRoute,
           useValue: {snapshot: {paramMap: convertToParamMap(id ? {id: String(id)} : {})}}
@@ -158,6 +163,18 @@ describe('MatchDetailComponent', () => {
     expect(component.isRelegationMatch()).toBeTrue();
     expect(component.isTopMatch()).toBeFalse();
     expect(component.sameCity()).toBeFalse();
+  });
+
+  it('follows the configured edge size in the local flag fallback', async () => {
+    matchService.getDifficultyBreakdown.and.returnValue(of(null as unknown as DifficultyBreakdown));
+    // Places 1 vs 3: a top pairing with edge 3, but not once the edge shrinks to 2.
+    matchService.findById.and.returnValue(of(makeMatch({homeTeamId: 1, awayTeamId: 3})));
+    edgeTeams.set(2);
+
+    const component = (await create(11)).componentInstance;
+
+    expect(component.isTopMatch()).toBeFalse();
+    expect(component.isRelegationMatch()).toBeFalse();
   });
 
   it('ranks candidates by potential and marks the assigned one', async () => {

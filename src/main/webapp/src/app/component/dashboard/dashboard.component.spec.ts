@@ -1,10 +1,12 @@
 import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {signal, WritableSignal} from '@angular/core';
 import {provideRouter} from '@angular/router';
 import {of} from 'rxjs';
 import {DashboardComponent} from './dashboard.component';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
 import {TeamService} from '../../service/team.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Standing, Standings} from '../../model/standing';
@@ -13,6 +15,7 @@ describe('DashboardComponent', () => {
   let matchService: jasmine.SpyObj<MatchService>;
   let refereeService: jasmine.SpyObj<RefereeService>;
   let teamService: jasmine.SpyObj<TeamService>;
+  let edgeTeams: WritableSignal<number>;
 
   // /api/teams/standings returns table order; 8 teams so both edge zones exist.
   const rows: Standing[] = Array.from({length: 8}, (_, i) => ({
@@ -72,6 +75,7 @@ describe('DashboardComponent', () => {
     matchService.findAll.and.returnValue(of(matches));
     refereeService.findAll.and.returnValue(of(referees));
     teamService.getStandings.and.returnValue(of(standings));
+    edgeTeams = signal(3);
 
     await TestBed.configureTestingModule({
       imports: [DashboardComponent],
@@ -79,7 +83,8 @@ describe('DashboardComponent', () => {
         provideRouter([]),
         {provide: MatchService, useValue: matchService},
         {provide: RefereeService, useValue: refereeService},
-        {provide: TeamService, useValue: teamService}
+        {provide: TeamService, useValue: teamService},
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}}
       ]
     }).compileComponents();
   });
@@ -155,6 +160,16 @@ describe('DashboardComponent', () => {
 
     expect(component.zoneFor(2)).toBe('top');
     expect(component.zoneFor(4)).toBeNull();
+  });
+
+  it('follows the configured edge size for the standings zones', () => {
+    edgeTeams.set(2);
+    const component = create().componentInstance;
+
+    expect([0, 1].map(i => component.zoneFor(i))).toEqual(['top', 'top']);
+    expect(component.zoneFor(2)).toBeNull();
+    expect(component.zoneFor(5)).toBeNull();
+    expect([6, 7].map(i => component.zoneFor(i))).toEqual(['relegation', 'relegation']);
   });
 
   it('scales points bars against the leader and flags three-digit difficulty', () => {
