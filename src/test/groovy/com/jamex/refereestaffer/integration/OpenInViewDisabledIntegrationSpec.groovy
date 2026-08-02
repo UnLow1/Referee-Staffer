@@ -118,8 +118,32 @@ class OpenInViewDisabledIntegrationSpec extends Specification {
         then:
         response.status == 200
         def standings = jsonSlurper.parseText(response.contentAsString)
-        standings.size() == 2
-        standings[0].name == "Team1" // 2:1 home win → Team1 on top
+        standings.rows.size() == 2
+        standings.rows[0].name == "Team1" // 2:1 home win → Team1 on top
+        standings.rows[0].points == 3
+    }
+
+    def "should score match difficulty against the freshly computed table without OSIV"() {
+        when:
+        def response = mockMvc.perform(get("/api/matches/$matchId/difficulty"))
+                .andReturn().response
+
+        then: "the endpoint returns 200 either way — only the numbers reveal the regression"
+        response.status == 200
+        def breakdown = jsonSlurper.parseText(response.contentAsString)
+
+        and: "points come from the ranking pass, not from the match's own (other-session) teams"
+        // Team1 won 2:1 → 3 pts vs 0 pts. Reading the transient fields off match.getHome()
+        // instead of the returned table yields pointsDiff 0 and base 100.0 here, silently,
+        // with no exception to give it away — that is the RS-75 trap this feature guards.
+        breakdown.flags.pointsDiff == 3
+        breakdown.parts.base == 97.0d // (DIFFICULTY_LEVEL_INCREMENTER 100 - 3) * multiplier 1.0
+
+        and: "both teams sit inside the 3-team edge zone, so the top-of-table bonus applies"
+        breakdown.flags.isTop
+        !breakdown.flags.isBot
+        breakdown.parts.top == 7.0d
+        breakdown.total == 104.0d
     }
 
     def "should serve vacations with their referee resolved without OSIV"() {
