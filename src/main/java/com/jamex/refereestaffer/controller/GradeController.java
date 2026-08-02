@@ -60,14 +60,14 @@ public class GradeController {
 
     @PutMapping
     public void updateGrade(@Validated(OnUpdate.class) @RequestBody GradeDto gradeDto) {
-        log.info("Updating grade with id {}", gradeDto.getId());
+        log.info("Updating grade with id {}", gradeDto.id());
         gradeService.updateGrade(gradeDto);
     }
 
     @PostMapping("/byIds")
     public Collection<GradeDto> getGradesByIds(@Valid @RequestBody IDRequest request) {
-        log.info("Getting grades with ids: {}", request.getIds());
-        var grades = gradeRepository.findAllById(request.getIds());
+        log.info("Getting grades with ids: {}", request.ids());
+        var grades = gradeRepository.findAllById(request.ids());
         return gradeConverter.convertFromEntities(grades);
     }
 

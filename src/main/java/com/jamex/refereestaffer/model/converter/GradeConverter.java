@@ -25,11 +25,11 @@ public class GradeConverter implements BaseConverter<Grade, GradeDto> {
     public Grade convertFromDto(GradeDto dto) {
         Match match = null;
         // TODO remove if?
-        if (dto.getId() != null) {
-            match = gradeRepository.findById(dto.getId())
+        if (dto.id() != null) {
+            match = gradeRepository.findById(dto.id())
                     .map(Grade::getMatch)
-                    .orElseThrow(() -> new GradeNotFoundException(dto.getId()));
+                    .orElseThrow(() -> new GradeNotFoundException(dto.id()));
         }
-        return new Grade(dto.getId(), dto.getValue(), match);
+        return new Grade(dto.id(), dto.value(), match);
     }
 }

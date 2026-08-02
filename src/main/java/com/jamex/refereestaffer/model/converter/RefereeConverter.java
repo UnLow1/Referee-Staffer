@@ -25,12 +25,12 @@ public class RefereeConverter implements BaseConverter<Referee, RefereeDto> {
     @Override
     public Referee convertFromDto(RefereeDto dto) {
         return new Referee(
-                dto.getId(),
-                dto.getFirstName(),
-                dto.getLastName(),
-                dto.getEmail(),
+                dto.id(),
+                dto.firstName(),
+                dto.lastName(),
+                dto.email(),
                 null,
-                dto.getExperience(),
+                dto.experience(),
                 null,
                 null,
                 null,

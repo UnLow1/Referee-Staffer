@@ -5,56 +5,29 @@ import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public class TeamDto {
+public record TeamDto(
 
-    @NotNull(groups = OnUpdate.class)
-    private final Long id;
+        @NotNull(groups = OnUpdate.class)
+        Long id,
 
-    @NotBlank
-    private final String name;
+        @NotBlank
+        String name,
 
-    @NotBlank
-    private final String city;
+        @NotBlank
+        String city,
 
-    /**
-     * 3-letter team code. Renamed in JSON to `short` (the frontend's wire format; the
-     * Java field can't use the keyword). Backend always returns a non-null value —
-     * Team.getShortCode() falls back to the first three letters of `name` when no
-     * override is stored. Read-only: ignored on POST/PUT so the computed fallback the
-     * client echoes back never gets persisted as an override.
-     */
-    @JsonProperty("short")
-    private final String shortCode;
+        /**
+         * 3-letter team code. Renamed in JSON to `short` (the frontend's wire format; the
+         * Java component can't use the keyword). Backend always returns a non-null value —
+         * Team.getShortCode() falls back to the first three letters of `name` when no
+         * override is stored. Read-only: ignored on POST/PUT so the computed fallback the
+         * client echoes back never gets persisted as an override.
+         */
+        @JsonProperty("short")
+        String shortCode,
 
-    private final Short points;
-
-    public TeamDto(Long id, String name, String city, String shortCode, Short points) {
-        this.id = id;
-        this.name = name;
-        this.city = city;
-        this.shortCode = shortCode;
-        this.points = points;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public String getShortCode() {
-        return shortCode;
-    }
-
-    public Short getPoints() {
-        return points;
-    }
+        Short points
+) {
 
     public static Builder builder() {
         return new Builder();

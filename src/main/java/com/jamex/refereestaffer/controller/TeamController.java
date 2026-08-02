@@ -62,21 +62,21 @@ public class TeamController {
 
     @PutMapping
     public void updateTeam(@Validated(OnUpdate.class) @RequestBody TeamDto teamDto) {
-        log.info("Updating team with id {}", teamDto.getId());
+        log.info("Updating team with id {}", teamDto.id());
         // Load-and-mutate instead of replacing the entity: the incoming DTO carries the
         // computed `short` fallback (GET always fills it), so a full replace would persist
         // that fallback into short_code and freeze the code across future renames.
-        var team = teamRepository.findById(teamDto.getId())
-                .orElseThrow(() -> new TeamNotFoundException(teamDto.getId()));
-        team.setName(teamDto.getName());
-        team.setCity(teamDto.getCity());
+        var team = teamRepository.findById(teamDto.id())
+                .orElseThrow(() -> new TeamNotFoundException(teamDto.id()));
+        team.setName(teamDto.name());
+        team.setCity(teamDto.city());
         teamRepository.save(team);
     }
 
     @PostMapping("/byIds")
     public Collection<TeamDto> getTeamsByIds(@Valid @RequestBody IDRequest request) {
-        log.info("Getting teams with ids: {}", request.getIds());
-        var teams = teamRepository.findAllById(request.getIds());
+        log.info("Getting teams with ids: {}", request.ids());
+        var teams = teamRepository.findAllById(request.ids());
         return teamConverter.convertFromEntities(teams);
     }
 
