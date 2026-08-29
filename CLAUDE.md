@@ -103,10 +103,18 @@ The weekly `Backend deps radar` / `Frontend deps radar` cloud routines reference
 
 ## Documentation drift
 
-`README.md` has diverged from the actual implementation and environment — review before trusting it:
+The README's `How it works` section and badge list were realigned with the code on 2026-07-25
+(RS-67), so the historical drift below is resolved. Kept as a pointer:
 
-- **Badges**: a Snyk badge and a CodeClimate badge are still in the README. Activity/validity of those integrations is unverified — badges may be stale or broken. (Travis badge removed 2026-04-24 alongside `.travis.yml`.)
-- **Algorithm formulas (LaTeX)**: the README describes the scoring algorithm with hard-coded "top 3" / "last 3" thresholds for edge matches, but the code uses the configurable `NUMBER_OF_EDGE_TEAMS` parameter. The formulas also do not fully reflect the current weights in `data.sql`. Treat the README math as **historical design notes**, not ground truth — `StafferService.countRefereePotentialLvl` and `MatchService.countHardnessLvl` are authoritative.
+- **Badges**: the Snyk and CodeClimate badges were removed (no Snyk/CodeClimate integration exists
+  anywhere in the repo, and the badge endpoints could not be reached to confirm they still render;
+  Travis badge went the same way on 2026-04-24). The remaining badges are Codecov (active, uploaded
+  from `maven.yml`) and the three GitHub Actions workflow badges.
+- **Algorithm formulas (LaTeX)**: the README now ties each constant to its `ConfigName` key, shows
+  the `data.sql` default weights, uses the configurable `NUMBER_OF_EDGE_TEAMS` (no more hard-coded
+  "top 3 / last 3"), and describes the greedy assignment. Still, the source is authoritative if they
+  ever diverge again — `StafferService.countRefereePotentialLvl` (effective value / potential) and
+  `MatchService.computeBreakdown` (difficulty; the method the old `countHardnessLvl` became).
 
 ## Legacy / dead files
 
