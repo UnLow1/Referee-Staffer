@@ -39,6 +39,8 @@ export const routes: Routes = [
       {path: 'addReferee/:id', component: RefereeListComponent},
       {path: 'grades', component: GradeListComponent},
       {path: 'import', component: ImporterComponent},
+      // Legacy path — the redesign renamed /importer to /import; keep old bookmarks alive.
+      {path: 'importer', redirectTo: 'import'},
       {path: 'configuration', component: ConfigurationComponent},
       // Admin (not in nav)
       {path: 'teams', component: TeamListComponent},
@@ -48,6 +50,8 @@ export const routes: Routes = [
       {path: 'vacations', component: VacationListComponent},
       {path: 'addVacation', component: VacationListComponent},
       {path: 'addVacation/:id', component: VacationListComponent},
+      // Must stay last — catches any unknown URL instead of throwing NG04002 to the console.
+      {path: '**', redirectTo: 'dashboard'},
     ]
   }
 ];
