@@ -93,6 +93,21 @@ describe('FormDrawerComponent', () => {
     expect(el().querySelector('.drawer')).not.toBeNull();
   });
 
+  it('moves focus into the discard guard and back into the drawer when it is dismissed', () => {
+    fixture.componentRef.setInput('dirty', true);
+    fixture.detectChanges();
+    const drawerClose = el().querySelector('button[aria-label="Close"]') as HTMLButtonElement;
+    drawerClose.focus();
+
+    clickCancel();
+    expect(guard()!.contains(document.activeElement)).toBeTrue();
+
+    (guard()!.querySelector('.modal__foot .btn:not(.btn--primary)') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(drawerClose);
+  });
+
   it('lets Escape dismiss only the guard while it is open, not the drawer behind it', () => {
     fixture.componentRef.setInput('dirty', true);
     fixture.detectChanges();

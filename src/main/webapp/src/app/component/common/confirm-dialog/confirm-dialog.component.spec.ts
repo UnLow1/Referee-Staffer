@@ -85,6 +85,21 @@ describe('ConfirmDialogComponent', () => {
     expect(cancelledCount).toBe(1);
   });
 
+  it('moves focus into the modal on open and back to the trigger on close', () => {
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    const el = open();
+    expect(document.activeElement).toBe(el.querySelector('.modal__foot .btn:not(.btn--primary)'));
+
+    fixture.componentRef.setInput('open', false);
+    fixture.detectChanges();
+    expect(document.activeElement).toBe(trigger);
+
+    trigger.remove();
+  });
+
   it('emits cancelled on Escape only while open', () => {
     fixture.detectChanges();
     document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}));
