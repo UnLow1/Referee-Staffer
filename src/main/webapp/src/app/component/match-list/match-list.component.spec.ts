@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
 import {of} from 'rxjs';
@@ -10,13 +11,14 @@ import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {Grade} from '../../model/grade';
+import {createMock} from '../../testing/mock';
 
 describe('MatchListComponent', () => {
-  let matchService: jasmine.SpyObj<MatchService>;
-  let teamService: jasmine.SpyObj<TeamService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let gradeService: jasmine.SpyObj<GradeService>;
-  let router: jasmine.SpyObj<Router>;
+  let matchService: MockedObject<MatchService>;
+  let teamService: MockedObject<TeamService>;
+  let refereeService: MockedObject<RefereeService>;
+  let gradeService: MockedObject<GradeService>;
+  let router: MockedObject<Router>;
 
   const teams: Team[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
@@ -50,20 +52,20 @@ describe('MatchListComponent', () => {
   ];
 
   beforeEach(() => {
-    matchService = jasmine.createSpyObj('MatchService', ['findAll', 'findById', 'delete']);
-    teamService = jasmine.createSpyObj('TeamService', ['findByIds', 'findAll']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findByIds', 'findAll']);
-    gradeService = jasmine.createSpyObj('GradeService', ['findByIds', 'findById']);
-    router = jasmine.createSpyObj('Router', ['navigate']);
+    matchService = createMock<MatchService>(['findAll', 'findById', 'delete']);
+    teamService = createMock<TeamService>(['findByIds', 'findAll']);
+    refereeService = createMock<RefereeService>(['findByIds', 'findAll']);
+    gradeService = createMock<GradeService>(['findByIds', 'findById']);
+    router = createMock<Router>(['navigate']);
 
-    matchService.findAll.and.returnValue(of(matches));
-    teamService.findByIds.and.returnValue(of(teams));
-    refereeService.findByIds.and.returnValue(of(referees));
-    gradeService.findByIds.and.returnValue(of(grades));
+    matchService.findAll.mockReturnValue(of(matches));
+    teamService.findByIds.mockReturnValue(of(teams));
+    refereeService.findByIds.mockReturnValue(of(referees));
+    gradeService.findByIds.mockReturnValue(of(grades));
     // The match form (rendered when the drawer opens) loads these on init.
-    teamService.findAll.and.returnValue(of(teams));
-    refereeService.findAll.and.returnValue(of(referees));
-    gradeService.findById.and.returnValue(of(grades[0]));
+    teamService.findAll.mockReturnValue(of(teams));
+    refereeService.findAll.mockReturnValue(of(referees));
+    gradeService.findById.mockReturnValue(of(grades[0]));
   });
 
   async function create(path = 'matches', id?: number): Promise<ComponentFixture<MatchListComponent>> {
@@ -98,7 +100,7 @@ describe('MatchListComponent', () => {
   });
 
   it('skips the referee and grade lookups when nothing references them', async () => {
-    matchService.findAll.and.returnValue(of([makeMatch(21), makeMatch(22, {homeTeamId: 2, awayTeamId: 3})]));
+    matchService.findAll.mockReturnValue(of([makeMatch(21), makeMatch(22, {homeTeamId: 2, awayTeamId: 3})]));
 
     const component = (await create()).componentInstance;
 
@@ -171,7 +173,7 @@ describe('MatchListComponent', () => {
   });
 
   it('treats a half-recorded score as not played', async () => {
-    matchService.findAll.and.returnValue(of([makeMatch(31, {homeScore: 1})]));
+    matchService.findAll.mockReturnValue(of([makeMatch(31, {homeScore: 1})]));
 
     const component = (await create()).componentInstance;
     component.resultFilter.set('unplayed');
@@ -195,13 +197,13 @@ describe('MatchListComponent', () => {
 
   it('toggles the filter bar', async () => {
     const component = (await create()).componentInstance;
-    expect(component.filtersOpen()).toBeFalse();
+    expect(component.filtersOpen()).toBe(false);
 
     component.toggleFilters();
-    expect(component.filtersOpen()).toBeTrue();
+    expect(component.filtersOpen()).toBe(true);
 
     component.toggleFilters();
-    expect(component.filtersOpen()).toBeFalse();
+    expect(component.filtersOpen()).toBe(false);
   });
 
   it('renders the score only when both halves are present', async () => {
@@ -221,7 +223,7 @@ describe('MatchListComponent', () => {
 
   it('deletes only after the confirm, labelling the fixture in the guard', async () => {
     const component = (await create()).componentInstance;
-    matchService.delete.and.returnValue(of(void 0));
+    matchService.delete.mockReturnValue(of(void 0));
 
     component.askDelete(matches[0], new Event('click'));
     expect(component.deleteGuard().message).toContain('Alfa – Beta');
@@ -238,18 +240,18 @@ describe('MatchListComponent', () => {
     it('opens an empty drawer for /addMatch', async () => {
       const component = (await create('addMatch')).componentInstance;
 
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
       expect(component.editingMatch()).toBeNull();
     });
 
     it('fetches the match and opens the edit drawer for /addMatch/:id', async () => {
-      matchService.findById.and.returnValue(of(matches[0]));
+      matchService.findById.mockReturnValue(of(matches[0]));
 
       const component = (await create('addMatch', 11)).componentInstance;
 
       expect(matchService.findById).toHaveBeenCalledWith(11);
       expect(component.editingMatch()).toEqual(matches[0]);
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
     });
 
     it('normalizes the URL back to the list on close only when deep-linked', async () => {

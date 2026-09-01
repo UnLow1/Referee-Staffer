@@ -1,11 +1,13 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {of, Subject, throwError} from 'rxjs';
 import {ConfigurationComponent} from './configuration.component';
 import {ConfigurationService} from '../../service/configuration.service';
 import {Config} from '../../model/config';
+import {createMock} from '../../testing/mock';
 
 describe('ConfigurationComponent', () => {
-  let configurationService: jasmine.SpyObj<ConfigurationService>;
+  let configurationService: MockedObject<ConfigurationService>;
 
   const configs: Config[] = [
     {id: 1, name: 'GRADE_MULTIPLIER', value: 50, group: 'potential', description: 'Weight of the grade'},
@@ -17,8 +19,8 @@ describe('ConfigurationComponent', () => {
   ];
 
   beforeEach(async () => {
-    configurationService = jasmine.createSpyObj('ConfigurationService', ['findAll', 'update']);
-    configurationService.findAll.and.returnValue(of(configs));
+    configurationService = createMock<ConfigurationService>(['findAll', 'update']);
+    configurationService.findAll.mockReturnValue(of(configs));
 
     await TestBed.configureTestingModule({
       imports: [ConfigurationComponent],
@@ -76,14 +78,14 @@ describe('ConfigurationComponent', () => {
 
   it('saves the edited values and adopts the refreshed response', () => {
     const response = new Subject<Config[]>();
-    configurationService.update.and.returnValue(response);
+    configurationService.update.mockReturnValue(response);
     const component = create().componentInstance;
 
     component.setValue('GRADE_MULTIPLIER', 62.5);
     component.save();
 
-    expect(component.saving()).toBeTrue();
-    const sent = configurationService.update.calls.mostRecent().args[0];
+    expect(component.saving()).toBe(true);
+    const sent = configurationService.update.mock.lastCall![0];
     expect(sent.find(c => c.name === 'GRADE_MULTIPLIER')?.value).toBe(62.5);
     expect(sent.find(c => c.name === 'DERBY_INCREMENT')?.value).toBe(10);
 
@@ -91,14 +93,14 @@ describe('ConfigurationComponent', () => {
     response.next(refreshed);
     response.complete();
 
-    expect(component.saving()).toBeFalse();
+    expect(component.saving()).toBe(false);
     expect(component.savedAt()).not.toBeNull();
     // The refreshed values are the new reset baseline.
     expect(component.defaultFor('GRADE_MULTIPLIER')).toBe(62.5);
   });
 
   it('clears the saved marker as soon as a value changes again', () => {
-    configurationService.update.and.returnValue(of(configs));
+    configurationService.update.mockReturnValue(of(configs));
     const component = create().componentInstance;
 
     component.save();
@@ -109,12 +111,12 @@ describe('ConfigurationComponent', () => {
   });
 
   it('stops the saving indicator when the update fails', () => {
-    configurationService.update.and.returnValue(throwError(() => new Error('boom')));
+    configurationService.update.mockReturnValue(throwError(() => new Error('boom')));
     const component = create().componentInstance;
 
     component.save();
 
-    expect(component.saving()).toBeFalse();
+    expect(component.saving()).toBe(false);
     expect(component.savedAt()).toBeNull();
   });
 });

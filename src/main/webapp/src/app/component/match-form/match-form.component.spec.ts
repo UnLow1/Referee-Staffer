@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgForm} from '@angular/forms';
 import {of, Subject} from 'rxjs';
@@ -10,12 +11,13 @@ import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {Grade} from '../../model/grade';
+import {createMock} from '../../testing/mock';
 
 describe('MatchFormComponent', () => {
-  let matchService: jasmine.SpyObj<MatchService>;
-  let teamService: jasmine.SpyObj<TeamService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let gradeService: jasmine.SpyObj<GradeService>;
+  let matchService: MockedObject<MatchService>;
+  let teamService: MockedObject<TeamService>;
+  let refereeService: MockedObject<RefereeService>;
+  let gradeService: MockedObject<GradeService>;
 
   const teams: Team[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
@@ -45,13 +47,13 @@ describe('MatchFormComponent', () => {
   const invalidForm = {valid: false} as NgForm;
 
   beforeEach(async () => {
-    matchService = jasmine.createSpyObj('MatchService', ['save', 'update']);
-    teamService = jasmine.createSpyObj('TeamService', ['findAll']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findAll']);
-    gradeService = jasmine.createSpyObj('GradeService', ['findById', 'save', 'update', 'delete']);
+    matchService = createMock<MatchService>(['save', 'update']);
+    teamService = createMock<TeamService>(['findAll']);
+    refereeService = createMock<RefereeService>(['findAll']);
+    gradeService = createMock<GradeService>(['findById', 'save', 'update', 'delete']);
 
-    teamService.findAll.and.returnValue(of(teams));
-    refereeService.findAll.and.returnValue(of(referees));
+    teamService.findAll.mockReturnValue(of(teams));
+    refereeService.findAll.mockReturnValue(of(referees));
 
     await TestBed.configureTestingModule({
       imports: [MatchFormComponent],
@@ -77,7 +79,7 @@ describe('MatchFormComponent', () => {
 
       expect(component.teams).toEqual(teams);
       expect(component.referees).toEqual(referees);
-      expect(component.editMode).toBeFalse();
+      expect(component.editMode).toBe(false);
       expect(component.model).toEqual({} as Match);
       expect(gradeService.findById).not.toHaveBeenCalled();
     });
@@ -86,7 +88,7 @@ describe('MatchFormComponent', () => {
       const match = makeMatch();
       const component = createComponent(match).componentInstance;
 
-      expect(component.editMode).toBeTrue();
+      expect(component.editMode).toBe(true);
       expect(component.model).toEqual(match);
       expect(component.model).not.toBe(match);
 
@@ -96,7 +98,7 @@ describe('MatchFormComponent', () => {
 
     it('fetches the existing grade when the match references one', () => {
       const grade: Grade = {id: 5, value: 8.1};
-      gradeService.findById.and.returnValue(of(grade));
+      gradeService.findById.mockReturnValue(of(grade));
 
       const component = createComponent(makeMatch({gradeId: 5})).componentInstance;
 
@@ -129,7 +131,7 @@ describe('MatchFormComponent', () => {
     it('saves the match and emits it when no grade was entered', () => {
       const component = createComponent(null).componentInstance;
       const saved = makeMatch({id: 42});
-      matchService.save.and.returnValue(of(saved));
+      matchService.save.mockReturnValue(of(saved));
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
@@ -144,9 +146,9 @@ describe('MatchFormComponent', () => {
     it('saves an entered grade against the newly created match before emitting', () => {
       const component = createComponent(null).componentInstance;
       const saved = makeMatch({id: 42});
-      matchService.save.and.returnValue(of(saved));
+      matchService.save.mockReturnValue(of(saved));
       const gradeSave = new Subject<Grade>();
-      gradeService.save.and.returnValue(gradeSave);
+      gradeService.save.mockReturnValue(gradeSave);
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
@@ -170,12 +172,12 @@ describe('MatchFormComponent', () => {
 
     beforeEach(() => {
       updated = makeMatch({queue: 4});
-      matchService.update.and.returnValue(of(updated));
+      matchService.update.mockReturnValue(of(updated));
       emitted = [];
     });
 
     function createInEditMode(gradeId?: number, storedGrade?: Grade): void {
-      if (storedGrade) gradeService.findById.and.returnValue(of(storedGrade));
+      if (storedGrade) gradeService.findById.mockReturnValue(of(storedGrade));
       component = createComponent(makeMatch({gradeId})).componentInstance;
       component.saved.subscribe(m => emitted.push(m));
     }
@@ -194,7 +196,7 @@ describe('MatchFormComponent', () => {
 
     it('updates an existing grade when its value was changed', () => {
       createInEditMode(5, {id: 5, value: 7.5});
-      gradeService.update.and.returnValue(of({id: 5, value: 8.0}));
+      gradeService.update.mockReturnValue(of({id: 5, value: 8.0}));
 
       component.grade.value = 8.0;
       component.onSubmit(validForm);
@@ -207,7 +209,7 @@ describe('MatchFormComponent', () => {
 
     it('creates the grade when one was entered for a match without one', () => {
       createInEditMode();
-      gradeService.save.and.returnValue(of({id: 6, value: 8.2}));
+      gradeService.save.mockReturnValue(of({id: 6, value: 8.2}));
 
       component.grade.value = 8.2;
       component.onSubmit(validForm);
@@ -221,7 +223,7 @@ describe('MatchFormComponent', () => {
     it('deletes the grade when its value was cleared', () => {
       createInEditMode(5, {id: 5, value: 7.5});
       const gradeDelete = new Subject<void>();
-      gradeService.delete.and.returnValue(gradeDelete);
+      gradeService.delete.mockReturnValue(gradeDelete);
 
       component.grade.value = undefined as unknown as number;
       component.onSubmit(validForm);

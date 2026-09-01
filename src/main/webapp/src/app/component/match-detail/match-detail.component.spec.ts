@@ -1,3 +1,4 @@
+import type {MockInstance, MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
 import {ActivatedRoute, convertToParamMap, provideRouter, Router} from '@angular/router';
@@ -11,13 +12,14 @@ import {Match} from '../../model/match';
 import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {createMock} from '../../testing/mock';
 
 describe('MatchDetailComponent', () => {
-  let matchService: jasmine.SpyObj<MatchService>;
-  let teamService: jasmine.SpyObj<TeamService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
+  let matchService: MockedObject<MatchService>;
+  let teamService: MockedObject<TeamService>;
+  let refereeService: MockedObject<RefereeService>;
   let edgeTeams: WritableSignal<number>;
-  let navigateSpy: jasmine.Spy;
+  let navigateSpy: MockInstance;
 
   // Backend rows carry `place`. Teams 1 and 2 share a city so the local same-city
   // fallback has something to detect.
@@ -81,14 +83,14 @@ describe('MatchDetailComponent', () => {
   };
 
   beforeEach(() => {
-    matchService = jasmine.createSpyObj('MatchService', ['findById', 'getDifficultyBreakdown', 'update']);
-    teamService = jasmine.createSpyObj('TeamService', ['getStandings']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findAll']);
+    matchService = createMock<MatchService>(['findById', 'getDifficultyBreakdown', 'update']);
+    teamService = createMock<TeamService>(['getStandings']);
+    refereeService = createMock<RefereeService>(['findAll']);
 
-    matchService.findById.and.returnValue(of(makeMatch()));
-    matchService.getDifficultyBreakdown.and.returnValue(of(breakdown));
-    teamService.getStandings.and.returnValue(of(standings));
-    refereeService.findAll.and.returnValue(of(referees));
+    matchService.findById.mockReturnValue(of(makeMatch()));
+    matchService.getDifficultyBreakdown.mockReturnValue(of(breakdown));
+    teamService.getStandings.mockReturnValue(of(standings));
+    refereeService.findAll.mockReturnValue(of(referees));
     edgeTeams = signal(3);
   });
 
@@ -102,7 +104,7 @@ describe('MatchDetailComponent', () => {
         {provide: MatchService, useValue: matchService},
         {provide: TeamService, useValue: teamService},
         {provide: RefereeService, useValue: refereeService},
-        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}},
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: vi.fn().mockName('ensureEdgeTeamsLoaded')}},
         {
           provide: ActivatedRoute,
           useValue: {snapshot: {paramMap: convertToParamMap(id ? {id: String(id)} : {})}}
@@ -110,7 +112,7 @@ describe('MatchDetailComponent', () => {
       ]
     }).compileComponents();
     const fixture = TestBed.createComponent(MatchDetailComponent);
-    navigateSpy = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    navigateSpy = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     return fixture;
   }
@@ -138,43 +140,43 @@ describe('MatchDetailComponent', () => {
   it('prefers the backend breakdown flags over the local derivation', async () => {
     const component = (await create(11)).componentInstance;
 
-    expect(component.sameCity()).toBeFalse();
-    expect(component.isTopMatch()).toBeFalse();
-    expect(component.isRelegationMatch()).toBeTrue();
+    expect(component.sameCity()).toBe(false);
+    expect(component.isTopMatch()).toBe(false);
+    expect(component.isRelegationMatch()).toBe(true);
   });
 
   it('falls back to locally derived flags while the breakdown is absent', async () => {
-    matchService.getDifficultyBreakdown.and.returnValue(of(null as unknown as DifficultyBreakdown));
+    matchService.getDifficultyBreakdown.mockReturnValue(of(null as unknown as DifficultyBreakdown));
 
     const component = (await create(11)).componentInstance;
 
     // Places 1 and 2, shared city — the local derivation sees a top-of-table derby.
-    expect(component.sameCity()).toBeTrue();
-    expect(component.isTopMatch()).toBeTrue();
-    expect(component.isRelegationMatch()).toBeFalse();
+    expect(component.sameCity()).toBe(true);
+    expect(component.isTopMatch()).toBe(true);
+    expect(component.isRelegationMatch()).toBe(false);
   });
 
   it('derives a relegation match locally when both teams sit in the bottom three', async () => {
-    matchService.getDifficultyBreakdown.and.returnValue(of(null as unknown as DifficultyBreakdown));
-    matchService.findById.and.returnValue(of(makeMatch({homeTeamId: 7, awayTeamId: 8})));
+    matchService.getDifficultyBreakdown.mockReturnValue(of(null as unknown as DifficultyBreakdown));
+    matchService.findById.mockReturnValue(of(makeMatch({homeTeamId: 7, awayTeamId: 8})));
 
     const component = (await create(11)).componentInstance;
 
-    expect(component.isRelegationMatch()).toBeTrue();
-    expect(component.isTopMatch()).toBeFalse();
-    expect(component.sameCity()).toBeFalse();
+    expect(component.isRelegationMatch()).toBe(true);
+    expect(component.isTopMatch()).toBe(false);
+    expect(component.sameCity()).toBe(false);
   });
 
   it('follows the configured edge size in the local flag fallback', async () => {
-    matchService.getDifficultyBreakdown.and.returnValue(of(null as unknown as DifficultyBreakdown));
+    matchService.getDifficultyBreakdown.mockReturnValue(of(null as unknown as DifficultyBreakdown));
     // Places 1 vs 3: a top pairing with edge 3, but not once the edge shrinks to 2.
-    matchService.findById.and.returnValue(of(makeMatch({homeTeamId: 1, awayTeamId: 3})));
+    matchService.findById.mockReturnValue(of(makeMatch({homeTeamId: 1, awayTeamId: 3})));
     edgeTeams.set(2);
 
     const component = (await create(11)).componentInstance;
 
-    expect(component.isTopMatch()).toBeFalse();
-    expect(component.isRelegationMatch()).toBeFalse();
+    expect(component.isTopMatch()).toBe(false);
+    expect(component.isRelegationMatch()).toBe(false);
   });
 
   it('ranks candidates by potential and marks the assigned one', async () => {
@@ -186,12 +188,12 @@ describe('MatchDetailComponent', () => {
 
   it('assigns a referee through the update endpoint', async () => {
     const saved = makeMatch({refereeId: 102});
-    matchService.update.and.returnValue(of(saved));
+    matchService.update.mockReturnValue(of(saved));
     const component = (await create(11)).componentInstance;
 
     component.assign(referees[2]);
 
-    expect(matchService.update).toHaveBeenCalledWith(jasmine.objectContaining({id: 11, refereeId: 102}));
+    expect(matchService.update).toHaveBeenCalledWith(expect.objectContaining({id: 11, refereeId: 102}));
     expect(component.match()).toEqual(saved);
     expect(component.assignedReferee()?.id).toBe(102);
   });
@@ -214,7 +216,7 @@ describe('MatchDetailComponent', () => {
     const component = (await create(11)).componentInstance;
     expect(component.scoreLine()).toBeNull();
 
-    matchService.findById.and.returnValue(of(makeMatch({homeScore: 2, awayScore: 1})));
+    matchService.findById.mockReturnValue(of(makeMatch({homeScore: 2, awayScore: 1})));
     expect((await create(11)).componentInstance.scoreLine()).toBe('2 – 1');
   });
 
