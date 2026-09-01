@@ -54,6 +54,8 @@ jobs:
 
       # Vitest runs the specs in jsdom on Node, so no browser (and no sandbox
       # workaround) is involved. --watch=false is redundant on a non-TTY runner
-      # but keeps the command honest if it is ever run locally.
+      # but keeps the command honest if it is ever run locally. --no-progress
+      # still applies: on the unit-test builder it silences the *build* progress
+      # spinner (it is not the old Karma reporter flag), which is noise in logs.
       - name: Unit tests
-        run: npm test -- --watch=false
+        run: npm test -- --watch=false --no-progress
