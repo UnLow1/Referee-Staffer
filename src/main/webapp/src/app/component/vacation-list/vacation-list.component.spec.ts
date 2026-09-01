@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
 import {of} from 'rxjs';
@@ -6,11 +7,12 @@ import {VacationService} from '../../service/vacation.service';
 import {RefereeService} from '../../service/referee.service';
 import {Vacation} from '../../model/vacation';
 import {Referee} from '../../model/referee';
+import {createMock} from '../../testing/mock';
 
 describe('VacationListComponent', () => {
-  let vacationService: jasmine.SpyObj<VacationService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let router: jasmine.SpyObj<Router>;
+  let vacationService: MockedObject<VacationService>;
+  let refereeService: MockedObject<RefereeService>;
+  let router: MockedObject<Router>;
 
   const referees: Referee[] = [
     {id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10},
@@ -35,14 +37,14 @@ describe('VacationListComponent', () => {
   const upcoming = makeVacation(33, 1, isoDay(5), isoDay(8));
 
   beforeEach(() => {
-    vacationService = jasmine.createSpyObj('VacationService', ['findAll', 'findById', 'delete']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findByIds', 'findAll']);
-    router = jasmine.createSpyObj('Router', ['navigate']);
+    vacationService = createMock<VacationService>(['findAll', 'findById', 'delete']);
+    refereeService = createMock<RefereeService>(['findByIds', 'findAll']);
+    router = createMock<Router>(['navigate']);
 
-    vacationService.findAll.and.returnValue(of([upcoming, past, active]));
-    refereeService.findByIds.and.returnValue(of(referees));
+    vacationService.findAll.mockReturnValue(of([upcoming, past, active]));
+    refereeService.findByIds.mockReturnValue(of(referees));
     // The vacation form (rendered when the drawer opens) loads the pool on init.
-    refereeService.findAll.and.returnValue(of(referees));
+    refereeService.findAll.mockReturnValue(of(referees));
   });
 
   async function create(path = 'vacations', id?: number): Promise<ComponentFixture<VacationListComponent>> {
@@ -75,7 +77,7 @@ describe('VacationListComponent', () => {
   });
 
   it('clears the referee lookup when there are no vacations', async () => {
-    vacationService.findAll.and.returnValue(of([]));
+    vacationService.findAll.mockReturnValue(of([]));
 
     const component = (await create()).componentInstance;
 
@@ -103,7 +105,7 @@ describe('VacationListComponent', () => {
 
   it('deletes only after the confirm, naming the owner in the guard', async () => {
     const component = (await create()).componentInstance;
-    vacationService.delete.and.returnValue(of(void 0));
+    vacationService.delete.mockReturnValue(of(void 0));
 
     component.askDelete(active);
     expect(component.deleteGuard().message).toContain("Anna Nowak's vacation");
@@ -119,18 +121,18 @@ describe('VacationListComponent', () => {
     it('opens an empty drawer for /addVacation', async () => {
       const component = (await create('addVacation')).componentInstance;
 
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
       expect(component.editingVacation()).toBeNull();
     });
 
     it('fetches the vacation and opens the edit drawer for /addVacation/:id', async () => {
-      vacationService.findById.and.returnValue(of(past));
+      vacationService.findById.mockReturnValue(of(past));
 
       const component = (await create('addVacation', 31)).componentInstance;
 
       expect(vacationService.findById).toHaveBeenCalledWith(31);
       expect(component.editingVacation()).toEqual(past);
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
     });
 
     it('normalizes the URL back to the list on close only when deep-linked', async () => {

@@ -57,7 +57,7 @@ describe('StafferService', () => {
   it('surfaces a staffing conflict (ProblemDetail) as an error toast and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.staffReferees(5).subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
@@ -71,7 +71,7 @@ describe('StafferService', () => {
   it('surfaces a 500 without ProblemDetail as a generic error toast and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.staffReferees(5).subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 

@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed, fakeAsync, tick} from '@angular/core/testing';
 import {Router} from '@angular/router';
 import {of} from 'rxjs';
@@ -10,13 +11,14 @@ import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
 import {Grade} from '../../model/grade';
+import {createMock} from '../../testing/mock';
 
 describe('GradeListComponent', () => {
-  let matchService: jasmine.SpyObj<MatchService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let teamService: jasmine.SpyObj<TeamService>;
-  let gradeService: jasmine.SpyObj<GradeService>;
-  let router: jasmine.SpyObj<Router>;
+  let matchService: MockedObject<MatchService>;
+  let refereeService: MockedObject<RefereeService>;
+  let teamService: MockedObject<TeamService>;
+  let gradeService: MockedObject<GradeService>;
+  let router: MockedObject<Router>;
 
   const teams: Team[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40, short: 'ALF'},
@@ -54,16 +56,16 @@ describe('GradeListComponent', () => {
   ];
 
   beforeEach(async () => {
-    matchService = jasmine.createSpyObj('MatchService', ['findAll']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findByIds']);
-    teamService = jasmine.createSpyObj('TeamService', ['findByIds']);
-    gradeService = jasmine.createSpyObj('GradeService', ['findByIds', 'delete']);
-    router = jasmine.createSpyObj('Router', ['navigate']);
+    matchService = createMock<MatchService>(['findAll']);
+    refereeService = createMock<RefereeService>(['findByIds']);
+    teamService = createMock<TeamService>(['findByIds']);
+    gradeService = createMock<GradeService>(['findByIds', 'delete']);
+    router = createMock<Router>(['navigate']);
 
-    matchService.findAll.and.returnValue(of(matches));
-    teamService.findByIds.and.returnValue(of(teams));
-    refereeService.findByIds.and.returnValue(of(referees));
-    gradeService.findByIds.and.returnValue(of(grades));
+    matchService.findAll.mockReturnValue(of(matches));
+    teamService.findByIds.mockReturnValue(of(teams));
+    refereeService.findByIds.mockReturnValue(of(referees));
+    gradeService.findByIds.mockReturnValue(of(grades));
 
     await TestBed.configureTestingModule({
       imports: [GradeListComponent],
@@ -99,7 +101,7 @@ describe('GradeListComponent', () => {
   });
 
   it('skips the referee and grade lookups when nothing references them', fakeAsync(() => {
-    matchService.findAll.and.returnValue(of([
+    matchService.findAll.mockReturnValue(of([
       makeMatch(21, {refereeId: undefined}),
       makeMatch(22, {refereeId: undefined, homeTeamId: 2, awayTeamId: 3})
     ]));
@@ -133,7 +135,7 @@ describe('GradeListComponent', () => {
   it('routes grade editing to the match form deep-link', () => {
     const component = create().componentInstance;
     const event = new Event('click');
-    spyOn(event, 'stopPropagation');
+    vi.spyOn(event, 'stopPropagation');
 
     component.editGrade(component.rows()[1], event);
 
@@ -142,7 +144,7 @@ describe('GradeListComponent', () => {
   });
 
   it('removes the row and detaches the grade from its match on delete', () => {
-    gradeService.delete.and.returnValue(of(void 0));
+    gradeService.delete.mockReturnValue(of(void 0));
     const component = create().componentInstance;
     const row = component.rows()[1];
 
