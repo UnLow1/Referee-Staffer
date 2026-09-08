@@ -31,11 +31,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '26.5.1'
+          node-version: '26.8.1'
           cache: 'npm'
           cache-dependency-path: src/main/webapp/package-lock.json
 
-      # Node 26.5.1 bundles npm 11.17.0, but the Maven build pins npm 12 via
+      # Node 26.8.1 bundles npm 11.19.0, but the Maven build pins npm 12 via
       # frontend-maven-plugin. npm 12 changed a real behaviour — it no longer
       # runs dependency install scripts without approval — so CI has to run the
       # same major as Maven, or it stops testing what the build actually does.
