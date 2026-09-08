@@ -9,18 +9,21 @@ import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.entity.Vacation;
 import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
+import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.VacationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,14 +33,17 @@ public class StafferService {
 
     private final ConfigurationRepository configurationRepository;
     private final VacationRepository vacationRepository;
+    private final MatchRepository matchRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
     private final RefereeService refereeService;
 
     public StafferService(ConfigurationRepository configurationRepository, VacationRepository vacationRepository,
-                          MatchConverter matchConverter, MatchService matchService, RefereeService refereeService) {
+                          MatchRepository matchRepository, MatchConverter matchConverter, MatchService matchService,
+                          RefereeService refereeService) {
         this.configurationRepository = configurationRepository;
         this.vacationRepository = vacationRepository;
+        this.matchRepository = matchRepository;
         this.matchConverter = matchConverter;
         this.matchService = matchService;
         this.refereeService = refereeService;
@@ -66,9 +72,12 @@ public class StafferService {
                     .map(Vacation::getReferee)
                     .toList();
 
+            var refereesWithMatchOnSameDay = findRefereesWithMatchOnDay(referees, match.getDate());
+
             var availableReferees = referees.stream()
                     .filter(ref -> !ref.isBusy())
                     .filter(ref -> !refereesWithVacations.contains(ref))
+                    .filter(ref -> !refereesWithMatchOnSameDay.contains(ref))
                     .toList();
 
             for (var referee : availableReferees) {
@@ -89,6 +98,21 @@ public class StafferService {
 
             match.setReferee(chosenReferee);
         }
+    }
+
+    /**
+     * Referees that already officiate another match on the same calendar day. The queue-level
+     * uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a match from a
+     * different queue can be rescheduled onto this day, and one referee must never have two
+     * matches on one day (RS-57).
+     */
+    private Set<Referee> findRefereesWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
+        if (referees.isEmpty()) {
+            return Set.of();
+        }
+        return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
+                .map(Match::getReferee)
+                .collect(Collectors.toSet());
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {
