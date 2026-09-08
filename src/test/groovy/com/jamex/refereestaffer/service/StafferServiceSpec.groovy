@@ -37,9 +37,21 @@ class StafferServiceSpec extends Specification {
                 .build()
         // After RefereeService.calculateStats, averageGrade is always non-null — the
         // no-grades fallback (DEFAULT_GRADE = 8.3) is applied there. Setting it
-        // explicitly here mirrors the real invariant.
-        def ref1 = [averageGrade: 8.1d, teamsRefereed: Map.of(team1, (short) 1, team2, (short) 1), numberOfMatchesInRound: 7] as Referee
-        def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, experience: 100, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        // explicitly here mirrors the real invariant. Ids are needed because the
+        // staffer deduplicates already-assigned referees by id.
+        def ref1 = Referee.builder()
+                .id(1L)
+                .averageGrade(8.1d)
+                .teamsRefereed(Map.of(team1, (short) 1, team2, (short) 1))
+                .numberOfMatchesInRound((short) 7)
+                .build()
+        def ref2 = Referee.builder()
+                .id(2L)
+                .averageGrade(RefereeService.DEFAULT_GRADE)
+                .experience(100)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
         def match1 = Match.builder()
                 .home(team1)
                 .away(team2)
@@ -82,12 +94,12 @@ class StafferServiceSpec extends Specification {
 
     def "should not assign referees to matches if referee has vacation"() {
         given:
-        def ref1 = [averageGrade: 8.6d] as Referee
-        def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
-        def ref3 = [averageGrade: RefereeService.DEFAULT_GRADE, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
-        def ref4 = [averageGrade: 8.6d] as Referee
-        def ref5 = [averageGrade: 8.6d] as Referee
-        def ref6 = [averageGrade: 8.6d] as Referee
+        def ref1 = Referee.builder().id(1L).averageGrade(8.6d).build()
+        def ref2 = Referee.builder().id(2L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref3 = Referee.builder().id(3L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref4 = Referee.builder().id(4L).averageGrade(8.6d).build()
+        def ref5 = Referee.builder().id(5L).averageGrade(8.6d).build()
+        def ref6 = Referee.builder().id(6L).averageGrade(8.6d).build()
         def referees = [ref1, ref2, ref3, ref4, ref5, ref6]
         def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def matchDate = matchDateTime.toLocalDate()
