@@ -1,13 +1,15 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
 import {of} from 'rxjs';
 import {TeamListComponent} from './team-list.component';
 import {TeamService} from '../../service/team.service';
 import {Standing, Standings} from '../../model/standing';
+import {createMock} from '../../testing/mock';
 
 describe('TeamListComponent', () => {
-  let teamService: jasmine.SpyObj<TeamService>;
-  let router: jasmine.SpyObj<Router>;
+  let teamService: MockedObject<TeamService>;
+  let router: MockedObject<Router>;
 
   const rows: Standing[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40, place: 1, played: 2, wins: 1, draws: 1, losses: 0, goalsFor: 2, goalsAgainst: 1},
@@ -18,10 +20,10 @@ describe('TeamListComponent', () => {
   const standings: Standings = {afterQueue: 2, rows};
 
   beforeEach(() => {
-    teamService = jasmine.createSpyObj('TeamService', ['getStandings', 'findById', 'delete']);
-    router = jasmine.createSpyObj('Router', ['navigate']);
+    teamService = createMock<TeamService>(['getStandings', 'findById', 'delete']);
+    router = createMock<Router>(['navigate']);
 
-    teamService.getStandings.and.returnValue(of(standings));
+    teamService.getStandings.mockReturnValue(of(standings));
   });
 
   async function create(path = 'teams', id?: number): Promise<ComponentFixture<TeamListComponent>> {
@@ -71,7 +73,7 @@ describe('TeamListComponent', () => {
 
   it('deletes only after the confirm, naming the team in the guard', async () => {
     const component = (await create()).componentInstance;
-    teamService.delete.and.returnValue(of(void 0));
+    teamService.delete.mockReturnValue(of(void 0));
 
     component.askDelete(rows[1]);
     expect(component.deleteGuard().message).toContain('Beta');
@@ -88,18 +90,18 @@ describe('TeamListComponent', () => {
     it('opens an empty drawer for /addTeam', async () => {
       const component = (await create('addTeam')).componentInstance;
 
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
       expect(component.editingTeam()).toBeNull();
     });
 
     it('fetches the team and opens the edit drawer for /addTeam/:id', async () => {
-      teamService.findById.and.returnValue(of(rows[0]));
+      teamService.findById.mockReturnValue(of(rows[0]));
 
       const component = (await create('addTeam', 1)).componentInstance;
 
       expect(teamService.findById).toHaveBeenCalledWith(1);
       expect(component.editingTeam()).toEqual(rows[0]);
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
     });
 
     it('normalizes the URL back to the list on close only when deep-linked', async () => {
@@ -114,12 +116,12 @@ describe('TeamListComponent', () => {
   it('reloads the table after a save and closes the drawer', async () => {
     const component = (await create()).componentInstance;
     component.addTeam();
-    teamService.getStandings.calls.reset();
-    teamService.getStandings.and.returnValue(of(standings));
+    teamService.getStandings.mockClear();
+    teamService.getStandings.mockReturnValue(of(standings));
 
     component.onSaved();
 
     expect(teamService.getStandings).toHaveBeenCalledTimes(1);
-    expect(component.formOpen()).toBeFalse();
+    expect(component.formOpen()).toBe(false);
   });
 });

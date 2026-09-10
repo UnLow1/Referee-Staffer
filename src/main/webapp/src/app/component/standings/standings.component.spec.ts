@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
 import {of} from 'rxjs';
@@ -5,9 +6,10 @@ import {StandingsComponent} from './standings.component';
 import {TeamService} from '../../service/team.service';
 import {ConfigurationService} from '../../service/configuration.service';
 import {Standing, Standings} from '../../model/standing';
+import {createMock} from '../../testing/mock';
 
 describe('StandingsComponent', () => {
-  let teamService: jasmine.SpyObj<TeamService>;
+  let teamService: MockedObject<TeamService>;
   let edgeTeams: WritableSignal<number>;
 
   // /api/teams/standings returns the computed table; 8 teams so both edge zones exist.
@@ -20,15 +22,15 @@ describe('StandingsComponent', () => {
   const standings: Standings = {afterQueue: 10, rows};
 
   beforeEach(async () => {
-    teamService = jasmine.createSpyObj('TeamService', ['getStandings']);
-    teamService.getStandings.and.returnValue(of(standings));
+    teamService = createMock<TeamService>(['getStandings']);
+    teamService.getStandings.mockReturnValue(of(standings));
     edgeTeams = signal(3);
 
     await TestBed.configureTestingModule({
       imports: [StandingsComponent],
       providers: [
         {provide: TeamService, useValue: teamService},
-        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}}
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: vi.fn().mockName('ensureEdgeTeamsLoaded')}}
       ]
     }).compileComponents();
   });
@@ -44,7 +46,7 @@ describe('StandingsComponent', () => {
     const first = componentRows.find(r => r.standing.id === 1)!;
 
     expect(componentRows.length).toBe(8);
-    expect(first.standing).toEqual(jasmine.objectContaining(
+    expect(first.standing).toEqual(expect.objectContaining(
       {place: 1, played: 10, wins: 8, draws: 0, losses: 2, goalsFor: 20, goalsAgainst: 10}));
   });
 
@@ -57,12 +59,12 @@ describe('StandingsComponent', () => {
   });
 
   it('suppresses the danger zone in a league too small for both zones', () => {
-    teamService.getStandings.and.returnValue(of({afterQueue: 10, rows: rows.slice(0, 5)}));
+    teamService.getStandings.mockReturnValue(of({afterQueue: 10, rows: rows.slice(0, 5)}));
 
     const componentRows = create().componentInstance.rows();
 
     expect(componentRows.filter(r => r.zone === 'accent').map(r => r.standing.place)).toEqual([1, 2, 3]);
-    expect(componentRows.some(r => r.zone === 'danger')).toBeFalse();
+    expect(componentRows.some(r => r.zone === 'danger')).toBe(false);
   });
 
   it('derives zones and filter labels from the configured edge size', () => {
@@ -105,7 +107,7 @@ describe('StandingsComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelector('.page-head__sub')?.textContent)
       .toContain('after queue 10');
 
-    teamService.getStandings.and.returnValue(of({afterQueue: null, rows: []}));
+    teamService.getStandings.mockReturnValue(of({afterQueue: null, rows: []}));
     const emptyFixture = create();
     expect(emptyFixture.componentInstance.afterQueue()).toBeNull();
     expect((emptyFixture.nativeElement as HTMLElement).querySelector('.page-head__sub')?.textContent)

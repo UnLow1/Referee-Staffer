@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
 import {of, Subject, throwError} from 'rxjs';
@@ -12,14 +13,15 @@ import {Match} from '../../model/match';
 import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {createMock} from '../../testing/mock';
 
 describe('StafferComponent', () => {
   let fixture: ComponentFixture<StafferComponent>;
   let component: StafferComponent;
-  let stafferService: jasmine.SpyObj<StafferService>;
-  let teamService: jasmine.SpyObj<TeamService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let matchService: jasmine.SpyObj<MatchService>;
+  let stafferService: MockedObject<StafferService>;
+  let teamService: MockedObject<TeamService>;
+  let refereeService: MockedObject<RefereeService>;
+  let matchService: MockedObject<MatchService>;
   let explainerVisible: WritableSignal<boolean>;
   let edgeTeams: WritableSignal<number>;
 
@@ -94,18 +96,18 @@ describe('StafferComponent', () => {
   }
 
   beforeEach(async () => {
-    stafferService = jasmine.createSpyObj('StafferService', ['staffReferees']);
-    teamService = jasmine.createSpyObj('TeamService', ['getStandings']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findRefereesAvailableForQueue']);
-    matchService = jasmine.createSpyObj('MatchService', ['getDifficultyBreakdown', 'updateList']);
+    stafferService = createMock<StafferService>(['staffReferees']);
+    teamService = createMock<TeamService>(['getStandings']);
+    refereeService = createMock<RefereeService>(['findRefereesAvailableForQueue']);
+    matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList']);
     explainerVisible = signal(false);
     edgeTeams = signal(3);
 
-    stafferService.staffReferees.and.returnValue(of(matches));
-    teamService.getStandings.and.returnValue(of(standings));
-    refereeService.findRefereesAvailableForQueue.and.returnValue(of(referees));
-    matchService.getDifficultyBreakdown.and.callFake(id => of(makeBreakdown(id)));
-    matchService.updateList.and.returnValue(of(void 0));
+    stafferService.staffReferees.mockReturnValue(of(matches));
+    teamService.getStandings.mockReturnValue(of(standings));
+    refereeService.findRefereesAvailableForQueue.mockReturnValue(of(referees));
+    matchService.getDifficultyBreakdown.mockImplementation(id => of(makeBreakdown(id)));
+    matchService.updateList.mockReturnValue(of(void 0));
 
     await TestBed.configureTestingModule({
       imports: [StafferComponent],
@@ -114,7 +116,7 @@ describe('StafferComponent', () => {
         {provide: TeamService, useValue: teamService},
         {provide: RefereeService, useValue: refereeService},
         {provide: MatchService, useValue: matchService},
-        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}},
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: vi.fn().mockName('ensureEdgeTeamsLoaded')}},
         {provide: UiSettingsService, useValue: {explainerVisible: explainerVisible.asReadonly()}}
       ]
     }).compileComponents();
@@ -156,22 +158,22 @@ describe('StafferComponent', () => {
 
     it('keeps loading true until the forkJoin completes and clears it on success', () => {
       const staffSubject = new Subject<Match[]>();
-      stafferService.staffReferees.and.returnValue(staffSubject);
+      stafferService.staffReferees.mockReturnValue(staffSubject);
 
       component.generate();
-      expect(component.loading()).toBeTrue();
+      expect(component.loading()).toBe(true);
 
       staffSubject.next(matches);
       staffSubject.complete();
-      expect(component.loading()).toBeFalse();
+      expect(component.loading()).toBe(false);
     });
 
     it('clears loading and leaves matches untouched on error', () => {
-      stafferService.staffReferees.and.returnValue(throwError(() => new Error('boom')));
+      stafferService.staffReferees.mockReturnValue(throwError(() => new Error('boom')));
 
       component.generate();
 
-      expect(component.loading()).toBeFalse();
+      expect(component.loading()).toBe(false);
       expect(component.matches()).toBeNull();
     });
 
@@ -205,11 +207,11 @@ describe('StafferComponent', () => {
       const assigned = component.matches()![0];
 
       component.toggleLock(assigned);
-      expect(component.isLocked(assigned)).toBeTrue();
+      expect(component.isLocked(assigned)).toBe(true);
       expect(component.lockCount()).toBe(1);
 
       component.toggleLock(assigned);
-      expect(component.isLocked(assigned)).toBeFalse();
+      expect(component.isLocked(assigned)).toBe(false);
       expect(component.lockCount()).toBe(0);
     });
 
@@ -218,7 +220,7 @@ describe('StafferComponent', () => {
 
       component.toggleLock(unassigned);
 
-      expect(component.isLocked(unassigned)).toBeFalse();
+      expect(component.isLocked(unassigned)).toBe(false);
       expect(component.lockCount()).toBe(0);
     });
 
@@ -245,7 +247,7 @@ describe('StafferComponent', () => {
       expect(after).not.toBe(before);
       expect(after.find(m => m.id === 12)!.refereeId).toBe(102);
       expect(before.find(m => m.id === 12)!.refereeId).toBeUndefined();
-      expect(component.isLocked(target)).toBeTrue();
+      expect(component.isLocked(target)).toBe(true);
       expect(component.locks().get(12)).toBe(102);
     });
 
@@ -274,7 +276,7 @@ describe('StafferComponent', () => {
     it('discards a stale breakdown response after switching to another match', () => {
       const first = new Subject<DifficultyBreakdown>();
       const second = new Subject<DifficultyBreakdown>();
-      matchService.getDifficultyBreakdown.and.returnValues(first, second);
+      matchService.getDifficultyBreakdown.mockReturnValueOnce(first).mockReturnValueOnce(second);
       const [m1, m2] = component.matches()!;
 
       component.openDrawer(m1);
@@ -315,11 +317,11 @@ describe('StafferComponent', () => {
       const candidates = component.candidatesFor(target);
       const byId = new Map(candidates.map(c => [c.referee.id, c]));
 
-      expect(byId.get(100)!.isAssigned).toBeTrue();
-      expect(byId.get(100)!.isUsedElsewhere).toBeFalse();
-      expect(byId.get(101)!.isUsedElsewhere).toBeTrue();
-      expect(byId.get(102)!.isUsedElsewhere).toBeFalse();
-      expect(byId.get(103)!.isUsedElsewhere).toBeFalse();
+      expect(byId.get(100)!.isAssigned).toBe(true);
+      expect(byId.get(100)!.isUsedElsewhere).toBe(false);
+      expect(byId.get(101)!.isUsedElsewhere).toBe(true);
+      expect(byId.get(102)!.isUsedElsewhere).toBe(false);
+      expect(byId.get(103)!.isUsedElsewhere).toBe(false);
     });
   });
 
@@ -338,33 +340,33 @@ describe('StafferComponent', () => {
 
     it('requires both teams inside the edge zone', () => {
       // Places 3 vs 4: only home side is top-3. Places 5 vs 8: only away side is bottom-3.
-      expect(component.flags(makeMatch(23, {homeTeamId: 3, awayTeamId: 4})).isTop).toBeFalse();
-      expect(component.flags(makeMatch(24, {homeTeamId: 5, awayTeamId: 8})).isBot).toBeFalse();
+      expect(component.flags(makeMatch(23, {homeTeamId: 3, awayTeamId: 4})).isTop).toBe(false);
+      expect(component.flags(makeMatch(24, {homeTeamId: 5, awayTeamId: 8})).isBot).toBe(false);
     });
 
     it('treats the zone boundaries as inclusive', () => {
       // Places 1 vs 3 are both <= 3; places 6 vs 8 are both > 8 - 3.
-      expect(component.flags(makeMatch(25, {homeTeamId: 1, awayTeamId: 3})).isTop).toBeTrue();
-      expect(component.flags(makeMatch(26, {homeTeamId: 6, awayTeamId: 8})).isBot).toBeTrue();
+      expect(component.flags(makeMatch(25, {homeTeamId: 1, awayTeamId: 3})).isTop).toBe(true);
+      expect(component.flags(makeMatch(26, {homeTeamId: 6, awayTeamId: 8})).isBot).toBe(true);
     });
 
     it('reports no flags for a mid-table cross-city pairing', () => {
-      expect(component.hasNoFlags(makeMatch(27, {homeTeamId: 4, awayTeamId: 5}))).toBeTrue();
+      expect(component.hasNoFlags(makeMatch(27, {homeTeamId: 4, awayTeamId: 5}))).toBe(true);
     });
 
     it('degrades to no flags for teams missing from the standings', () => {
-      expect(component.hasNoFlags(makeMatch(28, {homeTeamId: 998, awayTeamId: 999}))).toBeTrue();
+      expect(component.hasNoFlags(makeMatch(28, {homeTeamId: 998, awayTeamId: 999}))).toBe(true);
     });
 
     it('follows the configured edge size instead of a hardcoded 3', () => {
       edgeTeams.set(2);
 
       // Places 1 vs 3 stop being a top pairing once the edge shrinks to 2...
-      expect(component.flags(makeMatch(29, {homeTeamId: 1, awayTeamId: 3})).isTop).toBeFalse();
-      expect(component.flags(makeMatch(30, {homeTeamId: 1, awayTeamId: 2})).isTop).toBeTrue();
+      expect(component.flags(makeMatch(29, {homeTeamId: 1, awayTeamId: 3})).isTop).toBe(false);
+      expect(component.flags(makeMatch(30, {homeTeamId: 1, awayTeamId: 2})).isTop).toBe(true);
       // ...and places 6 vs 8 leave the relegation zone (now places > 6).
-      expect(component.flags(makeMatch(31, {homeTeamId: 6, awayTeamId: 8})).isBot).toBeFalse();
-      expect(component.flags(makeMatch(32, {homeTeamId: 7, awayTeamId: 8})).isBot).toBeTrue();
+      expect(component.flags(makeMatch(31, {homeTeamId: 6, awayTeamId: 8})).isBot).toBe(false);
+      expect(component.flags(makeMatch(32, {homeTeamId: 7, awayTeamId: 8})).isBot).toBe(true);
     });
   });
 

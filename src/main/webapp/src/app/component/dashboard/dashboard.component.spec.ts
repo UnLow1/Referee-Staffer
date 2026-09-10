@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
 import {provideRouter} from '@angular/router';
@@ -10,11 +11,12 @@ import {ConfigurationService} from '../../service/configuration.service';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Standing, Standings} from '../../model/standing';
+import {createMock} from '../../testing/mock';
 
 describe('DashboardComponent', () => {
-  let matchService: jasmine.SpyObj<MatchService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let teamService: jasmine.SpyObj<TeamService>;
+  let matchService: MockedObject<MatchService>;
+  let refereeService: MockedObject<RefereeService>;
+  let teamService: MockedObject<TeamService>;
   let edgeTeams: WritableSignal<number>;
 
   // /api/teams/standings returns table order; 8 teams so both edge zones exist.
@@ -69,12 +71,12 @@ describe('DashboardComponent', () => {
   ];
 
   beforeEach(async () => {
-    matchService = jasmine.createSpyObj('MatchService', ['findAll']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findAll']);
-    teamService = jasmine.createSpyObj('TeamService', ['getStandings']);
-    matchService.findAll.and.returnValue(of(matches));
-    refereeService.findAll.and.returnValue(of(referees));
-    teamService.getStandings.and.returnValue(of(standings));
+    matchService = createMock<MatchService>(['findAll']);
+    refereeService = createMock<RefereeService>(['findAll']);
+    teamService = createMock<TeamService>(['getStandings']);
+    matchService.findAll.mockReturnValue(of(matches));
+    refereeService.findAll.mockReturnValue(of(referees));
+    teamService.getStandings.mockReturnValue(of(standings));
     edgeTeams = signal(3);
 
     await TestBed.configureTestingModule({
@@ -84,7 +86,7 @@ describe('DashboardComponent', () => {
         {provide: MatchService, useValue: matchService},
         {provide: RefereeService, useValue: refereeService},
         {provide: TeamService, useValue: teamService},
-        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: jasmine.createSpy('ensureEdgeTeamsLoaded')}}
+        {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: vi.fn().mockName('ensureEdgeTeamsLoaded')}}
       ]
     }).compileComponents();
   });
@@ -104,7 +106,7 @@ describe('DashboardComponent', () => {
   });
 
   it('reports no upcoming queue once every match is played', () => {
-    matchService.findAll.and.returnValue(of([matches[0]]));
+    matchService.findAll.mockReturnValue(of([matches[0]]));
 
     const component = create().componentInstance;
 
@@ -125,7 +127,7 @@ describe('DashboardComponent', () => {
   });
 
   it('caps the top-referees list at seven', () => {
-    refereeService.findAll.and.returnValue(of(
+    refereeService.findAll.mockReturnValue(of(
       Array.from({length: 10}, (_, i) => makeReferee(i + 1, {potential: 100 - i}))
     ));
 
@@ -139,7 +141,7 @@ describe('DashboardComponent', () => {
     expect(component.avgObserverGrade()).toBe(7.5);
     expect(component.formatAvg(component.avgObserverGrade())).toBe('7.5');
 
-    refereeService.findAll.and.returnValue(of([makeReferee(3, {averageGrade: undefined})]));
+    refereeService.findAll.mockReturnValue(of([makeReferee(3, {averageGrade: undefined})]));
     const withoutGrades = create().componentInstance;
     expect(withoutGrades.avgObserverGrade()).toBeNull();
     expect(withoutGrades.formatAvg(null)).toBe('—');
@@ -154,7 +156,7 @@ describe('DashboardComponent', () => {
   });
 
   it('suppresses the relegation zone in a league too small for both zones', () => {
-    teamService.getStandings.and.returnValue(of({afterQueue: 10, rows: rows.slice(0, 5)}));
+    teamService.getStandings.mockReturnValue(of({afterQueue: 10, rows: rows.slice(0, 5)}));
 
     const component = create().componentInstance;
 

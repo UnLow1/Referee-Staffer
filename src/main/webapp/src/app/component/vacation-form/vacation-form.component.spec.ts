@@ -1,3 +1,4 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgForm} from '@angular/forms';
 import {of} from 'rxjs';
@@ -6,10 +7,11 @@ import {VacationService} from '../../service/vacation.service';
 import {RefereeService} from '../../service/referee.service';
 import {Vacation} from '../../model/vacation';
 import {Referee} from '../../model/referee';
+import {createMock} from '../../testing/mock';
 
 describe('VacationFormComponent', () => {
-  let vacationService: jasmine.SpyObj<VacationService>;
-  let refereeService: jasmine.SpyObj<RefereeService>;
+  let vacationService: MockedObject<VacationService>;
+  let refereeService: MockedObject<RefereeService>;
 
   const referees: Referee[] = [
     {id: 1, firstName: 'Zenon', lastName: 'Zielinski', email: 'z@example.com', experience: 5},
@@ -24,9 +26,9 @@ describe('VacationFormComponent', () => {
   const validForm = {valid: true} as NgForm;
 
   beforeEach(async () => {
-    vacationService = jasmine.createSpyObj('VacationService', ['save', 'update']);
-    refereeService = jasmine.createSpyObj('RefereeService', ['findAll']);
-    refereeService.findAll.and.returnValue(of(referees));
+    vacationService = createMock<VacationService>(['save', 'update']);
+    refereeService = createMock<RefereeService>(['findAll']);
+    refereeService.findAll.mockReturnValue(of(referees));
 
     await TestBed.configureTestingModule({
       imports: [VacationFormComponent],
@@ -53,17 +55,17 @@ describe('VacationFormComponent', () => {
   it('copies the edited vacation into the model', () => {
     const component = create(existing).componentInstance;
 
-    expect(component.editMode).toBeTrue();
+    expect(component.editMode).toBe(true);
     expect(component.model).toEqual({refereeId: 2, startDate: '2026-08-01', endDate: '2026-08-14'} as unknown as typeof component.model);
   });
 
   describe('endBeforeStart', () => {
     it('is false while either date is missing', () => {
       const component = create(null).componentInstance;
-      expect(component.endBeforeStart).toBeFalse();
+      expect(component.endBeforeStart).toBe(false);
 
       component.model.startDate = '2026-08-01' as unknown as Date;
-      expect(component.endBeforeStart).toBeFalse();
+      expect(component.endBeforeStart).toBe(false);
     });
 
     it('is true only when the end is strictly before the start', () => {
@@ -71,11 +73,11 @@ describe('VacationFormComponent', () => {
       component.model.startDate = '2026-08-10' as unknown as Date;
 
       component.model.endDate = '2026-08-09' as unknown as Date;
-      expect(component.endBeforeStart).toBeTrue();
+      expect(component.endBeforeStart).toBe(true);
 
       // A one-day vacation (start == end) is valid.
       component.model.endDate = '2026-08-10' as unknown as Date;
-      expect(component.endBeforeStart).toBeFalse();
+      expect(component.endBeforeStart).toBe(false);
     });
   });
 
@@ -101,7 +103,7 @@ describe('VacationFormComponent', () => {
     it('saves a new vacation and emits the backend response', () => {
       const component = create(null).componentInstance;
       const saved = {...existing, id: 77};
-      vacationService.save.and.returnValue(of(saved));
+      vacationService.save.mockReturnValue(of(saved));
       const emitted: Vacation[] = [];
       component.saved.subscribe(v => emitted.push(v));
 
@@ -110,18 +112,18 @@ describe('VacationFormComponent', () => {
       } as unknown as typeof component.model;
       component.onSubmit(validForm);
 
-      expect(vacationService.save).toHaveBeenCalledWith(jasmine.objectContaining({refereeId: 1}));
+      expect(vacationService.save).toHaveBeenCalledWith(expect.objectContaining({refereeId: 1}));
       expect(emitted).toEqual([saved]);
     });
 
     it('updates on edit, keeping the id from the original vacation', () => {
       const component = create(existing).componentInstance;
-      vacationService.update.and.returnValue(of(existing));
+      vacationService.update.mockReturnValue(of(existing));
 
       component.model.endDate = '2026-08-20' as unknown as Date;
       component.onSubmit(validForm);
 
-      expect(vacationService.update).toHaveBeenCalledWith(jasmine.objectContaining({
+      expect(vacationService.update).toHaveBeenCalledWith(expect.objectContaining({
         id: 4, refereeId: 2, endDate: '2026-08-20'
       }));
       expect(vacationService.save).not.toHaveBeenCalled();

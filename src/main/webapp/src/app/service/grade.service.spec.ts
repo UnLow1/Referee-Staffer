@@ -110,13 +110,13 @@ describe('GradeService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
 
-    expect(completed).toBeTrue();
+    expect(completed).toBe(true);
   });
 
   it('surfaces a 404 as an error toast with the ProblemDetail message and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.findById(99).subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
@@ -130,7 +130,7 @@ describe('GradeService', () => {
   it('surfaces a 500 without ProblemDetail as a generic error toast and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.findAll().subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 

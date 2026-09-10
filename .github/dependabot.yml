@@ -49,11 +49,11 @@ updates:
         patterns:
           - "eslint"
           - "typescript-eslint"
-      karma-jasmine:
+      vitest:
         patterns:
-          - "karma*"
-          - "jasmine*"
-          - "@types/jasmine"
+          - "vitest"
+          - "@vitest/*"
+          - "jsdom"
       types:
         patterns:
           - "@types/*"

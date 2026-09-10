@@ -60,7 +60,7 @@ describe('ConfigurationService', () => {
   it('surfaces a 404 as an error toast with the ProblemDetail message and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.update(configs).subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
@@ -74,7 +74,7 @@ describe('ConfigurationService', () => {
   it('surfaces a 500 without ProblemDetail as a generic error toast and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.findAll().subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
