@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * The computed league table served by {@code GET /api/teams/standings}. Replaces the
- * old {@code Collection<TeamDto>} response so the frontend no longer has to derive
- * P/W/D/L/GF/GA client-side from the full match list.
+ * The computed league table served by {@code GET /api/teams/standings}. P/W/D/L/GF/GA
+ * are computed server-side so the frontend does not have to derive them from the full
+ * match list.
  *
  * {@code afterQueue} is the highest queue with at least one finished match ("table
  * after queue N" in the UI), or {@code null} before the season starts.

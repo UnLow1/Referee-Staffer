@@ -53,7 +53,7 @@ public class MatchService {
      * would then silently yield the un-enriched values (0 points, no place) — see RS-75.
      *
      * <p>Teams absent from the ranking (no finished match yet) report 0 points and a
-     * {@code null} place, matching what a freshly loaded entity used to carry.
+     * {@code null} place.
      */
     public record LeagueTable(Map<Long, Short> pointsByTeamId, Map<Long, Short> placeByTeamId) {
 
@@ -69,21 +69,21 @@ public class MatchService {
     /**
      * Ranks the teams taking part in {@code matches} and returns the resulting table.
      *
-     * <p>Ranking rules are unchanged from when this method only mutated entities: only teams
+     * <p>Ranking rules here are deliberately narrower than the league table's: only teams
      * with a finished match are ranked, ordering is by points alone, and ties keep the order
      * in which the teams were first encountered. Replacing them with the richer tie-break
      * chain of {@link TeamService#getStandings} would move matches between table zones and
      * therefore change match hardness — that unification is RS-99, deliberately not this
      * change.
      *
-     * <p>The transient {@code points}/{@code place} fields are still written to the entities
+     * <p>The transient {@code points}/{@code place} fields are also written to the entities
      * for the benefit of callers that read them off {@code Team}; the returned table is the
      * authoritative, session-independent copy. Dropping the entity mutation altogether is
      * likewise RS-99.
      */
     public LeagueTable calculatePointsForTeams(List<Match> matches) {
         // Insertion-ordered so that the sort below — which is stable — leaves teams on equal
-        // points in first-encountered order, exactly as the previous stream pipeline did.
+        // points in first-encountered order.
         var pointsByTeamId = new LinkedHashMap<Long, Short>();
         for (var match : matches) {
             var home = match.getHome();
@@ -141,7 +141,7 @@ public class MatchService {
         var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
 
         // Config values and the team count are constant for the whole request — load them
-        // once here instead of per match (used to be 4-5 findByName + count per iteration).
+        // once here instead of per match.
         var config = configurationRepository.findAllAsMap();
         var numberOfTeams = teamRepository.count();
         matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(computeBreakdown(match, table, config, numberOfTeams).total()));
@@ -151,9 +151,9 @@ public class MatchService {
     }
 
     /**
-     * Public entry-point for the redesigned Staffer drawer + Match detail screens. Loads
-     * the match (404 if missing), then recomputes points/places against the latest finished
-     * matches so `place` is fresh, and returns the per-component breakdown.
+     * Public entry-point for the Staffer drawer + Match detail screens. Loads the match
+     * (404 if missing), then recomputes points/places against the latest finished matches
+     * so `place` is fresh, and returns the per-component breakdown.
      *
      * <p>Note the match and the table come from two separate repository calls, and with
      * {@code open-in-view: false} nothing keeps them in one persistence context — hence the
