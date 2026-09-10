@@ -29,17 +29,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 25
-        uses: actions/setup-java@v5
+      # Keep in sync with java.version in pom.xml and with maven.yml.
+      - name: Set up JDK 26
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '25'
+          java-version: '26'
           cache: 'maven'
 
+      # Keep node-version in sync with nodeVersion in pom.xml. Unlike frontend.yml
+      # this job does not need the matching npm major: it never runs npm install —
+      # frontend-maven-plugin does that during `mvn package` with its own pinned npm.
+      # This Node only runs the Playwright CLI against the node_modules Maven produced.
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '24.15.0'
+          node-version: '26.8.1'
           cache: 'npm'
           cache-dependency-path: src/main/webapp/package-lock.json
 

@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 // E2E configuration for the Referee-Staffer critical flow.
 //
@@ -8,13 +10,40 @@ import { defineConfig, devices } from '@playwright/test';
 // Playwright's webServer boots that jar; the default Spring profile uses an in-memory
 // H2 database, so every run starts from an empty schema and the import step in the
 // spec bootstraps all teams, referees, matches and grades from the CSV fixture.
-const PORT = Number(process.env.E2E_PORT ?? 8080);
+// 8081, not the application's default 8080: a locally running dev instance would
+// otherwise be picked up by reuseExistingServer, and the dev profile seeds its own
+// teams and referees (the @Profile("dev") CommandLineRunner) — the import counts the
+// spec asserts only hold against the empty default-profile schema.
+const PORT = Number(process.env.E2E_PORT ?? 8081);
 const baseURL = `http://127.0.0.1:${PORT}`;
 
-// The Spring Boot fat jar. Overridable so the CI job (or a manual run against an
-// already-built artifact) can point at a specific path; the glob matches the single
-// repackaged jar under target/ (the *.jar.original left by the plugin is skipped).
-const appJar = process.env.E2E_APP_JAR ?? '../../../target/*.jar';
+// The Spring Boot fat jar, resolved here rather than handed to the shell as a glob:
+// `java -jar ../../../target/*.jar` only works where the shell expands the pattern, so
+// on Windows the literal glob reaches the JVM and the run dies with "Unable to access
+// jarfile". Override with E2E_APP_JAR to point at an already-built artifact.
+const targetDir = path.resolve(__dirname, '../../../target');
+
+function resolveAppJar(): string {
+  const override = process.env.E2E_APP_JAR;
+  if (override) {
+    return override;
+  }
+  // spring-boot-maven-plugin leaves the pre-repackage artifact as *.jar.original, so
+  // an exact .jar suffix already selects the executable one.
+  const jars = fs.existsSync(targetDir)
+    ? fs.readdirSync(targetDir).filter((f) => f.endsWith('.jar'))
+    : [];
+  if (jars.length !== 1) {
+    const found = jars.join(', ') || 'none';
+    throw new Error(
+      `Expected exactly one jar in ${targetDir}, found ${jars.length} (${found}). ` +
+        'Run `mvn package` first, or set E2E_APP_JAR.',
+    );
+  }
+  return path.join(targetDir, jars[0]);
+}
+
+const appJar = resolveAppJar();
 
 export default defineConfig({
   testDir: './e2e',
@@ -37,7 +66,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `java -jar ${appJar}`,
+    // The port has to reach the JVM too, or Playwright would wait on PORT while the
+    // app listens on its own default.
+    command: `java -jar "${appJar}" --server.port=${PORT}`,
     url: baseURL,
     timeout: 120_000,
     // Locally, reuse a jar you already have running; in CI always boot a clean one.
