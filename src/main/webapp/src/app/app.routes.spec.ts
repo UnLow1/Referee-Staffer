@@ -9,6 +9,7 @@ import {MatchService} from './service/match.service';
 import {RefereeService} from './service/referee.service';
 import {TeamService} from './service/team.service';
 import {ImporterService} from './service/importer.service';
+import {createMock} from './testing/mock';
 
 describe('app routes', () => {
   let router: Router;
@@ -17,21 +18,21 @@ describe('app routes', () => {
   beforeEach(async () => {
     // Navigation renders the shell plus the target screen, so their services are
     // stubbed the same way the component specs do it.
-    const matchService = jasmine.createSpyObj<MatchService>('MatchService', ['findAll']);
-    matchService.findAll.and.returnValue(of([]));
-    const refereeService = jasmine.createSpyObj<RefereeService>('RefereeService', ['findAll']);
-    refereeService.findAll.and.returnValue(of([]));
-    const teamService = jasmine.createSpyObj<TeamService>('TeamService', ['getStandings']);
-    teamService.getStandings.and.returnValue(of([]));
-    const importerService = jasmine.createSpyObj<ImporterService>('ImporterService', ['postFile', 'downloadExampleFile']);
+    const matchService = createMock<MatchService>(['findAll']);
+    matchService.findAll.mockReturnValue(of([]));
+    const refereeService = createMock<RefereeService>(['findAll']);
+    refereeService.findAll.mockReturnValue(of([]));
+    const teamService = createMock<TeamService>(['getStandings']);
+    teamService.getStandings.mockReturnValue(of({afterQueue: null, rows: []}));
+    const importerService = createMock<ImporterService>(['postFile', 'downloadExampleFile']);
 
     const settings = {
       dark: signal(false),
       adminVisible: signal(false),
       explainerVisible: signal(false),
-      toggleDark: jasmine.createSpy('toggleDark'),
-      toggleAdmin: jasmine.createSpy('toggleAdmin'),
-      toggleExplainer: jasmine.createSpy('toggleExplainer')
+      toggleDark: vi.fn().mockName('toggleDark'),
+      toggleAdmin: vi.fn().mockName('toggleAdmin'),
+      toggleExplainer: vi.fn().mockName('toggleExplainer')
     };
 
     TestBed.configureTestingModule({
