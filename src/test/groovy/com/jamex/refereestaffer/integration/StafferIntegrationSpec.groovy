@@ -7,10 +7,11 @@ import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.repository.TeamRepository
 import com.jamex.refereestaffer.service.StafferService
-import org.junit.jupiter.api.parallel.Execution
-import org.junit.jupiter.api.parallel.ExecutionMode
+import org.spockframework.runtime.model.parallel.ExecutionMode
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import spock.lang.Execution
+import spock.lang.Isolated
 import spock.lang.Specification
 
 import java.time.LocalDateTime
@@ -21,9 +22,13 @@ import java.time.LocalDateTime
  * algorithm with mocks — this one's job is to prove that referee assignment actually
  * persists to the database, which is the part dependency-injected mocks can never verify.
  *
- * <p>SAME_THREAD because all features share the one H2 instance behind the cached Spring
- * context and setup() wipes it — Spock's parallel mode would let features race on that state.
+ * <p>{@code @Isolated} because the in-memory H2 is shared JVM-wide with the other
+ * integration specs and setup() wipes the domain tables; {@code SAME_THREAD} on top
+ * because {@code @Isolated} only fences off OTHER specs — features of this one would
+ * still run concurrently and wipe each other's data. Both annotations have to be Spock's
+ * own ({@code spock.lang}); the JUnit Jupiter ones are silently ignored by the Spock engine.
  */
+@Isolated
 @Execution(ExecutionMode.SAME_THREAD)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class StafferIntegrationSpec extends Specification {
