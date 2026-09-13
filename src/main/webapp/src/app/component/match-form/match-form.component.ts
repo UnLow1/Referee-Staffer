@@ -17,10 +17,9 @@ import {IconComponent} from '../common/icon/icon.component';
  * date, a "Fixture" section with the home/away vs-split (selects exclude each other via
  * the excludeValue pipe), and a "Result & assignment" section.
  *
- * The grade branch in onSubmit is carried over verbatim from the legacy routed form —
- * `Match` references the grade by `gradeId` while the form edits a separate
- * `grade.value`, and the save/update/delete decision tree must stay intact (deliberate
- * redesign decision: no data-layer rewrite).
+ * The grade branch in onSubmit reflects that `Match` references the grade by `gradeId`
+ * while the form edits a separate `grade.value`; the save/update/delete decision tree
+ * must stay intact.
  */
 @Component({
   selector: 'app-match-form',

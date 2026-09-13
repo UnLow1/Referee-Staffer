@@ -42,8 +42,8 @@ public class RefereeController {
     public Collection<RefereeDto> getReferees() {
         log.info("Getting all referees");
         var referees = refereeRepository.findAll();
-        // Enrich with averages, last queue, and potential so the redesigned Referee list /
-        // Profile / Dashboard screens get the fields they show without a second round-trip.
+        // Enrich with averages, last queue, and potential so the Referee list / Profile /
+        // Dashboard screens get the fields they show without a second round-trip.
         refereeService.enrichWithStats(referees);
         return refereeConverter.convertFromEntities(referees);
     }
@@ -68,7 +68,7 @@ public class RefereeController {
 
     @PutMapping
     public void updateReferee(@Validated(OnUpdate.class) @RequestBody RefereeDto refereeDto) {
-        log.info("Updating referee with id {}", refereeDto.getId());
+        log.info("Updating referee with id {}", refereeDto.id());
         var referee = refereeConverter.convertFromDto(refereeDto);
         refereeRepository.save(referee);
     }
@@ -82,8 +82,8 @@ public class RefereeController {
 
     @PostMapping("/byIds")
     public Collection<RefereeDto> getRefereesByIds(@Valid @RequestBody IDRequest request) {
-        log.info("Getting referees with ids: {}", request.getIds());
-        var referees = refereeRepository.findAllById(request.getIds());
+        log.info("Getting referees with ids: {}", request.ids());
+        var referees = refereeRepository.findAllById(request.ids());
         return refereeConverter.convertFromEntities(referees);
     }
 

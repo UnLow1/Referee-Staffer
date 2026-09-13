@@ -109,7 +109,7 @@
 }
 
 /* Two-segment ratio bar — flex values are the raw win counts so the segment
-   widths track home : away proportionally. Mirrors prototype profile.jsx. */
+   widths track home : away proportionally. */
 .balance-bar {
   display: flex;
   height: 6px;

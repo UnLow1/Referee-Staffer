@@ -1,3 +1,4 @@
+import type {Mock} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
 import {provideRouter} from '@angular/router';
@@ -10,9 +11,9 @@ describe('ShellComponent', () => {
     dark: WritableSignal<boolean>;
     adminVisible: WritableSignal<boolean>;
     explainerVisible: WritableSignal<boolean>;
-    toggleDark: jasmine.Spy;
-    toggleAdmin: jasmine.Spy;
-    toggleExplainer: jasmine.Spy;
+    toggleDark: Mock;
+    toggleAdmin: Mock;
+    toggleExplainer: Mock;
   };
 
   beforeEach(async () => {
@@ -20,9 +21,9 @@ describe('ShellComponent', () => {
       dark: signal(false),
       adminVisible: signal(false),
       explainerVisible: signal(false),
-      toggleDark: jasmine.createSpy('toggleDark'),
-      toggleAdmin: jasmine.createSpy('toggleAdmin'),
-      toggleExplainer: jasmine.createSpy('toggleExplainer')
+      toggleDark: vi.fn().mockName('toggleDark'),
+      toggleAdmin: vi.fn().mockName('toggleAdmin'),
+      toggleExplainer: vi.fn().mockName('toggleExplainer')
     };
 
     await TestBed.configureTestingModule({
@@ -62,7 +63,7 @@ describe('ShellComponent', () => {
     fixture.detectChanges();
 
     expect(el().querySelector('.nav-group--admin')).not.toBeNull();
-    expect(navLabels()).toEqual(jasmine.arrayContaining(['Teams', 'Standings', 'Vacations']));
+    expect(navLabels()).toEqual(expect.arrayContaining(['Teams', 'Standings', 'Vacations']));
   });
 
   it('labels the temporary admin toggle by the current state', () => {

@@ -6,6 +6,7 @@ import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException
 import com.jamex.refereestaffer.repository.MatchRepository
+import com.jamex.refereestaffer.service.AssignmentPdfService
 import com.jamex.refereestaffer.service.MatchService
 import groovy.json.JsonSlurper
 import org.spockframework.runtime.model.parallel.ExecutionMode
@@ -39,6 +40,9 @@ class MatchControllerSpec extends Specification {
 
     @SpringBean
     MatchService matchService = Mock()
+
+    @SpringBean
+    AssignmentPdfService assignmentPdfService = Mock()
 
     def "should return matches"() {
         given:
@@ -128,6 +132,36 @@ class MatchControllerSpec extends Specification {
         then:
         1 * matchService.computeDifficultyBreakdown(matchId) >> { throw new MatchNotFoundException(matchId) }
         response.status == 404
+    }
+
+    def "should download assignment PDF for queue"() {
+        given:
+        def queue = 5 as short
+        def pdfBytes = "%PDF-fake".bytes
+
+        when:
+        def response = mockMvc.perform(get("/api/matches/queue/$queue/pdf")).andReturn().response
+
+        then:
+        1 * assignmentPdfService.generateAssignmentsPdf(queue) >> pdfBytes
+        response.status == 200
+        response.contentType == MediaType.APPLICATION_PDF_VALUE
+        response.getHeader("Content-Disposition") == 'attachment; filename="referee-assignments-queue-5.pdf"'
+        response.contentAsByteArray == pdfBytes
+    }
+
+    def "should respond 404 with problem detail when queue has no matches to export"() {
+        given:
+        def queue = 44 as short
+
+        when:
+        def response = mockMvc.perform(get("/api/matches/queue/$queue/pdf")).andReturn().response
+
+        then:
+        1 * assignmentPdfService.generateAssignmentsPdf(queue) >> { throw new MatchNotFoundException(queue) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
     }
 
     def "should create match and return it as JSON"() {
