@@ -5,20 +5,20 @@ describe('Grade model helpers', () => {
     const grade: Grade = {id: 1, value: 8.3};
 
     expect(effectiveGradeValue(grade)).toBe(8.3);
-    expect(isSplitGrade(grade)).toBeFalse();
+    expect(isSplitGrade(grade)).toBe(false);
   });
 
   it('returns the arithmetic mean of both components for a split grade', () => {
     const grade: Grade = {id: 1, value: 7.9, secondValue: 8.3};
 
     expect(effectiveGradeValue(grade)).toBeCloseTo(8.1, 10);
-    expect(isSplitGrade(grade)).toBeTrue();
+    expect(isSplitGrade(grade)).toBe(true);
   });
 
   it('treats an explicit null second component as a plain grade', () => {
     const grade: Grade = {id: 1, value: 7.9, secondValue: null};
 
     expect(effectiveGradeValue(grade)).toBe(7.9);
-    expect(isSplitGrade(grade)).toBeFalse();
+    expect(isSplitGrade(grade)).toBe(false);
   });
 });

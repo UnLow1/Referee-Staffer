@@ -54,13 +54,15 @@ public class RefereeService {
             return;
         }
         // One bulk query instead of a findAllByReferee per referee (N+1 — this runs on every
-        // referee list/profile GET, not just staffing). Grouping by the entity works because
-        // Hibernate returns the same managed Referee instances that went into the IN clause.
-        var matchesByReferee = matchRepository.findAllByRefereeIn(referees).stream()
-                .collect(Collectors.groupingBy(Match::getReferee));
+        // referee list/profile GET, not just staffing). Group by id, not by entity: with OSIV
+        // off, the referees passed in by a controller come from a different (already closed)
+        // session than this query, so Hibernate returns different instances — and Referee
+        // compares by identity, which would make every lookup below miss.
+        var matchesByRefereeId = matchRepository.findAllByRefereeIn(referees).stream()
+                .collect(Collectors.groupingBy(match -> match.getReferee().getId()));
 
         for (var referee : referees) {
-            var matchesForReferee = matchesByReferee.getOrDefault(referee, List.of());
+            var matchesForReferee = matchesByRefereeId.getOrDefault(referee.getId(), List.of());
 
             var averageGrade = countAverageGrade(matchesForReferee);
             var teamsRefereedMap = createTeamsRefereedMap(matchesForReferee);
@@ -72,9 +74,9 @@ public class RefereeService {
 
             // Win-distribution counters: split played matches by who won. Draws and
             // unfinished matches contribute to neither — they don't tell us anything about
-            // home/away balance. The redesign's profile screen renders these as a
-            // side-by-side bar (fairness signal: lopsided counts can flag a referee worth
-            // a closer look, though they don't prove bias on their own).
+            // home/away balance. The profile screen renders these as a side-by-side bar
+            // (fairness signal: lopsided counts can flag a referee worth a closer look,
+            // though they don't prove bias on their own).
             short homeWins = 0;
             short awayWins = 0;
             for (var m : matchesForReferee) {
@@ -93,12 +95,12 @@ public class RefereeService {
     }
 
     /**
-     * Populates everything the redesigned Referee list / Profile / Dashboard screens need:
+     * Populates everything the Referee list / Profile / Dashboard screens need:
      * averages, last queue, and computed potential. Use for read-only endpoints that serve
      * the UI (`GET /api/referees`, `GET /api/referees/{id}`).
      *
-     * <p>The potential formula matches the design's prototype: {@code P = α·avg + β·experience},
-     * where α = AVERAGE_GRADE_MULTIPLIER and β = EXPERIENCE_MULTIPLIER. This is a simpler
+     * <p>The potential formula is {@code P = α·avg + β·experience}, where
+     * α = AVERAGE_GRADE_MULTIPLIER and β = EXPERIENCE_MULTIPLIER. This is a simpler
      * variant than {@link StafferService#staffReferees} uses internally — staffer's score
      * subtracts fairness penalties that depend on the candidate match.
      */

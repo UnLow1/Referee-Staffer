@@ -2,6 +2,10 @@ spring:
   datasource:
     url: jdbc:h2:mem:testdb;MODE=MySQL;NON_KEYWORDS=VALUE
   jpa:
+    # Session-per-request (OSIV) masks lazy-loading problems and holds the Hibernate
+    # session open for the whole HTTP request. The only lazy association in the model
+    # (Referee.matches) is never traversed, so nothing relies on it — see RS-75.
+    open-in-view: false
     defer-datasource-initialization: true
     hibernate:
       ddl-auto: update

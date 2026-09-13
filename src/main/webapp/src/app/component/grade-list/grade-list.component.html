@@ -6,9 +6,8 @@
     </div>
   </div>
   <div class="page-head__actions">
-    <!-- "Record grade" CTA in the prototype routes to a dedicated form. We don't have
-         one yet — grades are entered via the match edit form — so the button is
-         disabled with a hint until we add the dedicated entry point. -->
+    <!-- "Record grade" is disabled until a dedicated grade-entry form exists; grades
+         are entered via the match edit form for now. -->
     <button type="button" class="btn btn--primary" disabled
             title="Grades are added via the match edit form for now">
       <app-icon name="plus" [size]="12"></app-icon>Record grade
@@ -17,59 +16,61 @@
 </div>
 
 <div class="panel">
-  <table class="tbl">
-    <thead>
-      <tr>
-        <th>Referee</th>
-        <th>Match</th>
-        <th class="num right col-queue">Queue</th>
-        <th class="num right col-grade">Grade</th>
-        <th class="col-actions"></th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (row of rows(); track row.grade.id) {
+  <div class="tbl-scroll">
+    <table class="tbl">
+      <thead>
         <tr>
-          <td>
-            @if (row.referee) {
-              <app-ref-avatar [referee]="row.referee"></app-ref-avatar>
-            } @else {
-              <span class="muted">—</span>
-            }
-          </td>
-          <td>
-            <span class="match-codes mono">
-              {{ shortCode(row.home) }} vs {{ shortCode(row.away) }}
-            </span>
-          </td>
-          <td class="num right">{{ row.match.queue }}</td>
-          <td class="num right">
-            <div class="grade-cell">
-              @if (isSplit(row.grade)) {
-                <span class="mono muted grade-cell__split">{{ row.grade.value.toFixed(1) }}/{{ row.grade.secondValue!.toFixed(1) }}</span>
+          <th>Referee</th>
+          <th>Match</th>
+          <th class="num right col-queue">Queue</th>
+          <th class="num right col-grade">Grade</th>
+          <th class="col-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.grade.id) {
+          <tr>
+            <td>
+              @if (row.referee) {
+                <app-ref-avatar [referee]="row.referee"></app-ref-avatar>
+              } @else {
+                <span class="muted">—</span>
               }
-              <app-meter [value]="gradeAsMeter(row.grade)" [max]="100" [kind]="gradeKind(row.grade)"></app-meter>
-              <span class="mono grade-cell__value">{{ effectiveValue(row.grade).toFixed(1) }}</span>
-            </div>
-          </td>
-          <td class="col-actions">
-            <div class="row-actions">
-              <button type="button" class="btn btn--ghost btn--sm"
-                      (click)="editGrade(row, $event)" title="Edit via match form">
-                <app-icon name="edit" [size]="12"></app-icon>
-              </button>
-              <button type="button" class="btn btn--ghost btn--sm btn--danger"
-                      (click)="deleteGrade(row, $event)" title="Delete grade">
-                <app-icon name="trash" [size]="12"></app-icon>
-              </button>
-            </div>
-          </td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="5" class="empty-row muted">No grades recorded yet.</td>
-        </tr>
-      }
-    </tbody>
-  </table>
+            </td>
+            <td>
+              <span class="match-codes mono">
+                {{ shortCode(row.home) }} vs {{ shortCode(row.away) }}
+              </span>
+            </td>
+            <td class="num right">{{ row.match.queue }}</td>
+            <td class="num right">
+              <div class="grade-cell">
+                @if (isSplit(row.grade)) {
+                  <span class="mono muted grade-cell__split">{{ row.grade.value.toFixed(1) }}/{{ row.grade.secondValue!.toFixed(1) }}</span>
+                }
+                <app-meter [value]="gradeAsMeter(row.grade)" [max]="100" [kind]="gradeKind(row.grade)"></app-meter>
+                <span class="mono grade-cell__value">{{ effectiveValue(row.grade).toFixed(1) }}</span>
+              </div>
+            </td>
+            <td class="col-actions">
+              <div class="row-actions">
+                <button type="button" class="btn btn--ghost btn--sm"
+                        (click)="editGrade(row, $event)" title="Edit via match form">
+                  <app-icon name="edit" [size]="12"></app-icon>
+                </button>
+                <button type="button" class="btn btn--ghost btn--sm btn--danger"
+                        (click)="deleteGrade(row, $event)" title="Delete grade">
+                  <app-icon name="trash" [size]="12"></app-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="empty-row muted">No grades recorded yet.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 </div>

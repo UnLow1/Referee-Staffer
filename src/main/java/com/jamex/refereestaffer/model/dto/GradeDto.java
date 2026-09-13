@@ -1,35 +1,19 @@
 package com.jamex.refereestaffer.model.dto;
 
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotNull;
 
-public class GradeDto {
+public record GradeDto(
 
-    @NotNull
-    private final Long id;
+        @NotNull(groups = OnUpdate.class)
+        Long id,
 
-    @NotNull
-    private final Double value;
+        @NotNull
+        Double value,
 
-    // Second component of a split grade (e.g. 7.9/8.3); null for a plain grade.
-    private final Double secondValue;
-
-    public GradeDto(Long id, Double value, Double secondValue) {
-        this.id = id;
-        this.value = value;
-        this.secondValue = secondValue;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Double getValue() {
-        return value;
-    }
-
-    public Double getSecondValue() {
-        return secondValue;
-    }
+        // Second component of a split grade (e.g. 7.9/8.3); null for a plain grade.
+        Double secondValue
+) {
 
     public static Builder builder() {
         return new Builder();

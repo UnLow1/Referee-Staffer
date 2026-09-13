@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, ChangeDetectionStrategy} from '@angular/core';
 
 export type ChipVariant = 'default' | 'accent' | 'warn' | 'danger' | 'ghost';
 
@@ -8,6 +8,7 @@ export type ChipVariant = 'default' | 'accent' | 'warn' | 'danger' | 'ghost';
  */
 @Component({
   selector: 'app-chip',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <span class="chip"
           [class.chip--accent]="variant === 'accent'"

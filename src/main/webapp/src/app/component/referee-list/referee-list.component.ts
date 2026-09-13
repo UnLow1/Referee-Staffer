@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Referee} from '../../model/referee';
 import {ModalData} from '../../model/modalData';
@@ -20,6 +20,7 @@ import {RefereeFormComponent} from '../referee-form/referee-form.component';
   selector: 'app-referee-list',
   templateUrl: './referee-list.component.html',
   styleUrl: './referee-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [IconComponent, RefAvatarComponent, MeterComponent, ConfirmDialogComponent, RefereeFormComponent]
 })
 export class RefereeListComponent implements OnInit {

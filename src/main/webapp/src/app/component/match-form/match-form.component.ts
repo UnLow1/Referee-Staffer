@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -17,14 +17,14 @@ import {IconComponent} from '../common/icon/icon.component';
  * date, a "Fixture" section with the home/away vs-split (selects exclude each other via
  * the excludeValue pipe), and a "Result & assignment" section.
  *
- * The grade branch in onSubmit is carried over verbatim from the legacy routed form —
- * `Match` references the grade by `gradeId` while the form edits a separate
- * `grade.value`, and the save/update/delete decision tree must stay intact (deliberate
- * redesign decision: no data-layer rewrite).
+ * The grade branch in onSubmit reflects that `Match` references the grade by `gradeId`
+ * while the form edits a separate `grade.value`; the save/update/delete decision tree
+ * must stay intact.
  */
 @Component({
   selector: 'app-match-form',
   templateUrl: './match-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, ExcludeValuePipe, FormDrawerComponent, IconComponent]
 })
 export class MatchFormComponent implements OnInit {

@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {Router} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
@@ -34,6 +34,7 @@ interface GradeRow {
   selector: 'app-grade-list',
   templateUrl: './grade-list.component.html',
   styleUrl: './grade-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [IconComponent, RefAvatarComponent, MeterComponent]
 })
 export class GradeListComponent implements OnInit {
