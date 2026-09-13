@@ -16,6 +16,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findAllByQueueAndRefereeIsNull(Short queue);
 
+    List<Match> findAllByQueueOrderByDateAsc(Short queue);
+
     List<Match> findAllByHomeScoreNotNullAndAwayScoreNotNull();
 
     List<Match> findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(Collection<Referee> referees,
