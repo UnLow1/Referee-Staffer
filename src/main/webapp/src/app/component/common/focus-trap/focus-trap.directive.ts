@@ -18,6 +18,17 @@ const FOCUSABLE_SELECTOR = [
 const trapStack: FocusTrapDirective[] = [];
 
 /**
+ * checkVisibility() is the accurate check (it also sees ancestors that are not rendered),
+ * but jsdom — where the specs run — does not implement it, so fall back to the element's
+ * own computed display/visibility there.
+ */
+function isVisible(element: HTMLElement): boolean {
+  if (typeof element.checkVisibility === 'function') return element.checkVisibility();
+  const style = getComputedStyle(element);
+  return style.display !== 'none' && style.visibility !== 'hidden';
+}
+
+/**
  * Traps Tab / Shift+Tab inside the host element and returns focus to the previously
  * focused element (the trigger) when the host is destroyed. Designed for the two overlay
  * primitives (app-drawer, app-confirm-dialog), whose panels live inside `@if (open)`
@@ -79,9 +90,9 @@ export class FocusTrapDirective implements AfterViewInit, OnDestroy {
   }
 
   private focusables(): HTMLElement[] {
-    // checkVisibility() drops display:none / visibility:hidden matches — focusing those
-    // silently fails, which would break both the initial focus and the Tab wrap-around.
+    // Hidden controls are dropped — focusing those silently fails, which would break both
+    // the initial focus and the Tab wrap-around.
     return Array.from(this.container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-      .filter(element => element.checkVisibility());
+      .filter(element => isVisible(element));
   }
 }

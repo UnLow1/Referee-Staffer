@@ -100,7 +100,7 @@ describe('FormDrawerComponent', () => {
     drawerClose.focus();
 
     clickCancel();
-    expect(guard()!.contains(document.activeElement)).toBeTrue();
+    expect(guard()!.contains(document.activeElement)).toBe(true);
 
     (guard()!.querySelector('.modal__foot .btn:not(.btn--primary)') as HTMLButtonElement).click();
     fixture.detectChanges();
