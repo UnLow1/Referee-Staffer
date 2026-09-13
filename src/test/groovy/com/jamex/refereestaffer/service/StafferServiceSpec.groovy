@@ -5,6 +5,7 @@ import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.*
 import com.jamex.refereestaffer.model.exception.StafferException
 import com.jamex.refereestaffer.repository.ConfigurationRepository
+import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.VacationRepository
 import spock.lang.Specification
 import spock.lang.Subject
@@ -18,12 +19,13 @@ class StafferServiceSpec extends Specification {
 
     ConfigurationRepository configurationRepository = Mock()
     VacationRepository vacationRepository = Mock()
+    MatchRepository matchRepository = Mock()
     MatchConverter matchConverter = Mock()
     MatchService matchService = Mock()
     RefereeService refereeService = Mock()
 
     def setup() {
-        stafferService = new StafferService(configurationRepository, vacationRepository, matchConverter, matchService, refereeService)
+        stafferService = new StafferService(configurationRepository, vacationRepository, matchRepository, matchConverter, matchService, refereeService)
     }
 
     def "should assign referees to matches in queue"() {
@@ -40,13 +42,16 @@ class StafferServiceSpec extends Specification {
         // explicitly here mirrors the real invariant.
         def ref1 = [averageGrade: 8.1d, teamsRefereed: Map.of(team1, (short) 1, team2, (short) 1), numberOfMatchesInRound: 7] as Referee
         def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, experience: 100, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def match1 = Match.builder()
                 .home(team1)
                 .away(team2)
+                .date(matchDateTime)
                 .build()
         def match2 = Match.builder()
                 .home(team2)
                 .away(team1)
+                .date(matchDateTime)
                 .build()
         def matches = [match1, match2]
         List<MatchDto> matchesDtos = []
@@ -59,6 +64,7 @@ class StafferServiceSpec extends Specification {
         match1.referee == ref2
         match2.referee == ref1
         2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        2 * matchRepository.findAllByRefereeInAndDateOnDay([ref1, ref2], matchDateTime) >> []
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [ref1, ref2]
         1 * matchService.getMatchesToAssignInQueue(queue) >> matches
         1 * matchConverter.convertFromEntities(matches) >> matchesDtos
@@ -109,6 +115,7 @@ class StafferServiceSpec extends Specification {
         match1.referee == ref2 || match1.referee == ref3
         match2.referee == ref2 || match2.referee == ref3
         2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> vacations
+        2 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> []
         1 * refereeService.getAvailableRefereesForQueue(_) >> referees
         1 * refereeService.calculateStats(referees)
         1 * matchService.getMatchesToAssignInQueue(_) >> matches
@@ -140,6 +147,8 @@ class StafferServiceSpec extends Specification {
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
         1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        // Empty referee pool short-circuits the same-day lookup — no query with an empty IN list.
+        0 * matchRepository.findAllByRefereeInAndDateOnDay(_, _)
         0 * matchConverter.convertFromEntities(_)
         thrown(StafferException)
     }
@@ -170,6 +179,76 @@ class StafferServiceSpec extends Specification {
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
         1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> [vacation]
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([referee], matchDateTime) >> []
+        0 * matchConverter.convertFromEntities(_)
+        thrown(StafferException)
+    }
+
+    def "should not assign referee who already has a match on the same day"() {
+        given:
+        short queue = 3
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        // ref1 would win on potential, but already officiates a match rescheduled onto this day
+        def ref1 = [averageGrade: 9.0d, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def ref2 = [averageGrade: 7.0d, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def referees = [ref1, ref2]
+        def match = Match.builder()
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .date(matchDateTime)
+                .build()
+        def conflictingMatch = Match.builder()
+                .queue((short) 2)
+                .referee(ref1)
+                .date(LocalDateTime.of(2026, 5, 4, 11, 0))
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        match.referee == ref2
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
+        1 * refereeService.calculateStats(referees)
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : 1.0d,
+                (ConfigName.EXPERIENCE_MULTIPLIER)     : 0.0d,
+                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER): 0.0d,
+                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): 0.0d,
+                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): 0.0d
+        ]
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> [conflictingMatch]
+        1 * matchConverter.convertFromEntities([match])
+    }
+
+    def "should throw StafferException when all available referees have a match on the same day"() {
+        given:
+        short queue = 3
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        def referee = [averageGrade: 8.0d, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        def match = Match.builder()
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .date(matchDateTime)
+                .build()
+        def conflictingMatch = Match.builder()
+                .queue((short) 2)
+                .referee(referee)
+                .date(LocalDateTime.of(2026, 5, 4, 11, 0))
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [referee]
+        1 * refereeService.calculateStats([referee])
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * configurationRepository.findAllAsMap() >> [:]
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([referee], matchDateTime) >> [conflictingMatch]
         0 * matchConverter.convertFromEntities(_)
         thrown(StafferException)
     }
