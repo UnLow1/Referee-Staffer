@@ -16,6 +16,13 @@
     <button type="button" class="btn" (click)="clearLocks()" [disabled]="lockCount() === 0">
       Clear locks
     </button>
+    <button type="button" class="btn" (click)="exportPdf()" [disabled]="!canExport() || exporting()"
+            [title]="canExport()
+              ? 'Download the saved cast for this queue as a PDF'
+              : 'Save the cast first — the sheet is rendered from the saved assignments'">
+      <app-icon name="download" [size]="12"></app-icon>
+      {{ exporting() ? 'Exporting…' : 'Export PDF' }}
+    </button>
     <button type="button" class="btn btn--primary" (click)="generate()" [disabled]="loading()">
       <app-icon name="play" [size]="12"></app-icon>
       {{ loading() ? 'Generating…' : 'Generate cast' }}
@@ -109,7 +116,7 @@
                 @let f = flags(match);
                 <div class="flag-cell">
                   @if (f.sameCity) { <app-chip variant="warn">derby</app-chip> }
-                  @if (f.isTop) { <app-chip variant="accent">top-3</app-chip> }
+                  @if (f.isTop) { <app-chip variant="accent">top-{{ edgeTeams() }}</app-chip> }
                   @if (f.isBot) { <app-chip variant="danger">relegation</app-chip> }
                   @if (hasNoFlags(match)) { <span class="muted">—</span> }
                 </div>
@@ -206,7 +213,7 @@
                   <td class="num right" [class.warn-text]="b.flags.sameCity" [class.muted]="!b.flags.sameCity">+{{ round(b.parts.sameCity) }}</td>
                 </tr>
                 <tr>
-                  <td>Top-3 match</td>
+                  <td>Top-{{ edgeTeams() }} match</td>
                   <td class="num right" [class.accent-text]="b.flags.isTop" [class.muted]="!b.flags.isTop">+{{ round(b.parts.top) }}</td>
                 </tr>
                 <tr>

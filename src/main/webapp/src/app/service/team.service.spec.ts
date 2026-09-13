@@ -6,6 +6,7 @@ import {TeamService} from './team.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
 import {Team} from '../model/team';
+import {Standings} from '../model/standing';
 
 describe('TeamService', () => {
   const teamsUrl = '/api/teams';
@@ -93,14 +94,18 @@ describe('TeamService', () => {
   });
 
   it('getStandings GETs the standings endpoint', () => {
-    let result: Team[] | undefined;
-    service.getStandings().subscribe(teams => result = teams);
+    const standings: Standings = {
+      afterQueue: 12,
+      rows: [{...team, place: 1, played: 10, wins: 8, draws: 1, losses: 1, goalsFor: 20, goalsAgainst: 7}]
+    };
+    let result: Standings | undefined;
+    service.getStandings().subscribe(response => result = response);
 
     const req = httpTesting.expectOne(`${teamsUrl}/standings`);
     expect(req.request.method).toBe('GET');
-    req.flush([team]);
+    req.flush(standings);
 
-    expect(result).toEqual([team]);
+    expect(result).toEqual(standings);
   });
 
   it('delete DELETEs the team by id', () => {
@@ -111,13 +116,13 @@ describe('TeamService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
 
-    expect(completed).toBeTrue();
+    expect(completed).toBe(true);
   });
 
   it('surfaces a 404 as an error toast with the ProblemDetail message and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.findById(99).subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
@@ -131,7 +136,7 @@ describe('TeamService', () => {
   it('surfaces a 500 without ProblemDetail as a generic error toast and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.findAll().subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 

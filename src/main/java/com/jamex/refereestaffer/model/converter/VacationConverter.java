@@ -26,9 +26,9 @@ public class VacationConverter implements BaseConverter<Vacation, VacationDto> {
 
     @Override
     public Vacation convertFromDto(VacationDto dto) {
-        var referee = refereeRepository.findById(dto.getRefereeId())
-                .orElseThrow(() -> new RefereeNotFoundException(dto.getRefereeId()));
+        var referee = refereeRepository.findById(dto.refereeId())
+                .orElseThrow(() -> new RefereeNotFoundException(dto.refereeId()));
 
-        return new Vacation(dto.getId(), referee, dto.getStartDate(), dto.getEndDate());
+        return new Vacation(dto.id(), referee, dto.startDate(), dto.endDate());
     }
 }

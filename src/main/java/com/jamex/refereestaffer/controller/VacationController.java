@@ -59,7 +59,7 @@ public class VacationController {
 
     @PutMapping
     public VacationDto updateVacation(@Validated(OnUpdate.class) @RequestBody VacationDto vacationDto) {
-        log.info("Updating vacation with id {}", vacationDto.getId());
+        log.info("Updating vacation with id {}", vacationDto.id());
         var vacation = vacationConverter.convertFromDto(vacationDto);
         var updatedVacation = vacationRepository.save(vacation);
         return vacationConverter.convertFromEntity(updatedVacation);

@@ -49,12 +49,12 @@ describe('PaginatorComponent', () => {
 
   it('disables prev on the first page and next on the last', () => {
     let el = render(60, 1);
-    expect(buttons(el).prev.disabled).toBeTrue();
-    expect(buttons(el).next.disabled).toBeFalse();
+    expect(buttons(el).prev.disabled).toBe(true);
+    expect(buttons(el).next.disabled).toBe(false);
 
     el = render(60, 3);
-    expect(buttons(el).prev.disabled).toBeFalse();
-    expect(buttons(el).next.disabled).toBeTrue();
+    expect(buttons(el).prev.disabled).toBe(false);
+    expect(buttons(el).next.disabled).toBe(true);
   });
 
   it('emits the neighbouring page on prev/next clicks', () => {

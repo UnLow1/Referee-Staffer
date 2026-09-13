@@ -1,9 +1,6 @@
-// Global styles for the redesigned UI (2026-06 redesign; form/field primitives, modal,
-// toast, admin nav group).
+// Global styles (form/field primitives, modal, toast, admin nav group).
 //
-// Bootstrap 4 + Font Awesome 4 CDN links were removed from index.html in 2026-06 once the
-// last legacy screens (forms, team/vacation lists, standings) were redesigned — these
-// tokens and utility classes are now the only styling layer.
+// No CSS framework: these tokens and utility classes are the only styling layer.
 
 @use 'tokens';
 
