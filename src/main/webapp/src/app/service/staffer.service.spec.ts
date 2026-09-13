@@ -42,16 +42,25 @@ describe('StafferService', () => {
     httpTesting.verify();
   });
 
-  it('staffReferees POSTs to the queue URL with an empty body', () => {
+  it('staffReferees POSTs to the queue URL with no locks by default', () => {
     let result: Match[] | undefined;
     service.staffReferees(5).subscribe(matches => result = matches);
 
     const req = httpTesting.expectOne(`${stafferUrl}/5`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toBeNull();
+    expect(req.request.body).toEqual([]);
     req.flush([match]);
 
     expect(result).toEqual([match]);
+  });
+
+  it('staffReferees sends the locked pairs as the request body', () => {
+    const locks = [{matchId: 3, refereeId: 7}];
+    service.staffReferees(5, locks).subscribe();
+
+    const req = httpTesting.expectOne(`${stafferUrl}/5`);
+    expect(req.request.body).toEqual(locks);
+    req.flush([match]);
   });
 
   it('surfaces a staffing conflict (ProblemDetail) as an error toast and rethrows', () => {
