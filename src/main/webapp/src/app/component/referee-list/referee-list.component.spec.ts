@@ -1,13 +1,15 @@
+import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
 import {of} from 'rxjs';
 import {RefereeListComponent} from './referee-list.component';
 import {RefereeService} from '../../service/referee.service';
 import {Referee} from '../../model/referee';
+import {createMock} from '../../testing/mock';
 
 describe('RefereeListComponent', () => {
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let router: jasmine.SpyObj<Router>;
+  let refereeService: MockedObject<RefereeService>;
+  let router: MockedObject<Router>;
 
   const referees: Referee[] = [
     {id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10, potential: 70},
@@ -17,9 +19,9 @@ describe('RefereeListComponent', () => {
   ];
 
   beforeEach(() => {
-    refereeService = jasmine.createSpyObj('RefereeService', ['findAll', 'findById', 'delete']);
-    refereeService.findAll.and.returnValue(of(referees));
-    router = jasmine.createSpyObj('Router', ['navigate']);
+    refereeService = createMock<RefereeService>(['findAll', 'findById', 'delete']);
+    refereeService.findAll.mockReturnValue(of(referees));
+    router = createMock<Router>(['navigate']);
   });
 
   async function create(path = 'referees', id?: number): Promise<ComponentFixture<RefereeListComponent>> {
@@ -81,7 +83,7 @@ describe('RefereeListComponent', () => {
     it('asks for confirmation naming the referee, then deletes on confirm', async () => {
       const fixture = await create();
       const component = fixture.componentInstance;
-      refereeService.delete.and.returnValue(of(void 0));
+      refereeService.delete.mockReturnValue(of(void 0));
 
       component.askDelete(referees[1], new Event('click'));
       fixture.detectChanges();
@@ -107,17 +109,17 @@ describe('RefereeListComponent', () => {
     it('opens an empty drawer for /addReferee', async () => {
       const component = (await create('addReferee')).componentInstance;
 
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
       expect(component.editingReferee()).toBeNull();
     });
 
     it('fetches the referee and opens the edit drawer for /addReferee/:id', async () => {
-      refereeService.findById.and.returnValue(of(referees[0]));
+      refereeService.findById.mockReturnValue(of(referees[0]));
 
       const component = (await create('addReferee', 1)).componentInstance;
 
       expect(refereeService.findById).toHaveBeenCalledWith(1);
-      expect(component.formOpen()).toBeTrue();
+      expect(component.formOpen()).toBe(true);
       expect(component.editingReferee()).toEqual(referees[0]);
     });
 
@@ -126,7 +128,7 @@ describe('RefereeListComponent', () => {
 
       component.closeForm();
 
-      expect(component.formOpen()).toBeFalse();
+      expect(component.formOpen()).toBe(false);
       expect(router.navigate).toHaveBeenCalledWith(['/referees']);
     });
 
@@ -143,11 +145,11 @@ describe('RefereeListComponent', () => {
   it('re-fetches the enriched list after a save and closes the drawer', async () => {
     const component = (await create()).componentInstance;
     component.addReferee();
-    refereeService.findAll.calls.reset();
+    refereeService.findAll.mockClear();
 
     component.onSaved();
 
     expect(refereeService.findAll).toHaveBeenCalledTimes(1);
-    expect(component.formOpen()).toBeFalse();
+    expect(component.formOpen()).toBe(false);
   });
 });

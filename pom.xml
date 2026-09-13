@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.0</version>
+        <version>4.1.1</version>
     </parent>
     <groupId>com.jamex</groupId>
     <artifactId>referee-staffer</artifactId>
@@ -14,11 +14,12 @@
     <description>Application for assigning football referees to matches</description>
 
     <properties>
-        <java.version>25</java.version>
+        <java.version>26</java.version>
         <gmaven.plus.version>5.1.0</gmaven.plus.version>
-        <openapi.version>3.0.3</openapi.version>
-        <groovy.version>5.0.7</groovy.version>
+        <openapi.version>3.1.1</openapi.version>
+        <groovy.version>5.1.2</groovy.version>
         <spock.version>2.4-groovy-5.0</spock.version>
+        <openpdf.version>3.0.5</openpdf.version>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
              Override with -DskipFrontend=true. -->
@@ -37,12 +38,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
             <scope>compile</scope>
         </dependency>
@@ -52,6 +47,13 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- PDF generation (assignment sheets) -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>${openpdf.version}</version>
         </dependency>
 
         <!-- Swagger -->
@@ -119,6 +121,20 @@
                 <configuration>
                     <!-- Groovy 5 rejects the plugin's 1.8 default -->
                     <targetBytecode>${java.version}</targetBytecode>
+                    <!-- gmavenplus 5.1.0 validates targetBytecode against its own list, which
+                         stops at 25 and rejects 26. Groovy 5.1.2 maps "26" to Opcodes.V26
+                         (CompilerConfiguration.JDK26), so the plugin's check is stale, not the
+                         compiler. Groovy 5.1.x additionally defines JDK27, which is the
+                         prerequisite for the upcoming java.version 26 -> 27 bump — 5.0.x stopped
+                         at JDK26, so that bump had to wait for this one.
+                         HOW TO DROP IT (re-check on every gmavenplus bump and at the next JDK
+                         bump): remove this flag and run `mvn -DskipFrontend=true clean test`.
+                         If the build passes, the flag is obsolete — keep it only while the build
+                         still fails with "Unrecognized target bytecode". Either way confirm with
+                         `javap -v` on a compiled *Spec class that the major version still matches
+                         java.version (26 -> 70). The weekly backend deps radar also watches for a
+                         gmavenplus release newer than the one pinned here. -->
+                    <skipBytecodeCheck>true</skipBytecodeCheck>
                 </configuration>
                 <executions>
                     <execution>
@@ -166,7 +182,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>2.0.1</version>
+                <version>2.0.2</version>
                 <executions>
                     <execution>
                         <id>install node and npm</id>
@@ -201,8 +217,15 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <nodeVersion>v24.15.0</nodeVersion>
-                    <npmVersion>11.12.1</npmVersion>
+                    <!-- Keep in sync with node-version in .github/workflows/frontend.yml.
+                         Angular 22's supported range (@angular/build engines) is
+                         ^22.22.3 || ^24.15.0 || >=26.0.0 — a hard constraint, so verify
+                         it before moving Node. Note that nodeVersion here is NOT
+                         exercised by CI: maven.yml builds with -DskipFrontend=true and
+                         frontend.yml uses actions/setup-node, so only a local full
+                         `mvn package` proves the plugin can fetch this version. -->
+                    <nodeVersion>v26.8.1</nodeVersion>
+                    <npmVersion>12.0.2</npmVersion>
                     <workingDirectory>src/main/webapp</workingDirectory>
                 </configuration>
             </plugin>

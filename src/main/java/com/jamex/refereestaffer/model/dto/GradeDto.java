@@ -3,26 +3,14 @@ package com.jamex.refereestaffer.model.dto;
 import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotNull;
 
-public class GradeDto {
+public record GradeDto(
 
-    @NotNull(groups = OnUpdate.class)
-    private final Long id;
+        @NotNull(groups = OnUpdate.class)
+        Long id,
 
-    @NotNull
-    private final Double value;
-
-    public GradeDto(Long id, Double value) {
-        this.id = id;
-        this.value = value;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Double getValue() {
-        return value;
-    }
+        @NotNull
+        Double value
+) {
 
     public static Builder builder() {
         return new Builder();

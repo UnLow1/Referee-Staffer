@@ -1,4 +1,5 @@
-import {ComponentFixture, TestBed, fakeAsync, tick} from '@angular/core/testing';
+import type {MockInstance, MockedObject} from 'vitest';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, provideRouter, Router} from '@angular/router';
 import {of} from 'rxjs';
 import {RefereeProfileComponent} from './referee-profile.component';
@@ -10,13 +11,14 @@ import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
 import {Grade} from '../../model/grade';
+import {createMock} from '../../testing/mock';
 
 describe('RefereeProfileComponent', () => {
-  let refereeService: jasmine.SpyObj<RefereeService>;
-  let matchService: jasmine.SpyObj<MatchService>;
-  let teamService: jasmine.SpyObj<TeamService>;
-  let gradeService: jasmine.SpyObj<GradeService>;
-  let navigateSpy: jasmine.Spy;
+  let refereeService: MockedObject<RefereeService>;
+  let matchService: MockedObject<MatchService>;
+  let teamService: MockedObject<TeamService>;
+  let gradeService: MockedObject<GradeService>;
+  let navigateSpy: MockInstance;
 
   function makeReferee(overrides: Partial<Referee> = {}): Referee {
     return {
@@ -64,15 +66,15 @@ describe('RefereeProfileComponent', () => {
   ];
 
   beforeEach(() => {
-    refereeService = jasmine.createSpyObj('RefereeService', ['findById']);
-    matchService = jasmine.createSpyObj('MatchService', ['findAll']);
-    teamService = jasmine.createSpyObj('TeamService', ['findByIds']);
-    gradeService = jasmine.createSpyObj('GradeService', ['findByIds']);
+    refereeService = createMock<RefereeService>(['findById']);
+    matchService = createMock<MatchService>(['findAll']);
+    teamService = createMock<TeamService>(['findByIds']);
+    gradeService = createMock<GradeService>(['findByIds']);
 
-    refereeService.findById.and.returnValue(of(makeReferee()));
-    matchService.findAll.and.returnValue(of(allMatches));
-    teamService.findByIds.and.returnValue(of(teams));
-    gradeService.findByIds.and.returnValue(of(grades));
+    refereeService.findById.mockReturnValue(of(makeReferee()));
+    matchService.findAll.mockReturnValue(of(allMatches));
+    teamService.findByIds.mockReturnValue(of(teams));
+    gradeService.findByIds.mockReturnValue(of(grades));
   });
 
   async function create(id?: number): Promise<ComponentFixture<RefereeProfileComponent>> {
@@ -93,7 +95,7 @@ describe('RefereeProfileComponent', () => {
       ]
     }).compileComponents();
     const fixture = TestBed.createComponent(RefereeProfileComponent);
-    navigateSpy = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    navigateSpy = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     fixture.detectChanges();
     return fixture;
   }
@@ -117,19 +119,19 @@ describe('RefereeProfileComponent', () => {
     expect(refereeService.findById).not.toHaveBeenCalled();
   });
 
-  it('skips the team and grade lookups for a referee with no matches', fakeAsync(() => {
-    matchService.findAll.and.returnValue(of([makeMatch(13, {refereeId: 999})]));
+  it('skips the team and grade lookups for a referee with no matches', async () => {
+    matchService.findAll.mockReturnValue(of([makeMatch(13, {refereeId: 999})]));
 
-    let component!: RefereeProfileComponent;
-    create(7).then(fixture => component = fixture.componentInstance);
-    // The empty-id branches resolve through Promise.resolve — flush the microtasks.
-    tick();
+    const fixture = await create(7);
+    // The empty-id branches resolve through Promise.resolve — let those microtasks settle.
+    await fixture.whenStable();
+    const component = fixture.componentInstance;
 
     expect(teamService.findByIds).not.toHaveBeenCalled();
     expect(gradeService.findByIds).not.toHaveBeenCalled();
     expect(component.matches()).toEqual([]);
     expect(component.topCities()).toEqual([]);
-  }));
+  });
 
   it('derives the hero labels from the referee', async () => {
     const component = (await create(7)).componentInstance;
@@ -152,7 +154,7 @@ describe('RefereeProfileComponent', () => {
     expect(enriched.avgGrade()).toBe(8.25);
     expect(enriched.potential()).toBe(77.5);
 
-    refereeService.findById.and.returnValue(of(makeReferee(
+    refereeService.findById.mockReturnValue(of(makeReferee(
       {averageGrade: undefined, lastQueue: undefined, potential: undefined})));
     const local = (await create(7)).componentInstance;
     // Highest queue in the loaded history, and the only loaded grade.
@@ -162,10 +164,10 @@ describe('RefereeProfileComponent', () => {
   });
 
   it('reports no average grade when neither the server nor the history has one', async () => {
-    refereeService.findById.and.returnValue(of(makeReferee({averageGrade: undefined})));
+    refereeService.findById.mockReturnValue(of(makeReferee({averageGrade: undefined})));
     // The referenced grade does not resolve — the local calc has nothing to average.
-    matchService.findAll.and.returnValue(of([makeMatch(12, {queue: 7, gradeId: 600})]));
-    gradeService.findByIds.and.returnValue(of([]));
+    matchService.findAll.mockReturnValue(of([makeMatch(12, {queue: 7, gradeId: 600})]));
+    gradeService.findByIds.mockReturnValue(of([]));
 
     const component = (await create(7)).componentInstance;
 
@@ -178,12 +180,12 @@ describe('RefereeProfileComponent', () => {
     const component = (await create(7)).componentInstance;
     expect(component.homeWins()).toBe(3);
     expect(component.awayWins()).toBe(1);
-    expect(component.hasWinData()).toBeTrue();
+    expect(component.hasWinData()).toBe(true);
 
-    refereeService.findById.and.returnValue(of(makeReferee({homeWins: undefined, awayWins: undefined})));
+    refereeService.findById.mockReturnValue(of(makeReferee({homeWins: undefined, awayWins: undefined})));
     const fresh = (await create(7)).componentInstance;
     expect(fresh.homeWins()).toBe(0);
-    expect(fresh.hasWinData()).toBeFalse();
+    expect(fresh.hasWinData()).toBe(false);
   });
 
   it('counts officiated cities per match side and scales the bars', async () => {

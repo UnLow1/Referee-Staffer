@@ -40,7 +40,7 @@ describe('ImporterService', () => {
     const req = httpTesting.expectOne(importerUrl);
     expect(req.request.method).toBe('POST');
     const body = req.request.body as FormData;
-    expect(body instanceof FormData).toBeTrue();
+    expect(body instanceof FormData).toBe(true);
     expect((body.get('file') as File).name).toBe('season.csv');
     expect(body.get('numberOfQueuesToImport')).toBe('30');
     req.flush(response);
@@ -65,7 +65,7 @@ describe('ImporterService', () => {
     const file = new File(['broken'], 'broken.csv', {type: 'text/csv'});
     let error: HttpErrorResponse | undefined;
     service.postFile(file, 30).subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
@@ -80,7 +80,7 @@ describe('ImporterService', () => {
     // Blob download errors carry the body as a Blob — the interceptor reads it
     // asynchronously, so the error is awaited instead of asserted synchronously.
     const errorPromise = firstValueFrom(service.downloadExampleFile())
-      .then(() => fail('expected an error'), (e: HttpErrorResponse) => e);
+      .then(() => expect.unreachable('expected an error'), (e: HttpErrorResponse) => e);
 
     const problemDetail = new Blob(
       [JSON.stringify({detail: 'Example file is missing'})],
@@ -97,7 +97,7 @@ describe('ImporterService', () => {
   it('surfaces a 500 without ProblemDetail as a generic error toast and rethrows', () => {
     let error: HttpErrorResponse | undefined;
     service.downloadExampleFile().subscribe({
-      next: () => fail('expected an error'),
+      next: () => expect.unreachable('expected an error'),
       error: (e: HttpErrorResponse) => error = e,
     });
 
