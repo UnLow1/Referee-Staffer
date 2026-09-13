@@ -1,4 +1,4 @@
-import {Component, inject} from '@angular/core';
+import {Component, inject, ChangeDetectionStrategy} from '@angular/core';
 import {IconComponent} from '../icon/icon.component';
 import {ToastService} from '../../../service/toast.service';
 
@@ -6,6 +6,7 @@ import {ToastService} from '../../../service/toast.service';
 @Component({
   selector: 'app-toast',
   imports: [IconComponent],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     @if (toastService.toast(); as toast) {
       <div class="toast" [class.toast--error]="toast.kind === 'error'" role="status">

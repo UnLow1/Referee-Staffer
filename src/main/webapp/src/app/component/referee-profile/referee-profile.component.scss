@@ -109,7 +109,7 @@
 }
 
 /* Two-segment ratio bar — flex values are the raw win counts so the segment
-   widths track home : away proportionally. Mirrors prototype profile.jsx. */
+   widths track home : away proportionally. */
 .balance-bar {
   display: flex;
   height: 6px;
@@ -126,4 +126,11 @@
   font-size: 11px;
   color: var(--ink-3);
   margin-top: 4px;
+}
+
+/* ——— <768px (RS-85): five KPI cells fold into a 2-column grid ——— */
+@media (max-width: 767px) {
+  .kpi-strip-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

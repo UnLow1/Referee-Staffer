@@ -1,4 +1,4 @@
-import {Component, computed, input} from '@angular/core';
+import {Component, computed, input, ChangeDetectionStrategy} from '@angular/core';
 import {Team} from '../../../model/team';
 
 /**
@@ -17,6 +17,7 @@ import {Team} from '../../../model/team';
       <span class="team-pill__name">{{ team()?.name }}</span>
     </span>
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .team-pill {
       display: inline-flex;

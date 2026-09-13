@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotNull;
 
 @Entity
 public class Config {
@@ -15,10 +16,15 @@ public class Config {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Bean-validation mirrors of the NOT NULL columns — the entity doubles as the
+    // request body of PUT /api/configuration, so nulls must 400 at the controller
+    // instead of surfacing as a 500 constraint violation on flush.
+    @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ConfigName name;
 
+    @NotNull
     @Column(nullable = false)
     private Double value;
 
