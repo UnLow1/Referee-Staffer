@@ -8,6 +8,11 @@
 
   <div class="topbar">
     <div class="topbar__left">
+      <!-- Mobile-only (<768px) hamburger — opens the off-canvas sidenav. -->
+      <button type="button" class="btn btn--ghost btn--sm topbar__menu" (click)="toggleNav()"
+              [attr.aria-expanded]="navOpen()" aria-controls="sidenav" aria-label="Toggle navigation">
+        <app-icon name="menu" [size]="16"></app-icon>
+      </button>
       <span class="topbar__crumb">Ekstraklasa 2025/26</span>
       <span class="topbar__sep">/</span>
       <!-- TODO: bind topbar__title to active route via Router.events / RouteData when more
@@ -26,10 +31,17 @@
     </div>
   </div>
 
-  <nav class="sidenav">
+  <!-- Backdrop behind the mobile off-canvas nav; a <button> so keyboard users can
+       focus it and dismiss with Enter/Space (same pattern as the drawer backdrop).
+       Hidden on desktop where the sidenav is a static column. -->
+  @if (navOpen()) {
+    <button type="button" class="sidenav-backdrop" (click)="closeNav()" aria-label="Close navigation"></button>
+  }
+
+  <nav class="sidenav" id="sidenav" [class.sidenav--open]="navOpen()">
     <div class="nav-group">Workspace</div>
     @for (item of workspaceNav; track item.path) {
-      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" (click)="closeNav()">
         <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
         <span>{{ item.label }}</span>
       </a>
@@ -37,7 +49,7 @@
 
     <div class="nav-group">Data</div>
     @for (item of dataNav; track item.path) {
-      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" (click)="closeNav()">
         <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
         <span>{{ item.label }}</span>
       </a>
@@ -46,7 +58,7 @@
     @if (settings.adminVisible()) {
       <div class="nav-group nav-group--admin">Admin<app-icon name="lock" [size]="11"></app-icon></div>
       @for (item of adminNav; track item.path) {
-        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+        <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" (click)="closeNav()">
           <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
           <span>{{ item.label }}</span>
         </a>
@@ -62,7 +74,7 @@
 
     <div class="nav-group">Setup</div>
     @for (item of setupNav; track item.path) {
-      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active">
+      <a class="nav-item" [routerLink]="item.path" routerLinkActive="active" (click)="closeNav()">
         <span class="nav-item__icon"><app-icon [name]="item.icon"></app-icon></span>
         <span>{{ item.label }}</span>
       </a>

@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Vacation} from '../../model/vacation';
 import {Referee} from '../../model/referee';
@@ -10,7 +10,7 @@ import {IconComponent} from '../common/icon/icon.component';
 /**
  * Vacation add/edit form — drawer opened from the vacation list.
  *
- * The dates keep the legacy reciprocal min/max binding (start ≤ end) on native
+ * The dates use a reciprocal min/max binding (start ≤ end) on native
  * type="date" inputs; since Angular's min/max validators don't cover dates, the
  * end-after-start rule is enforced via `endBeforeStart` (ISO strings compare
  * lexicographically) and folded into the drawer's `valid` input.
@@ -18,6 +18,7 @@ import {IconComponent} from '../common/icon/icon.component';
 @Component({
   selector: 'app-vacation-form',
   templateUrl: './vacation-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, FormDrawerComponent, IconComponent]
 })
 export class VacationFormComponent implements OnInit {

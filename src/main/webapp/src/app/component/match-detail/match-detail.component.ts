@@ -1,18 +1,17 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
-import {Team} from '../../model/team';
+import {Standing} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {IconComponent} from '../common/icon/icon.component';
 import {ChipComponent} from '../common/chip/chip.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
-
-const NUMBER_OF_EDGE_TEAMS = 3;
 
 interface CompareRow {
   label: string;
@@ -26,13 +25,14 @@ interface CompareRow {
  * Match detail — read-only deep dive on a single fixture.
  *
  * Difficulty parts load from /api/matches/:id/difficulty; candidate ranking uses the
- * enriched RefereeDto `potential`. Per-team W/D/L/GF/GA still wait on a season-stats
- * endpoint.
+ * enriched RefereeDto `potential`. Per-team season stats (place, W/D/L/GF/GA) come
+ * from the standings rows.
  */
 @Component({
   selector: 'app-match-detail',
   templateUrl: './match-detail.component.html',
   styleUrl: './match-detail.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [RouterLink, IconComponent, ChipComponent, RefAvatarComponent]
 })
 export class MatchDetailComponent implements OnInit {
@@ -41,13 +41,17 @@ export class MatchDetailComponent implements OnInit {
   private readonly matchService = inject(MatchService);
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
+  private readonly configurationService = inject(ConfigurationService);
+
+  /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
+  readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly match = signal<Match | null>(null);
   readonly breakdown = signal<DifficultyBreakdown | null>(null);
-  readonly home = signal<Team | undefined>(undefined);
-  readonly away = signal<Team | undefined>(undefined);
-  /** Standings sorted by points desc — index lookup for `place`. */
-  readonly standings = signal<Team[]>([]);
+  readonly home = signal<Standing | undefined>(undefined);
+  readonly away = signal<Standing | undefined>(undefined);
+  /** Standings rows — carry the backend-computed `place` and season stats. */
+  readonly standings = signal<Standing[]>([]);
   readonly referees = signal<Referee[]>([]);
   readonly assignedReferee = signal<Referee | undefined>(undefined);
 
@@ -78,7 +82,8 @@ export class MatchDetailComponent implements OnInit {
     if (flags) return flags.isTop;
     const hp = this.homePlace();
     const ap = this.awayPlace();
-    return hp != null && ap != null && hp <= NUMBER_OF_EDGE_TEAMS && ap <= NUMBER_OF_EDGE_TEAMS;
+    const edge = this.edgeTeams();
+    return hp != null && ap != null && hp <= edge && ap <= edge;
   });
 
   readonly isRelegationMatch = computed(() => {
@@ -87,9 +92,10 @@ export class MatchDetailComponent implements OnInit {
     const hp = this.homePlace();
     const ap = this.awayPlace();
     const total = this.standings().length;
+    const edge = this.edgeTeams();
     return hp != null && ap != null && total > 0
-      && hp > total - NUMBER_OF_EDGE_TEAMS
-      && ap > total - NUMBER_OF_EDGE_TEAMS;
+      && hp > total - edge
+      && ap > total - edge;
   });
 
   readonly compareRows = computed<CompareRow[]>(() => {
@@ -101,9 +107,11 @@ export class MatchDetailComponent implements OnInit {
     return [
       {label: 'Position', home: hp != null ? `#${hp}` : '—', away: ap != null ? `#${ap}` : '—', bar: false},
       {label: 'Points', home: h.points ?? 0, away: a.points ?? 0, bar: true},
-      // W / D / L / GF / GA need a backend stats endpoint that doesn't exist yet. For
-      // now they're omitted; placeholder note in the template tells the reader why the
-      // panel feels short.
+      {label: 'Wins', home: h.wins, away: a.wins, bar: true},
+      {label: 'Draws', home: h.draws, away: a.draws, bar: true},
+      {label: 'Losses', home: h.losses, away: a.losses, bar: true},
+      {label: 'Goals for', home: h.goalsFor, away: a.goalsFor, bar: true},
+      {label: 'Goals against', home: h.goalsAgainst, away: a.goalsAgainst, bar: true},
     ];
   });
 
@@ -125,6 +133,7 @@ export class MatchDetailComponent implements OnInit {
       this.router.navigate(['/matches']);
       return;
     }
+    this.configurationService.ensureEdgeTeamsLoaded();
     forkJoin({
       match: this.matchService.findById(matchId),
       breakdown: this.matchService.getDifficultyBreakdown(matchId),
@@ -133,10 +142,10 @@ export class MatchDetailComponent implements OnInit {
     }).subscribe(({match, breakdown, standings, referees}) => {
       this.match.set(match);
       this.breakdown.set(breakdown);
-      this.standings.set(standings);
+      this.standings.set(standings.rows);
       this.referees.set(referees);
-      this.home.set(standings.find(t => t.id === match.homeTeamId));
-      this.away.set(standings.find(t => t.id === match.awayTeamId));
+      this.home.set(standings.rows.find(t => t.id === match.homeTeamId));
+      this.away.set(standings.rows.find(t => t.id === match.awayTeamId));
       this.assignedReferee.set(referees.find(r => r.id === match.refereeId));
     });
   }
@@ -177,7 +186,6 @@ export class MatchDetailComponent implements OnInit {
 
   private placeOf(teamId: number | undefined): number | null {
     if (teamId == null) return null;
-    const idx = this.standings().findIndex(t => t.id === teamId);
-    return idx >= 0 ? idx + 1 : null;
+    return this.standings().find(t => t.id === teamId)?.place ?? null;
   }
 }
