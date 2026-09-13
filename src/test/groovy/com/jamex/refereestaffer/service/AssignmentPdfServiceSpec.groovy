@@ -75,6 +75,13 @@ class AssignmentPdfServiceSpec extends Specification {
                 .build()
     }
 
+    /**
+     * Beware when extending the diacritics assertions: PdfTextExtractor resolves a code
+     * that also exists in the font's built-in encoding through that encoding, ignoring the
+     * /Differences entry. Uppercase Ł is Cp1250 0xA3, which is "sterling" in the built-in
+     * encoding, so it extracts as £ even though the PDF maps 163 to /Lslash and every
+     * viewer renders it correctly. Lowercase ł (0xB3) has no such clash and round-trips.
+     */
     private static String extractText(byte[] pdf) {
         def reader = new PdfReader(pdf)
         try {

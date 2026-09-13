@@ -1,5 +1,6 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {forkJoin} from 'rxjs';
+import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
@@ -156,15 +157,7 @@ export class StafferComponent {
     this.exporting.set(true);
     this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
       next: blob => {
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = `referee-assignments-queue-${this.queue()}.pdf`;
-        // Firefox needs the anchor in the DOM for a programmatic download click.
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
-        URL.revokeObjectURL(url);
+        saveAs(blob, `referee-assignments-queue-${this.queue()}.pdf`);
         this.exporting.set(false);
       },
       error: () => this.exporting.set(false)
