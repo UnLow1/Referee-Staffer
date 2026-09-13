@@ -37,9 +37,15 @@ class AssignmentPdfServiceSpec extends Specification {
         text.contains("Referee assignments - Queue 3")
         text.contains("Wisła")
         text.contains("Cracovia")
-        text.contains("Date")
-        text.contains("Time")
         !text.contains("#")
+        // Column order is deliberate and matches published assignment sheets: who plays
+        // whom, then when, then who referees it. Plain contains() would pass on any
+        // order, so assert the header cells line up left to right.
+        def header = text.readLines().find { it.contains("Referee") && it.contains("Home") }
+        header.indexOf("Home") < header.indexOf("Away")
+        header.indexOf("Away") < header.indexOf("Date")
+        header.indexOf("Date") < header.indexOf("Time")
+        header.indexOf("Time") < header.indexOf("Referee")
         // Kick-off is split across the Date and Time columns, so the two halves land
         // separately rather than as one "01.03.2026 12:30" string.
         text.contains("01.03.2026")

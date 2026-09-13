@@ -84,10 +84,10 @@ public class AssignmentPdfService {
             generatedAt.setSpacingAfter(14);
             document.add(generatedAt);
 
-            var table = new PdfPTable(new float[]{1.8f, 1.1f, 3f, 3f, 3f});
+            var table = new PdfPTable(new float[]{3f, 3f, 1.8f, 1.1f, 3f});
             table.setWidthPercentage(100);
             table.setHeaderRows(1);
-            for (var header : List.of("Date", "Time", "Home", "Away", "Referee")) {
+            for (var header : List.of("Home", "Away", "Date", "Time", "Referee")) {
                 var headerCell = new PdfPCell(new Phrase(header, tableHeader));
                 headerCell.setBackgroundColor(HEADER_BACKGROUND);
                 headerCell.setPadding(6);
@@ -95,10 +95,10 @@ public class AssignmentPdfService {
             }
 
             for (var match : matches) {
-                table.addCell(bodyCell(match.getDate().format(DATE_FORMAT), cell));
-                table.addCell(bodyCell(match.getDate().format(TIME_FORMAT), cell));
                 table.addCell(bodyCell(teamName(match.getHome()), cell));
                 table.addCell(bodyCell(teamName(match.getAway()), cell));
+                table.addCell(bodyCell(match.getDate().format(DATE_FORMAT), cell));
+                table.addCell(bodyCell(match.getDate().format(TIME_FORMAT), cell));
                 var referee = match.getReferee();
                 table.addCell(referee == null
                         ? bodyCell(UNASSIGNED, mutedCell)
