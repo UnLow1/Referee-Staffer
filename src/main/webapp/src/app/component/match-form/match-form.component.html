@@ -80,8 +80,15 @@
       </div>
       <div class="field-block">
         <label class="lbl" for="grade">Ref grade<span class="opt">optional</span></label>
-        <input class="input num" type="number" id="grade" name="grade" min="0" step="0.1" placeholder="0.0"
-               [(ngModel)]="grade.value">
+        <div class="grade-split">
+          <input class="input num" type="number" id="grade" name="grade" min="0" step="0.1" placeholder="0.0"
+                 [(ngModel)]="grade.value" (ngModelChange)="onGradeValueChange($event)">
+          <span class="grade-split__sep mono">/</span>
+          <input class="input num" type="number" id="secondGrade" name="secondGrade" min="0" step="0.1" placeholder="—"
+                 title="Second component of a split grade (e.g. 7.9/8.3)"
+                 [(ngModel)]="grade.secondValue" [disabled]="gradeValueMissing">
+        </div>
+        <span class="hint">Split grade? Put the second component after the slash.</span>
       </div>
     </div>
   </form>
