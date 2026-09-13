@@ -1,5 +1,6 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {forkJoin} from 'rxjs';
+import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
@@ -80,6 +81,7 @@ export class StafferComponent {
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
+  readonly exporting = signal(false);
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
@@ -98,6 +100,14 @@ export class StafferComponent {
   );
 
   readonly lockCount = computed(() => this.locks().size);
+
+  /**
+   * The sheet is rendered from what the backend has stored, so it may only be exported
+   * once the cast on screen has been accepted with Save cast. Generating alone is not
+   * enough: manual swaps live in the component until saved, and a sheet that silently
+   * disagreed with the table on screen would be worse than no sheet.
+   */
+  readonly canExport = computed(() => this.matches() !== null && this.savedAt() !== null);
 
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
@@ -144,6 +154,25 @@ export class StafferComponent {
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
+    });
+  }
+
+  /**
+   * Downloads the assignment sheet PDF for the selected queue. Gated on a saved cast
+   * (see canExport) — the template disables the button, and this guard keeps the rule
+   * in one place for any other caller.
+   */
+  exportPdf(): void {
+    if (!this.canExport()) {
+      return;
+    }
+    this.exporting.set(true);
+    this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
+      next: blob => {
+        saveAs(blob, `referee-assignments-queue-${this.queue()}.pdf`);
+        this.exporting.set(false);
+      },
+      error: () => this.exporting.set(false)
     });
   }
 

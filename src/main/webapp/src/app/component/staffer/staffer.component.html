@@ -16,6 +16,13 @@
     <button type="button" class="btn" (click)="clearLocks()" [disabled]="lockCount() === 0">
       Clear locks
     </button>
+    <button type="button" class="btn" (click)="exportPdf()" [disabled]="!canExport() || exporting()"
+            [title]="canExport()
+              ? 'Download the saved cast for this queue as a PDF'
+              : 'Save the cast first — the sheet is rendered from the saved assignments'">
+      <app-icon name="download" [size]="12"></app-icon>
+      {{ exporting() ? 'Exporting…' : 'Export PDF' }}
+    </button>
     <button type="button" class="btn btn--primary" (click)="generate()" [disabled]="loading()">
       <app-icon name="play" [size]="12"></app-icon>
       {{ loading() ? 'Generating…' : 'Generate cast' }}

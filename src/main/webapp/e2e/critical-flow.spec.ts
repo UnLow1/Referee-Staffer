@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 // End-to-end coverage of the application's critical flow, exercised through the real
 // browser UI against a live backend (see playwright.config.ts):
 //
-//   import CSV  ->  generate staffing  ->  save the cast  ->  read standings
+//   import CSV  ->  generate staffing  ->  save the cast  ->  export PDF  ->  read standings
 //
 // The fixture (e2e/fixtures/import-data.csv) has three queues for four teams. It is
 // imported with numberOfQueuesToImport = 2, so queues 1-2 are "played" (scores +
@@ -22,7 +23,7 @@ const EXPECTED = { referees: '3', teams: '4', matches: '6', grades: '4' };
 const STAFFED_QUEUE = 3;
 const MATCHES_IN_STAFFED_QUEUE = 2;
 
-test('critical flow: import CSV, generate and save staffing, read standings', async ({ page }) => {
+test('critical flow: import CSV, staff and save a queue, export the PDF, read standings', async ({ page }) => {
   // The jar serves the SPA without a deep-link fallback (unknown paths 404), so the
   // suite loads the app root once and then moves between screens via the shell nav,
   // exactly as a user would.
@@ -67,11 +68,33 @@ test('critical flow: import CSV, generate and save staffing, read standings', as
     await expect(page.locator('tr.cast-row .referee-cell app-ref-avatar'))
       .toHaveCount(MATCHES_IN_STAFFED_QUEUE);
     await expect(page.locator('tr.cast-row').getByText('unassigned')).toHaveCount(0);
+
+    // The sheet is rendered from stored assignments, so exporting stays blocked until
+    // the cast on screen has been accepted.
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeDisabled();
   });
 
   await test.step('save the generated cast', async () => {
     await page.getByRole('button', { name: 'Save cast' }).click();
     await expect(page.locator('.saved-at')).toContainText('Saved');
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
+  });
+
+  await test.step('export the saved cast as a PDF', async () => {
+    // The download itself is the point: the component builds an object URL and clicks a
+    // synthetic anchor, which jsdom cannot exercise — the unit spec can only assert that
+    // click() was called.
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export PDF' }).click();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename())
+      .toBe(`referee-assignments-queue-${STAFFED_QUEUE}.pdf`);
+
+    const downloadPath = await download.path();
+    const bytes = fs.readFileSync(downloadPath);
+    expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(bytes.length).toBeGreaterThan(500);
   });
 
   await test.step('standings reflect the imported results', async () => {
