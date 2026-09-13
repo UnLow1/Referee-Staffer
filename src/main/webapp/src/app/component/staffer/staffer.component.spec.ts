@@ -393,13 +393,47 @@ describe('StafferComponent', () => {
   });
 
   describe('exportPdf', () => {
+    // The sheet renders persisted assignments, so every export starts from an accepted
+    // cast: generate, then save.
+    function generateAndSave(): void {
+      component.generate();
+      component.save();
+    }
+
     beforeEach(() => {
       vi.mocked(saveAs).mockClear();
       matchService.downloadAssignmentsPdf.mockReturnValue(of(new Blob(['%PDF-'], {type: 'application/pdf'})));
     });
 
+    it('is blocked until a cast has been generated and saved', () => {
+      expect(component.canExport()).toBe(false);
+
+      component.generate();
+      expect(component.canExport()).toBe(false);
+
+      component.save();
+      expect(component.canExport()).toBe(true);
+    });
+
+    it('blocks again once the cast is regenerated', () => {
+      generateAndSave();
+
+      component.generate();
+
+      expect(component.canExport()).toBe(false);
+    });
+
+    it('does nothing when called without a saved cast', () => {
+      component.exportPdf();
+
+      expect(matchService.downloadAssignmentsPdf).not.toHaveBeenCalled();
+      expect(saveAs).not.toHaveBeenCalled();
+      expect(component.exporting()).toBe(false);
+    });
+
     it('saves the PDF for the selected queue under a queue-stamped name', () => {
       component.incQueue();
+      generateAndSave();
 
       component.exportPdf();
 
@@ -409,6 +443,7 @@ describe('StafferComponent', () => {
     });
 
     it('keeps exporting true until the download completes', () => {
+      generateAndSave();
       const pdfSubject = new Subject<Blob>();
       matchService.downloadAssignmentsPdf.mockReturnValue(pdfSubject);
 
@@ -420,6 +455,7 @@ describe('StafferComponent', () => {
     });
 
     it('clears the exporting flag on error', () => {
+      generateAndSave();
       matchService.downloadAssignmentsPdf.mockReturnValue(throwError(() => new Error('empty queue')));
 
       component.exportPdf();

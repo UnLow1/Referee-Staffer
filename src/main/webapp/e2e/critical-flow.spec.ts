@@ -68,11 +68,16 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     await expect(page.locator('tr.cast-row .referee-cell app-ref-avatar'))
       .toHaveCount(MATCHES_IN_STAFFED_QUEUE);
     await expect(page.locator('tr.cast-row').getByText('unassigned')).toHaveCount(0);
+
+    // The sheet is rendered from stored assignments, so exporting stays blocked until
+    // the cast on screen has been accepted.
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeDisabled();
   });
 
   await test.step('save the generated cast', async () => {
     await page.getByRole('button', { name: 'Save cast' }).click();
     await expect(page.locator('.saved-at')).toContainText('Saved');
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
   });
 
   await test.step('export the saved cast as a PDF', async () => {

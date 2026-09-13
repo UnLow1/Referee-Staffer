@@ -101,6 +101,14 @@ export class StafferComponent {
 
   readonly lockCount = computed(() => this.locks().size);
 
+  /**
+   * The sheet is rendered from what the backend has stored, so it may only be exported
+   * once the cast on screen has been accepted with Save cast. Generating alone is not
+   * enough: manual swaps live in the component until saved, and a sheet that silently
+   * disagreed with the table on screen would be worse than no sheet.
+   */
+  readonly canExport = computed(() => this.matches() !== null && this.savedAt() !== null);
+
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
     if (id == null) return null;
@@ -150,10 +158,14 @@ export class StafferComponent {
   }
 
   /**
-   * Downloads the assignment sheet PDF for the selected queue. The backend renders
-   * persisted assignments, so unsaved edits (swaps not yet saved) are not included.
+   * Downloads the assignment sheet PDF for the selected queue. Gated on a saved cast
+   * (see canExport) — the template disables the button, and this guard keeps the rule
+   * in one place for any other caller.
    */
   exportPdf(): void {
+    if (!this.canExport()) {
+      return;
+    }
     this.exporting.set(true);
     this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
       next: blob => {
