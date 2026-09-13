@@ -1,9 +1,11 @@
-import {Component, computed, inject, signal} from '@angular/core';
+import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {forkJoin} from 'rxjs';
+import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
+import {ConfigurationService} from '../../service/configuration.service';
 import {UiSettingsService} from '../../service/ui-settings.service';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -29,8 +31,6 @@ interface Candidate {
   isUsedElsewhere: boolean;
 }
 
-const NUMBER_OF_EDGE_TEAMS = 3;
-
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
  * swap individual rows, then save. Locked pairs are sent with the staffing request,
@@ -40,6 +40,7 @@ const NUMBER_OF_EDGE_TEAMS = 3;
   selector: 'app-staffer',
   templateUrl: './staffer.component.html',
   styleUrl: './staffer.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent,
     ChipComponent, KpiComponent, DrawerComponent
@@ -50,15 +51,19 @@ export class StafferComponent {
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
   private readonly matchService = inject(MatchService);
+  private readonly configurationService = inject(ConfigurationService);
   /** Gates the "How the staffer scores assignments" panel (toggled in the sidebar's Admin section). */
   readonly settings = inject(UiSettingsService);
+
+  /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
+  readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly queue = signal(1);
   readonly matches = signal<Match[] | null>(null);
   readonly referees = signal<Referee[]>([]);
-  /** Map<teamId, Team> — populated from /api/teams/standings so `place` (== index+1) is meaningful. */
+  /** Map<teamId, Team> — populated from /api/teams/standings rows. */
   readonly teamsById = signal<Map<number, Team>>(new Map());
-  /** Map<teamId, place> — derived from standings sort order. */
+  /** Map<teamId, place> — the backend-computed table position. */
   readonly placeById = signal<Map<number, number>>(new Map());
   readonly totalTeams = signal(0);
 
@@ -74,6 +79,11 @@ export class StafferComponent {
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
+  readonly exporting = signal(false);
+
+  constructor() {
+    this.configurationService.ensureEdgeTeamsLoaded();
+  }
 
   // ——— Derived state ———
 
@@ -88,6 +98,14 @@ export class StafferComponent {
   );
 
   readonly lockCount = computed(() => this.locks().size);
+
+  /**
+   * The sheet is rendered from what the backend has stored, so it may only be exported
+   * once the cast on screen has been accepted with Save cast. Generating alone is not
+   * enough: manual swaps live in the component until saved, and a sheet that silently
+   * disagreed with the table on screen would be worse than no sheet.
+   */
+  readonly canExport = computed(() => this.matches() !== null && this.savedAt() !== null);
 
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
@@ -121,22 +139,41 @@ export class StafferComponent {
       referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
     }).subscribe({
       next: ({matches, standings, referees}) => {
-        // standings is sorted by points desc; index 0 = first place. Build place lookup
-        // so flag derivation (top/bottom) doesn't need re-sorting on every cell render.
+        // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
+        // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
         const placeMap = new Map<number, number>();
-        standings.forEach((t, i) => {
+        standings.rows.forEach(t => {
           teamsMap.set(t.id, t);
-          placeMap.set(t.id, i + 1);
+          placeMap.set(t.id, t.place);
         });
         this.teamsById.set(teamsMap);
         this.placeById.set(placeMap);
-        this.totalTeams.set(standings.length);
+        this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
         this.matches.set([...matches]);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
+    });
+  }
+
+  /**
+   * Downloads the assignment sheet PDF for the selected queue. Gated on a saved cast
+   * (see canExport) — the template disables the button, and this guard keeps the rule
+   * in one place for any other caller.
+   */
+  exportPdf(): void {
+    if (!this.canExport()) {
+      return;
+    }
+    this.exporting.set(true);
+    this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
+      next: blob => {
+        saveAs(blob, `referee-assignments-queue-${this.queue()}.pdf`);
+        this.exporting.set(false);
+      },
+      error: () => this.exporting.set(false)
     });
   }
 
@@ -212,10 +249,11 @@ export class StafferComponent {
     const awayPlace = this.placeById().get(match.awayTeamId);
     const total = this.totalTeams();
 
+    const edge = this.edgeTeams();
     const sameCity = !!(home?.city && away?.city && home.city === away.city);
-    const isTop = !!(homePlace && awayPlace && homePlace <= NUMBER_OF_EDGE_TEAMS && awayPlace <= NUMBER_OF_EDGE_TEAMS);
+    const isTop = !!(homePlace && awayPlace && homePlace <= edge && awayPlace <= edge);
     const isBot = !!(homePlace && awayPlace && total > 0
-      && homePlace > total - NUMBER_OF_EDGE_TEAMS && awayPlace > total - NUMBER_OF_EDGE_TEAMS);
+      && homePlace > total - edge && awayPlace > total - edge);
     return {sameCity, isTop, isBot};
   }
 

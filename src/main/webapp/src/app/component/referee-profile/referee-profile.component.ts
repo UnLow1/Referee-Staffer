@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
@@ -33,6 +33,7 @@ import {MeterComponent} from '../common/meter/meter.component';
   selector: 'app-referee-profile',
   templateUrl: './referee-profile.component.html',
   styleUrl: './referee-profile.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [RouterLink, IconComponent, KpiComponent, TeamPillComponent, MeterComponent]
 })
 export class RefereeProfileComponent implements OnInit {

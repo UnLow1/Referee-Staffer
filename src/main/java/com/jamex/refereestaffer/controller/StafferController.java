@@ -27,12 +27,9 @@ public class StafferController {
     }
 
     /**
-     * POST, not GET: staffing assigns referees and persists the result, so the verb must
-     * signal the state change (was GET until 2026-07, which broke HTTP semantics).
-     *
-     * <p>The optional body carries locked (matchId, refereeId) pairs the algorithm must
-     * keep as-is while it staffs the rest of the queue. No body / empty list means a full
-     * regenerate. Kept optional so pre-lock clients (plain POST with no body) still work.
+     * The optional body carries locked (matchId, refereeId) pairs the algorithm must keep
+     * as-is while it staffs the rest of the queue. No body / empty list means a full
+     * regenerate; optional so clients that post no body still work.
      */
     @PostMapping("/{queue}")
     public Collection<MatchDto> staffReferees(@PathVariable short queue,

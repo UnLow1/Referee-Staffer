@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Referee} from '../../model/referee';
 import {RefereeService} from '../../service/referee.service';
@@ -6,8 +6,7 @@ import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
 import {IconComponent} from '../common/icon/icon.component';
 
 /**
- * Referee add/edit form — a right-side drawer opened from the referee list (no longer a
- * routed full page).
+ * Referee add/edit form — a right-side drawer opened from the referee list.
  *
  * The host renders this component behind an @if, so it is recreated per open and the
  * working copy can be taken once in ngOnInit. Editable fields only — the enriched stats
@@ -17,6 +16,7 @@ import {IconComponent} from '../common/icon/icon.component';
 @Component({
   selector: 'app-referee-form',
   templateUrl: './referee-form.component.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, FormDrawerComponent, IconComponent]
 })
 export class RefereeFormComponent implements OnInit {
@@ -28,7 +28,7 @@ export class RefereeFormComponent implements OnInit {
   @Output() closed = new EventEmitter<void>();
 
   // README §Validation rules: Angular's `email` validator accepts addresses without a
-  // TLD dot, so the prototype's stricter regex rides in via `pattern`.
+  // TLD dot, so a stricter regex is enforced via `pattern`.
   readonly emailPattern = '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$';
 
   model: Pick<Referee, 'firstName' | 'lastName' | 'email' | 'experience'> = {

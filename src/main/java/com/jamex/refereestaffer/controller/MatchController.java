@@ -4,10 +4,19 @@ import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.DifficultyBreakdownDto;
 import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
+import com.jamex.refereestaffer.model.exception.RequestValidationException;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.service.AssignmentPdfService;
 import com.jamex.refereestaffer.service.MatchService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -29,11 +39,14 @@ public class MatchController {
     private final MatchRepository matchRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
+    private final AssignmentPdfService assignmentPdfService;
 
-    public MatchController(MatchRepository matchRepository, MatchConverter matchConverter, MatchService matchService) {
+    public MatchController(MatchRepository matchRepository, MatchConverter matchConverter, MatchService matchService,
+                           AssignmentPdfService assignmentPdfService) {
         this.matchRepository = matchRepository;
         this.matchConverter = matchConverter;
         this.matchService = matchService;
+        this.assignmentPdfService = assignmentPdfService;
     }
 
     @GetMapping
@@ -61,8 +74,25 @@ public class MatchController {
         return matchService.computeDifficultyBreakdown(id);
     }
 
+    /**
+     * Assignment sheet for a queue as a downloadable PDF (RS-8). Renders persisted
+     * assignments — save the cast on the Staffer screen first for it to show up here.
+     */
+    @GetMapping("/queue/{queue}/pdf")
+    public ResponseEntity<byte[]> getAssignmentsPdf(@PathVariable short queue) {
+        log.info("Generating assignment PDF for queue {}", queue);
+        var pdf = assignmentPdfService.generateAssignmentsPdf(queue);
+        var contentDisposition = ContentDisposition.attachment()
+                .filename("referee-assignments-queue-" + queue + ".pdf")
+                .build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .body(pdf);
+    }
+
     @PostMapping
-    public MatchDto createMatch(@RequestBody MatchDto matchDto) {
+    public MatchDto createMatch(@Valid @RequestBody MatchDto matchDto) {
         log.info("Adding new match");
         var match = matchConverter.convertFromDto(matchDto);
         var savedMatch = matchRepository.save(match);
@@ -71,17 +101,18 @@ public class MatchController {
 
     // TODO is this id needed?
     @PutMapping("/{id}")
-    public MatchDto updateMatch(@RequestBody MatchDto matchDto, @PathVariable Long id) {
-        log.info("Updating match with id {}", matchDto.getId());
+    public MatchDto updateMatch(@Validated(OnUpdate.class) @RequestBody MatchDto matchDto, @PathVariable Long id) {
+        log.info("Updating match with id {}", matchDto.id());
         var match = matchConverter.convertFromDto(matchDto);
         var updatedMatch = matchRepository.save(match);
         return matchConverter.convertFromEntity(updatedMatch);
     }
 
     @PutMapping
-    public void updateMatches(@RequestBody List<MatchDto> matchesDtos) {
+    public void updateMatches(@RequestBody List<@Valid MatchDto> matchesDtos) {
+        requireIds(matchesDtos);
         var matchIds = matchesDtos.stream()
-                .map(MatchDto::getId)
+                .map(MatchDto::id)
                 .toList();
         log.info("Updating matches with ids: {}", matchIds);
         var matches = matchConverter.convertFromDtos(matchesDtos);
@@ -98,5 +129,22 @@ public class MatchController {
     public void deleteMatch(@PathVariable Long id) {
         log.info("Deleting match with id = {}", id);
         matchService.deleteMatch(id);
+    }
+
+    /**
+     * Element validation on a {@code List<@Valid ...>} body always runs in the Default
+     * group (container validation cannot select OnUpdate), so id presence must be checked
+     * by hand — a null id would make saveAll() insert a new match instead of updating one.
+     */
+    private static void requireIds(List<MatchDto> matchesDtos) {
+        var errors = new ArrayList<String>();
+        for (int i = 0; i < matchesDtos.size(); i++) {
+            if (matchesDtos.get(i).id() == null) {
+                errors.add("[" + i + "].id: must not be null");
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new RequestValidationException(String.join("; ", errors));
+        }
     }
 }

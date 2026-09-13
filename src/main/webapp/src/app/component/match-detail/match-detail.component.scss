@@ -184,3 +184,23 @@
 .candidate-row--assigned td {
   background: var(--accent-tint);
 }
+
+/* ——— <768px (RS-85): hero stacks home/score/away vertically, body panels stack ——— */
+@media (max-width: 767px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    padding: 20px 16px;
+    gap: 16px;
+    text-align: center;
+  }
+  .hero-team--home {
+    text-align: center;
+  }
+  .hero-team__meta,
+  .hero-team--home .hero-team__meta {
+    justify-content: center;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

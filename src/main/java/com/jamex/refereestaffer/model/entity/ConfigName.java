@@ -3,8 +3,8 @@ package com.jamex.refereestaffer.model.entity;
 /**
  * Enum names map 1:1 to rows in {@code data.sql} and to the keys exposed via
  * {@code /api/configuration}. The {@link #group()} + {@link #description()} pair drives
- * the Configuration screen's panel grouping. Frontend used to hardcode this metadata;
- * now it comes from the backend so adding a new key only requires editing this enum.
+ * the Configuration screen's panel grouping, served from the backend so adding a new
+ * key only requires editing this enum.
  */
 public enum ConfigName {
     DIFFICULTY_LEVEL_MULTIPLIER(

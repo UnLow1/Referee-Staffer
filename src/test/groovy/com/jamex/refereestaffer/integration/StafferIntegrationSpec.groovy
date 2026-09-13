@@ -12,6 +12,7 @@ import org.spockframework.runtime.model.parallel.ExecutionMode
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import spock.lang.Execution
+import spock.lang.Isolated
 import spock.lang.Specification
 
 import java.time.LocalDateTime
@@ -22,9 +23,10 @@ import java.time.LocalDateTime
  * algorithm with mocks — this one's job is to prove that referee assignment actually
  * persists to the database, which is the part dependency-injected mocks can never verify.
  */
-// Features must run on one thread: they share the single cached H2 instance and setup()
-// wipes the domain tables, so Spock's parallel mode would let features delete each
-// other's fixtures mid-flight.
+// The in-memory H2 is shared JVM-wide with the other integration specs and setup() wipes
+// the domain tables: @Isolated fences off other specs, SAME_THREAD the features of this
+// one — otherwise they delete each other's fixtures mid-flight.
+@Isolated
 @Execution(ExecutionMode.SAME_THREAD)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class StafferIntegrationSpec extends Specification {
@@ -57,8 +59,8 @@ class StafferIntegrationSpec extends Specification {
 
         then:
         // Re-read from the DB rather than trusting the in-memory entity. Without
-        // @Transactional on staffReferees the entity returned from findAllByQueueAndRefereeIsNull
-        // becomes detached after the repository call commits, and the subsequent setReferee
+        // @Transactional on staffReferees the entity returned by the match query becomes
+        // detached after the repository call commits, and the subsequent setReferee
         // mutation never gets flushed. Re-fetching forces us to read the persisted state.
         def persisted = matchRepository.findById(matchToStaff.id).orElseThrow()
         persisted.referee != null

@@ -15,5 +15,7 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findAllByQueue(Short queue);
 
+    List<Match> findAllByQueueOrderByDateAsc(Short queue);
+
     List<Match> findAllByHomeScoreNotNullAndAwayScoreNotNull();
 }
