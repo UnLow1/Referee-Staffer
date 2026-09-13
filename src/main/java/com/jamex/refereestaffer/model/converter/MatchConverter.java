@@ -48,15 +48,15 @@ public class MatchConverter {
 
     public Match convertFromDto(MatchDto dto, Team home, Team away, Referee referee, Grade grade) {
         return new Match(
-                dto.getId(),
-                dto.getQueue(),
+                dto.id(),
+                dto.queue(),
                 home,
                 away,
-                dto.getDate(),
+                dto.date(),
                 referee,
                 grade,
-                dto.getHomeScore(),
-                dto.getAwayScore(),
+                dto.homeScore(),
+                dto.awayScore(),
                 0.0);
     }
 }

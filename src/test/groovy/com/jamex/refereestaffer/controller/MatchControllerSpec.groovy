@@ -6,6 +6,7 @@ import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException
 import com.jamex.refereestaffer.repository.MatchRepository
+import com.jamex.refereestaffer.service.AssignmentPdfService
 import com.jamex.refereestaffer.service.MatchService
 import groovy.json.JsonSlurper
 import org.spockframework.runtime.model.parallel.ExecutionMode
@@ -39,6 +40,9 @@ class MatchControllerSpec extends Specification {
 
     @SpringBean
     MatchService matchService = Mock()
+
+    @SpringBean
+    AssignmentPdfService assignmentPdfService = Mock()
 
     def "should return matches"() {
         given:
@@ -130,6 +134,36 @@ class MatchControllerSpec extends Specification {
         response.status == 404
     }
 
+    def "should download assignment PDF for queue"() {
+        given:
+        def queue = 5 as short
+        def pdfBytes = "%PDF-fake".bytes
+
+        when:
+        def response = mockMvc.perform(get("/api/matches/queue/$queue/pdf")).andReturn().response
+
+        then:
+        1 * assignmentPdfService.generateAssignmentsPdf(queue) >> pdfBytes
+        response.status == 200
+        response.contentType == MediaType.APPLICATION_PDF_VALUE
+        response.getHeader("Content-Disposition") == 'attachment; filename="referee-assignments-queue-5.pdf"'
+        response.contentAsByteArray == pdfBytes
+    }
+
+    def "should respond 404 with problem detail when queue has no matches to export"() {
+        given:
+        def queue = 44 as short
+
+        when:
+        def response = mockMvc.perform(get("/api/matches/queue/$queue/pdf")).andReturn().response
+
+        then:
+        1 * assignmentPdfService.generateAssignmentsPdf(queue) >> { throw new MatchNotFoundException(queue) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
+    }
+
     def "should create match through the service and return it as JSON"() {
         given:
         def savedDto = MatchDto.builder().id(11l).queue(2 as Short).build()
@@ -156,7 +190,7 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches/11")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 11, "queue": 2}'))
+                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
                 .andReturn().response
 
         then:
@@ -168,12 +202,72 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('[{"id": 1}, {"id": 2}]'))
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"id": 2, "queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
                 .andReturn().response
 
         then:
         1 * matchService.updateMatches({ List<MatchDto> dtos -> dtos*.id == [1l, 2l] })
         response.status == 200
+    }
+
+    def "should reject match creation when fixture fields are missing"() {
+        when:
+        def response = mockMvc.perform(post("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"queue": 2}'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "awayTeamId: must not be null; homeTeamId: must not be null"
+    }
+
+    def "should reject match update without id"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches/11")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "id: must not be null"
+    }
+
+    def "should reject bulk match update when an element is incomplete"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"id": 2}]'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "[1].awayTeamId: must not be null; [1].homeTeamId: must not be null; [1].queue: must not be null"
+    }
+
+    def "should reject bulk match update when an element has no id"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
+                .andReturn().response
+
+        then:
+        0 * matchConverter._
+        0 * matchRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "[1].id: must not be null"
     }
 
     def "should delete all matches"() {

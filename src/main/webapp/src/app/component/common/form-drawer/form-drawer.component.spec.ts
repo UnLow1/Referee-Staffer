@@ -35,11 +35,11 @@ describe('FormDrawerComponent', () => {
   it('wires the footer submit button to the projected form and gates it on validity', () => {
     const submit = el().querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(submit.getAttribute('form')).toBe('referee-form');
-    expect(submit.disabled).toBeTrue();
+    expect(submit.disabled).toBe(true);
 
     fixture.componentRef.setInput('valid', true);
     fixture.detectChanges();
-    expect(submit.disabled).toBeFalse();
+    expect(submit.disabled).toBe(false);
   });
 
   it('shows the dirty indicator', () => {
@@ -91,6 +91,21 @@ describe('FormDrawerComponent', () => {
     expect(closedCount).toBe(0);
     expect(guard()).toBeNull();
     expect(el().querySelector('.drawer')).not.toBeNull();
+  });
+
+  it('moves focus into the discard guard and back into the drawer when it is dismissed', () => {
+    fixture.componentRef.setInput('dirty', true);
+    fixture.detectChanges();
+    const drawerClose = el().querySelector('button[aria-label="Close"]') as HTMLButtonElement;
+    drawerClose.focus();
+
+    clickCancel();
+    expect(guard()!.contains(document.activeElement)).toBe(true);
+
+    (guard()!.querySelector('.modal__foot .btn:not(.btn--primary)') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(document.activeElement).toBe(drawerClose);
   });
 
   it('lets Escape dismiss only the guard while it is open, not the drawer behind it', () => {

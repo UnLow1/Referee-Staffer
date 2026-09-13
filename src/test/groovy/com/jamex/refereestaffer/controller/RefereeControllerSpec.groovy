@@ -122,12 +122,12 @@ class RefereeControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(post("/api/referees")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"firstName": "John", "lastName": "Smith", "experience": 5}'))
+                .content('{"firstName": "John", "lastName": "Smith", "email": "john.smith@example.com", "experience": 5}'))
                 .andReturn().response
 
         then:
         1 * refereeConverter.convertFromDto({ RefereeDto dto ->
-            dto.firstName == "John" && dto.lastName == "Smith" && dto.experience == 5
+            dto.firstName == "John" && dto.lastName == "Smith" && dto.email == "john.smith@example.com" && dto.experience == 5
         }) >> referee
         1 * refereeRepository.save(referee)
         response.status == 200
@@ -140,13 +140,72 @@ class RefereeControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/referees")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 231, "firstName": "John"}'))
+                .content('{"id": 231, "firstName": "John", "lastName": "Smith", "email": "john.smith@example.com", "experience": 5}'))
                 .andReturn().response
 
         then:
         1 * refereeConverter.convertFromDto({ RefereeDto dto -> dto.id == 231l }) >> referee
         1 * refereeRepository.save(referee)
         response.status == 200
+    }
+
+    def "should reject referee creation when required fields are missing"() {
+        when:
+        def response = mockMvc.perform(post("/api/referees")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"firstName": "John"}'))
+                .andReturn().response
+
+        then:
+        0 * refereeConverter._
+        0 * refereeRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "email: must not be blank; experience: must not be null; lastName: must not be blank"
+    }
+
+    def "should reject referee creation with malformed email"() {
+        when:
+        def response = mockMvc.perform(post("/api/referees")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"firstName": "John", "lastName": "Smith", "email": "not-an-email", "experience": 5}'))
+                .andReturn().response
+
+        then:
+        0 * refereeConverter._
+        0 * refereeRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "email: must be a well-formed email address"
+    }
+
+    def "should reject referee update without id"() {
+        when:
+        def response = mockMvc.perform(put("/api/referees")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"firstName": "John", "lastName": "Smith", "email": "john.smith@example.com", "experience": 5}'))
+                .andReturn().response
+
+        then:
+        0 * refereeConverter._
+        0 * refereeRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "id: must not be null"
+    }
+
+    def "should reject byIds request without ids"() {
+        when:
+        def response = mockMvc.perform(post("/api/referees/byIds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{}'))
+                .andReturn().response
+
+        then:
+        0 * refereeRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "ids: must not be null"
     }
 
     def "should return referees by ids"() {
