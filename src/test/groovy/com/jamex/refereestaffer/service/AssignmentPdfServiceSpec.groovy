@@ -37,7 +37,15 @@ class AssignmentPdfServiceSpec extends Specification {
         text.contains("Referee assignments - Queue 3")
         text.contains("Wisła")
         text.contains("Cracovia")
-        text.contains("01.03.2026 12:30")
+        text.contains("Date")
+        text.contains("Time")
+        !text.contains("#")
+        // Kick-off is split across the Date and Time columns, so the two halves land
+        // separately rather than as one "01.03.2026 12:30" string.
+        text.contains("01.03.2026")
+        text.contains("12:30")
+        text.contains("02.03.2026")
+        text.contains("17:00")
         text.contains("Sędzia Główny")
         text.contains("Lech")
         text.contains("Warta")

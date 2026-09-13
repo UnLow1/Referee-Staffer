@@ -40,6 +40,9 @@ public class AssignmentPdfService {
 
     /** Matches the date format of the CSV importer, so sheets read like the source data. */
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    /** Kick-off is split across two columns, the way published assignment sheets print it. */
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
     private static final Color HEADER_BACKGROUND = new Color(240, 240, 240);
     private static final Color MUTED_TEXT = new Color(120, 120, 120);
 
@@ -81,20 +84,19 @@ public class AssignmentPdfService {
             generatedAt.setSpacingAfter(14);
             document.add(generatedAt);
 
-            var table = new PdfPTable(new float[]{0.7f, 2.2f, 3f, 3f, 3f});
+            var table = new PdfPTable(new float[]{1.8f, 1.1f, 3f, 3f, 3f});
             table.setWidthPercentage(100);
             table.setHeaderRows(1);
-            for (var header : List.of("#", "Date", "Home", "Away", "Referee")) {
+            for (var header : List.of("Date", "Time", "Home", "Away", "Referee")) {
                 var headerCell = new PdfPCell(new Phrase(header, tableHeader));
                 headerCell.setBackgroundColor(HEADER_BACKGROUND);
                 headerCell.setPadding(6);
                 table.addCell(headerCell);
             }
 
-            var index = 1;
             for (var match : matches) {
-                table.addCell(bodyCell(String.valueOf(index++), cell));
-                table.addCell(bodyCell(match.getDate().format(DATE_TIME_FORMAT), cell));
+                table.addCell(bodyCell(match.getDate().format(DATE_FORMAT), cell));
+                table.addCell(bodyCell(match.getDate().format(TIME_FORMAT), cell));
                 table.addCell(bodyCell(teamName(match.getHome()), cell));
                 table.addCell(bodyCell(teamName(match.getAway()), cell));
                 var referee = match.getReferee();
