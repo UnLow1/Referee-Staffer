@@ -23,9 +23,9 @@ describe('UiSettingsService', () => {
   it('defaults everything off with a clean localStorage', () => {
     const service = inject();
 
-    expect(service.dark()).toBeFalse();
-    expect(service.adminVisible()).toBeFalse();
-    expect(service.explainerVisible()).toBeFalse();
+    expect(service.dark()).toBe(false);
+    expect(service.adminVisible()).toBe(false);
+    expect(service.explainerVisible()).toBe(false);
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
@@ -36,9 +36,9 @@ describe('UiSettingsService', () => {
 
     const service = inject();
 
-    expect(service.dark()).toBeTrue();
-    expect(service.adminVisible()).toBeTrue();
-    expect(service.explainerVisible()).toBeTrue();
+    expect(service.dark()).toBe(true);
+    expect(service.adminVisible()).toBe(true);
+    expect(service.explainerVisible()).toBe(true);
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 
@@ -46,12 +46,12 @@ describe('UiSettingsService', () => {
     const service = inject();
 
     service.toggleDark();
-    expect(service.dark()).toBeTrue();
+    expect(service.dark()).toBe(true);
     expect(localStorage.getItem('theme')).toBe('dark');
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
 
     service.toggleDark();
-    expect(service.dark()).toBeFalse();
+    expect(service.dark()).toBe(false);
     expect(localStorage.getItem('theme')).toBe('light');
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
@@ -60,11 +60,11 @@ describe('UiSettingsService', () => {
     const service = inject();
 
     service.toggleAdmin();
-    expect(service.adminVisible()).toBeTrue();
+    expect(service.adminVisible()).toBe(true);
     expect(localStorage.getItem('admin.visible')).toBe('true');
 
     service.toggleAdmin();
-    expect(service.adminVisible()).toBeFalse();
+    expect(service.adminVisible()).toBe(false);
     expect(localStorage.getItem('admin.visible')).toBe('false');
   });
 
@@ -72,11 +72,11 @@ describe('UiSettingsService', () => {
     const service = inject();
 
     service.toggleExplainer();
-    expect(service.explainerVisible()).toBeTrue();
+    expect(service.explainerVisible()).toBe(true);
     expect(localStorage.getItem('staffer.explainer')).toBe('true');
 
     service.toggleExplainer();
-    expect(service.explainerVisible()).toBeFalse();
+    expect(service.explainerVisible()).toBe(false);
     expect(localStorage.getItem('staffer.explainer')).toBe('false');
   });
 });
