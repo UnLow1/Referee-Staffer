@@ -1,4 +1,4 @@
-import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {IconComponent} from '../icon/icon.component';
 import {FocusTrapDirective} from '../focus-trap/focus-trap.directive';
 import {ModalData} from '../../../model/modalData';
@@ -39,6 +39,7 @@ import {ModalData} from '../../../model/modalData';
       </div>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     /* Same backdrop-as-<button> pattern as app-drawer — activatable by assistive tech
        but outside the focus trap's Tab cycle (Esc and the footer buttons cover keyboard
@@ -56,7 +57,7 @@ import {ModalData} from '../../../model/modalData';
       height: fit-content;
       z-index: 61;
     }
-    /* Danger-filled primary for destructive confirms (prototype inline-styles this). */
+    /* Danger-filled primary for destructive confirms. */
     .btn--primary-danger {
       background: var(--danger);
       border-color: var(--danger);

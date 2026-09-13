@@ -1,4 +1,4 @@
-import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {Config} from '../../model/config';
 import {ConfigurationService} from '../../service/configuration.service';
@@ -37,6 +37,7 @@ const GROUPS: ConfigGroup[] = [
   selector: 'app-configuration',
   templateUrl: './configuration.component.html',
   styleUrl: './configuration.component.scss',
+  changeDetection: ChangeDetectionStrategy.Eager,
   imports: [FormsModule, IconComponent]
 })
 export class ConfigurationComponent implements OnInit {

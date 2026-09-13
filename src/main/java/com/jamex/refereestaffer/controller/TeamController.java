@@ -1,13 +1,17 @@
 package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.converter.TeamConverter;
+import com.jamex.refereestaffer.model.dto.StandingsDto;
 import com.jamex.refereestaffer.model.dto.TeamDto;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.IDRequest;
+import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import com.jamex.refereestaffer.service.TeamService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,37 +55,36 @@ public class TeamController {
     }
 
     @PostMapping
-    public void createTeam(@RequestBody TeamDto teamDto) {
+    public void createTeam(@Valid @RequestBody TeamDto teamDto) {
         log.info("Adding new team");
         var team = teamConverter.convertFromDto(teamDto);
         teamRepository.save(team);
     }
 
     @PutMapping
-    public void updateTeam(@RequestBody TeamDto teamDto) {
-        log.info("Updating team with id {}", teamDto.getId());
+    public void updateTeam(@Validated(OnUpdate.class) @RequestBody TeamDto teamDto) {
+        log.info("Updating team with id {}", teamDto.id());
         // Load-and-mutate instead of replacing the entity: the incoming DTO carries the
         // computed `short` fallback (GET always fills it), so a full replace would persist
         // that fallback into short_code and freeze the code across future renames.
-        var team = teamRepository.findById(teamDto.getId())
-                .orElseThrow(() -> new TeamNotFoundException(teamDto.getId()));
-        team.setName(teamDto.getName());
-        team.setCity(teamDto.getCity());
+        var team = teamRepository.findById(teamDto.id())
+                .orElseThrow(() -> new TeamNotFoundException(teamDto.id()));
+        team.setName(teamDto.name());
+        team.setCity(teamDto.city());
         teamRepository.save(team);
     }
 
     @PostMapping("/byIds")
-    public Collection<TeamDto> getTeamsByIds(@RequestBody IDRequest request) {
-        log.info("Getting teams with ids: {}", request.getIds());
-        var teams = teamRepository.findAllById(request.getIds());
+    public Collection<TeamDto> getTeamsByIds(@Valid @RequestBody IDRequest request) {
+        log.info("Getting teams with ids: {}", request.ids());
+        var teams = teamRepository.findAllById(request.ids());
         return teamConverter.convertFromEntities(teams);
     }
 
     @GetMapping("/standings")
-    public Collection<TeamDto> getStandings() {
+    public StandingsDto getStandings() {
         log.info("Calculating standings");
-        var teams = teamService.getStandings();
-        return teamConverter.convertFromEntities(teams);
+        return teamService.getStandings();
     }
 
     @DeleteMapping

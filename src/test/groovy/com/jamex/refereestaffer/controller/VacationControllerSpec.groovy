@@ -134,6 +134,36 @@ class VacationControllerSpec extends Specification {
         response.status == 200
     }
 
+    def "should reject vacation creation when dates are missing"() {
+        when:
+        def response = mockMvc.perform(post("/api/vacations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"refereeId": 3}'))
+                .andReturn().response
+
+        then:
+        0 * vacationConverter._
+        0 * vacationRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "endDate: must not be null; startDate: must not be null"
+    }
+
+    def "should reject vacation update without id"() {
+        when:
+        def response = mockMvc.perform(put("/api/vacations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"refereeId": 3, "startDate": "2026-07-02", "endDate": "2026-07-15"}'))
+                .andReturn().response
+
+        then:
+        0 * vacationConverter._
+        0 * vacationRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "id: must not be null"
+    }
+
     def "should delete all vacations"() {
         when:
         def response = mockMvc.perform(delete("/api/vacations")).andReturn().response

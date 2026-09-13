@@ -1,4 +1,4 @@
-import {Component, EventEmitter, HostListener, Input, Output} from '@angular/core';
+import {Component, EventEmitter, HostListener, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 import {IconComponent} from '../icon/icon.component';
 import {FocusTrapDirective} from '../focus-trap/focus-trap.directive';
 
@@ -36,6 +36,7 @@ import {FocusTrapDirective} from '../focus-trap/focus-trap.directive';
       </aside>
     }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
     .drawer__title {
       font-weight: 600;

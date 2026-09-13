@@ -35,11 +35,11 @@ describe('FormDrawerComponent', () => {
   it('wires the footer submit button to the projected form and gates it on validity', () => {
     const submit = el().querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(submit.getAttribute('form')).toBe('referee-form');
-    expect(submit.disabled).toBeTrue();
+    expect(submit.disabled).toBe(true);
 
     fixture.componentRef.setInput('valid', true);
     fixture.detectChanges();
-    expect(submit.disabled).toBeFalse();
+    expect(submit.disabled).toBe(false);
   });
 
   it('shows the dirty indicator', () => {

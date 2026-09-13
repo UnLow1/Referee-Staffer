@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Input, Output, ChangeDetectionStrategy} from '@angular/core';
 
 export interface SegOption<T = string | number> {
   value: T;
@@ -18,6 +18,7 @@ export interface SegOption<T = string | number> {
  */
 @Component({
   selector: 'app-seg',
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="seg">
       @for (opt of options; track opt.value) {
