@@ -109,7 +109,7 @@ The README's `How it works` section and badge list were realigned with the code 
 - **Badges**: the Snyk and CodeClimate badges were removed (no Snyk/CodeClimate integration exists
   anywhere in the repo, and the badge endpoints could not be reached to confirm they still render;
   Travis badge went the same way on 2026-04-24). The remaining badges are Codecov (active, uploaded
-  from `maven.yml`) and the three GitHub Actions workflow badges.
+  from `maven.yml`) and the four GitHub Actions workflow badges (backend, frontend, E2E, CodeQL).
 - **Algorithm formulas (LaTeX)**: the README now ties each constant to its `ConfigName` key, shows
   the `data.sql` default weights, uses the configurable `NUMBER_OF_EDGE_TEAMS` (no more hard-coded
   "top 3 / last 3"), and describes the greedy assignment. Still, the source is authoritative if they

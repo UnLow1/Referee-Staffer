@@ -4,6 +4,7 @@
 
 [![Backend CI (Maven)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml)
 [![Frontend CI (Angular)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/frontend.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/frontend.yml)
+[![E2E (Playwright)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/e2e.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/e2e.yml)
 [![CodeQL](https://github.com/UnLow1/Referee-Staffer/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/codeql-analysis.yml)
 
 ## How it works
