@@ -103,8 +103,9 @@ The weekly `Backend deps radar` / `Frontend deps radar` cloud routines reference
 
 ## Documentation drift
 
-The README's `How it works` section and badge list were realigned with the code on 2026-07-25
-(RS-67), so the historical drift below is resolved. Kept as a pointer:
+The README's `How it works` section and badge list were realigned with the code under RS-67
+(written 2026-07-25, refreshed 2026-09-20 after RS-73 / RS-72 / RS-57 / RS-7 changed the
+staffing rules), so the historical drift below is resolved. Kept as a pointer:
 
 - **Badges**: the Snyk and CodeClimate badges were removed (no Snyk/CodeClimate integration exists
   anywhere in the repo, and the badge endpoints could not be reached to confirm they still render;
@@ -112,9 +113,14 @@ The README's `How it works` section and badge list were realigned with the code 
   from `maven.yml`) and the four GitHub Actions workflow badges (backend, frontend, E2E, CodeQL).
 - **Algorithm formulas (LaTeX)**: the README now ties each constant to its `ConfigName` key, shows
   the `data.sql` default weights, uses the configurable `NUMBER_OF_EDGE_TEAMS` (no more hard-coded
-  "top 3 / last 3"), and describes the greedy assignment. Still, the source is authoritative if they
-  ever diverge again — `StafferService.countRefereePotentialLvl` (effective value / potential) and
-  `MatchService.computeBreakdown` (difficulty; the method the old `countHardnessLvl` became).
+  "top 3 / last 3"), and notes that a split grade enters the average as the mean of its components.
+  Its `Assignment` section covers what RS-73 / RS-72 / RS-57 changed: which matches a regenerate
+  reclaims, locked pairs bypassing the rules, the three availability filters (already assigned in
+  this run, vacation, another match the same day), central "S C" assignments, and the fact that the
+  rules bind automatic staffing only — a manual assignment is never blocked. Still, the source is
+  authoritative if they ever diverge again — `StafferService.countRefereePotentialLvl` (effective
+  value / potential) and `MatchService.computeBreakdown` (difficulty; the method the old
+  `countHardnessLvl` became).
 
 ## Legacy / dead files
 

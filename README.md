@@ -40,6 +40,11 @@ dividing by zero. Note the default weights make experience almost irrelevant nex
 (0.01·years vs 50·grade) — this is a known imbalance tracked separately, not a documentation
 error.
 
+A single $G_{i}^{j}$ may itself be a *split grade* ("łamana ocena"): an observer can award two
+components, written `7.9/8.3`, and the value that counts is their arithmetic mean — here, `8.1`.
+The mean is computed on read by `Grade.getEffectiveValue()`, so split and plain grades enter the
+average the same way.
+
 ### Match's difficulty
 
 `MatchService.computeBreakdown` — a base term that rewards evenly-matched fixtures, plus
@@ -83,9 +88,38 @@ $H_{i}$ / $A_{i}$ - how many times referee $i$ has already refereed this match's
 ### Assignment
 
 `StafferService.staffReferees` processes a queue greedily: matches are sorted by difficulty
-descending, and for each match the available referee with the highest effective value $V_{i}$ is
-assigned and marked busy for the rest of the run. A referee is "available" when they are not
-already assigned in this run and are not on vacation on the match date.
+descending, and for each one the available referee with the highest effective value $V_{i}$ is
+assigned.
+
+**Which matches are staffed** (`MatchService.getMatchesToAssignInQueue`): every match in the
+queue, except two kinds that keep the referee they already have — matches handed down by the
+federation (see *central assignments* below) and matches already played, where both scores are
+recorded. Everything else is re-staffed from scratch, so regenerating a cast reshuffles it
+rather than leaving previous picks in place.
+
+**Locked pairs.** A staffing request may carry locked `(match, referee)` pairs — the pins set on
+the Staffer screen. They are applied before anything is computed: the match keeps exactly that
+referee and the referee is unavailable for the rest of the cast. A lock is a deliberate human
+decision, so it deliberately bypasses the availability rules below.
+
+**Who is available.** The candidate pool starts as the referees with no match anywhere in this
+queue, minus central-assignment referees. Then, per match, a referee is skipped when they:
+
+- have already been assigned earlier in this same run,
+- are on vacation on the match date, or
+- already have another match — from any queue — on the same calendar day. Matches get
+  rescheduled off their queue's usual weekend, so a same-queue check alone would miss this.
+
+If no candidate survives for some match, the whole run fails with `StafferException` and nothing
+is saved.
+
+These rules bind automatic staffing only. Assigning a referee by hand — in the match form, or by
+swapping one in on the Staffer screen — is never blocked, on purpose: the final call belongs to
+the person doing the staffing.
+
+**Central assignments.** A referee named "S C" (*Sędzia z Centrali*) marks a match assigned
+top-down by the federation. Such matches are left untouched and their referees stay out of the
+pool. The check lives in `Referee.isCentralSentinel()`.
 
 ## Sample screenshots
 
