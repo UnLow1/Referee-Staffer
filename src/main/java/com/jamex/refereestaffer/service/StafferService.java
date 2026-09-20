@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -165,9 +167,12 @@ public class StafferService {
                     .map(Vacation::getReferee)
                     .toList();
 
+            var refereesWithMatchOnSameDay = findRefereesWithMatchOnDay(referees, match.getDate());
+
             var availableReferees = referees.stream()
                     .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
                     .filter(ref -> !refereesWithVacations.contains(ref))
+                    .filter(ref -> !refereesWithMatchOnSameDay.contains(ref))
                     .toList();
 
             for (var referee : availableReferees) {
@@ -187,6 +192,21 @@ public class StafferService {
 
             match.setReferee(chosenReferee);
         }
+    }
+
+    /**
+     * Referees that already officiate another match on the same calendar day. The queue-level
+     * uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a match from a
+     * different queue can be rescheduled onto this day, and one referee must never have two
+     * matches on one day (RS-57).
+     */
+    private Set<Referee> findRefereesWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
+        if (referees.isEmpty()) {
+            return Set.of();
+        }
+        return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
+                .map(Match::getReferee)
+                .collect(Collectors.toSet());
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {
