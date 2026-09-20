@@ -1,13 +1,19 @@
 package com.jamex.refereestaffer.service;
 
+import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.DifficultyBreakdownDto;
+import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.entity.ConfigName;
+import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
+import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
+import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.GradeRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
+import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +24,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -33,13 +42,72 @@ public class MatchService {
     private final GradeRepository gradeRepository;
     private final ConfigurationRepository configurationRepository;
     private final TeamRepository teamRepository;
+    private final RefereeRepository refereeRepository;
+    private final MatchConverter matchConverter;
 
     public MatchService(MatchRepository matchRepository, GradeRepository gradeRepository,
-                        ConfigurationRepository configurationRepository, TeamRepository teamRepository) {
+                        ConfigurationRepository configurationRepository, TeamRepository teamRepository,
+                        RefereeRepository refereeRepository, MatchConverter matchConverter) {
         this.matchRepository = matchRepository;
         this.gradeRepository = gradeRepository;
         this.configurationRepository = configurationRepository;
         this.teamRepository = teamRepository;
+        this.refereeRepository = refereeRepository;
+        this.matchConverter = matchConverter;
+    }
+
+    public MatchDto saveMatch(MatchDto matchDto) {
+        var match = resolveAndConvert(List.of(matchDto)).get(0);
+        var savedMatch = matchRepository.save(match);
+        return matchConverter.convertFromEntity(savedMatch);
+    }
+
+    public void updateMatches(List<MatchDto> matchesDtos) {
+        var matches = resolveAndConvert(matchesDtos);
+        matchRepository.saveAll(matches);
+    }
+
+    /**
+     * Resolves the id references of each dto (teams, referee, grade) with one bulk
+     * query per repository and hands the ready entities to the converter — the
+     * converter itself does no repository access. A missing team is an error
+     * (404 via {@link TeamNotFoundException}); a missing referee or grade id maps
+     * to null, which is what the pre-refactor per-id lookups did too.
+     */
+    private List<Match> resolveAndConvert(List<MatchDto> matchesDtos) {
+        var teams = findByIds(teamRepository::findAllById, matchesDtos.stream()
+                .flatMap(dto -> Stream.of(dto.homeTeamId(), dto.awayTeamId())), Team::getId);
+        var referees = findByIds(refereeRepository::findAllById, matchesDtos.stream()
+                .map(MatchDto::refereeId), Referee::getId);
+        var grades = findByIds(gradeRepository::findAllById, matchesDtos.stream()
+                .map(MatchDto::gradeId), Grade::getId);
+
+        return matchesDtos.stream()
+                .map(dto -> matchConverter.convertFromDto(dto,
+                        requireTeam(teams, dto.homeTeamId()),
+                        requireTeam(teams, dto.awayTeamId()),
+                        resolveOptional(referees, dto.refereeId()),
+                        resolveOptional(grades, dto.gradeId())))
+                .toList();
+    }
+
+    private static <E> E resolveOptional(Map<Long, E> entitiesById, Long id) {
+        return id == null ? null : entitiesById.get(id);
+    }
+
+    private <E> Map<Long, E> findByIds(Function<List<Long>, List<E>> bulkFinder, Stream<Long> ids, Function<E, Long> idGetter) {
+        var distinctIds = ids.filter(Objects::nonNull).distinct().toList();
+        if (distinctIds.isEmpty())
+            return Map.of();
+        return bulkFinder.apply(distinctIds).stream()
+                .collect(Collectors.toMap(idGetter, Function.identity()));
+    }
+
+    private Team requireTeam(Map<Long, Team> teams, Long teamId) {
+        var team = teams.get(teamId);
+        if (team == null)
+            throw new TeamNotFoundException(teamId);
+        return team;
     }
 
     /**
@@ -134,11 +202,25 @@ public class MatchService {
         matchRepository.delete(match);
     }
 
+    /**
+     * Matches the staffer is allowed to (re)assign in a queue, hardest first. Staffing
+     * persists assignments immediately, so a regenerate must be able to reclaim matches
+     * cast by a previous run — hence "assignable" covers previously assigned matches too,
+     * with two exceptions that keep their referee:
+     * <ul>
+     *   <li>central assignments (the "S C" sentinel — see {@link Referee#isCentralSentinel()}),</li>
+     *   <li>finished matches (both scores present) — history must not be rewritten.</li>
+     * </ul>
+     * Unassigned matches are always included, finished or not, matching the old
+     * referee-is-null behavior.
+     */
     public List<Match> getMatchesToAssignInQueue(Short queue) {
         var allFinishedMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         var table = calculatePointsForTeams(allFinishedMatches);
 
-        var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
+        var matchesToAssignInQueue = matchRepository.findAllByQueue(queue).stream()
+                .filter(this::isAssignable)
+                .toList();
 
         // Config values and the team count are constant for the whole request — load them
         // once here instead of per match.
@@ -148,6 +230,16 @@ public class MatchService {
         return matchesToAssignInQueue.stream()
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .toList();
+    }
+
+    private boolean isAssignable(Match match) {
+        if (match.getReferee() == null) {
+            return true;
+        }
+        if (match.getReferee().isCentralSentinel()) {
+            return false;
+        }
+        return match.getHomeScore() == null && match.getAwayScore() == null;
     }
 
     /**

@@ -407,6 +407,10 @@ label.field .req { color: var(--danger); margin-left: 2px; }
   box-shadow: 0 0 0 3px var(--danger-tint);
 }
 textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height: 1.5; resize: vertical; }
+/* Two-part input for split grades, entered as "first / second" (match form). */
+.grade-split { display: flex; align-items: center; gap: 6px; }
+.grade-split .input { min-width: 0; }
+.grade-split__sep { color: var(--ink-3); }
 
 .form-section-label {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
@@ -601,6 +605,17 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
     padding-bottom: 0;
   }
 }
+
+// ——— Pager (list pagination, lives in .panel__foot) ———
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%;
+  font-family: var(--mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+.pager__controls { display: inline-flex; align-items: center; gap: 6px; }
+.pager__page { color: var(--ink-3); }
 
 // ——— Tooltip ———
 .tip { position: relative; }

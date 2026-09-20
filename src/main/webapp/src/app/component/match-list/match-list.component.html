@@ -25,12 +25,12 @@
     <div class="filter-bar__group">
       <span class="filter-bar__label">Result</span>
       <app-seg [options]="resultOptions" [value]="resultFilter()"
-               (valueChange)="resultFilter.set($event)"></app-seg>
+               (valueChange)="setResultFilter($event)"></app-seg>
     </div>
     <div class="filter-bar__group">
       <span class="filter-bar__label">Referee</span>
       <app-seg [options]="refereeOptions" [value]="refereeFilter()"
-               (valueChange)="refereeFilter.set($event)"></app-seg>
+               (valueChange)="setRefereeFilter($event)"></app-seg>
     </div>
     @if (activeFilterCount() > 0) {
       <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">
@@ -72,7 +72,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (match of visibleMatches(); track match.id) {
+        @for (match of pagedMatches(); track match.id) {
           <tr class="match-row" (click)="openDetail(match)">
             <td><app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill></td>
             <td><app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill></td>
@@ -128,6 +128,12 @@
       </tbody>
     </table>
   </div>
+  @if (visibleMatches().length > pageSize) {
+    <div class="panel__foot">
+      <app-paginator [total]="visibleMatches().length" [page]="currentPage()" [pageSize]="pageSize"
+                     (pageChange)="setPage($event)"></app-paginator>
+    </div>
+  }
 </div>
 
 @if (formOpen()) {
