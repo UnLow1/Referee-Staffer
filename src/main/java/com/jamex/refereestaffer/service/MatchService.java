@@ -202,11 +202,25 @@ public class MatchService {
         matchRepository.delete(match);
     }
 
+    /**
+     * Matches the staffer is allowed to (re)assign in a queue, hardest first. Staffing
+     * persists assignments immediately, so a regenerate must be able to reclaim matches
+     * cast by a previous run — hence "assignable" covers previously assigned matches too,
+     * with two exceptions that keep their referee:
+     * <ul>
+     *   <li>central assignments (the "S C" sentinel — see {@link Referee#isCentralSentinel()}),</li>
+     *   <li>finished matches (both scores present) — history must not be rewritten.</li>
+     * </ul>
+     * Unassigned matches are always included, finished or not, matching the old
+     * referee-is-null behavior.
+     */
     public List<Match> getMatchesToAssignInQueue(Short queue) {
         var allFinishedMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         var table = calculatePointsForTeams(allFinishedMatches);
 
-        var matchesToAssignInQueue = matchRepository.findAllByQueueAndRefereeIsNull(queue);
+        var matchesToAssignInQueue = matchRepository.findAllByQueue(queue).stream()
+                .filter(this::isAssignable)
+                .toList();
 
         // Config values and the team count are constant for the whole request — load them
         // once here instead of per match.
@@ -216,6 +230,16 @@ public class MatchService {
         return matchesToAssignInQueue.stream()
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
                 .toList();
+    }
+
+    private boolean isAssignable(Match match) {
+        if (match.getReferee() == null) {
+            return true;
+        }
+        if (match.getReferee().isCentralSentinel()) {
+            return false;
+        }
+        return match.getHomeScore() == null && match.getAwayScore() == null;
     }
 
     /**

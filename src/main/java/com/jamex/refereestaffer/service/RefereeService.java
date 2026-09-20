@@ -40,12 +40,10 @@ public class RefereeService {
 
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
         return refereeRepository.findAllWithNoMatchInQueue(queue).stream()
-                // "S C" = "Sędzia z Centrali" (PZPN central-level referee assigned top-down).
-                // Such matches already have a referee set in the imported data and must not be
-                // reassigned by the staffer. The CSV stores these assignments with firstName="S",
-                // lastName="C" as a sentinel, so we filter them out of the available pool.
+                // Central "S C" assignments already have a referee set in the imported data
+                // and must not be reassigned by the staffer — see Referee#isCentralSentinel.
                 // TODO longer-term: model this as a Referee flag / separate column instead of a name sentinel.
-                .filter(referee -> !(referee.getFirstName().equals("S") && referee.getLastName().equals("C")))
+                .filter(referee -> !referee.isCentralSentinel())
                 .toList();
     }
 
