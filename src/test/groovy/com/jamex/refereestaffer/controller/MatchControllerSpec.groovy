@@ -164,10 +164,8 @@ class MatchControllerSpec extends Specification {
         json.detail == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
     }
 
-    def "should create match and return it as JSON"() {
+    def "should create match through the service and return it as JSON"() {
         given:
-        def match = [] as Match
-        def savedMatch = [] as Match
         def savedDto = MatchDto.builder().id(11l).queue(2 as Short).build()
 
         when:
@@ -177,20 +175,16 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * matchConverter.convertFromDto({ MatchDto dto ->
+        1 * matchService.saveMatch({ MatchDto dto ->
             dto.queue == 2 as Short && dto.homeTeamId == 1l && dto.awayTeamId == 2l
-        }) >> match
-        1 * matchRepository.save(match) >> savedMatch
-        1 * matchConverter.convertFromEntity(savedMatch) >> savedDto
+        }) >> savedDto
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)
         json.id == 11
     }
 
-    def "should update match"() {
+    def "should update match through the service"() {
         given:
-        def match = [] as Match
-        def updatedMatch = [] as Match
         def updatedDto = MatchDto.builder().id(11l).build()
 
         when:
@@ -200,16 +194,11 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * matchConverter.convertFromDto({ MatchDto dto -> dto.id == 11l }) >> match
-        1 * matchRepository.save(match) >> updatedMatch
-        1 * matchConverter.convertFromEntity(updatedMatch) >> updatedDto
+        1 * matchService.saveMatch({ MatchDto dto -> dto.id == 11l }) >> updatedDto
         response.status == 200
     }
 
-    def "should update matches in bulk"() {
-        given:
-        def matches = [[] as Match, [] as Match]
-
+    def "should update matches in bulk through the service"() {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -217,8 +206,7 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * matchConverter.convertFromDtos({ List<MatchDto> dtos -> dtos*.id == [1l, 2l] }) >> matches
-        1 * matchRepository.saveAll(matches)
+        1 * matchService.updateMatches({ List<MatchDto> dtos -> dtos*.id == [1l, 2l] })
         response.status == 200
     }
 

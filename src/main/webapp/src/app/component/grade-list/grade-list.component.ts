@@ -4,7 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
-import {Grade} from '../../model/grade';
+import {Grade, effectiveGradeValue, isSplitGrade} from '../../model/grade';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
 import {TeamService} from '../../service/team.service';
@@ -90,12 +90,20 @@ export class GradeListComponent implements OnInit {
     return team.short ?? team.name?.slice(0, 3).toUpperCase() ?? '';
   }
 
+  effectiveValue(grade: Grade): number {
+    return effectiveGradeValue(grade);
+  }
+
+  isSplit(grade: Grade): boolean {
+    return isSplitGrade(grade);
+  }
+
   gradeAsMeter(grade: Grade): number {
-    return grade.value * 10;
+    return effectiveGradeValue(grade) * 10;
   }
 
   gradeKind(grade: Grade): 'default' | 'warn' {
-    return grade.value >= 7 ? 'default' : 'warn';
+    return effectiveGradeValue(grade) >= 7 ? 'default' : 'warn';
   }
 
   editGrade(row: GradeRow, event: Event): void {

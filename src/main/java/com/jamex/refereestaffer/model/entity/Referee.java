@@ -41,9 +41,6 @@ public class Referee {
     @Transient
     private Map<Team, Short> teamsRefereed;
 
-    @Transient
-    private boolean busy;
-
     /**
      * Highest queue this referee has been assigned to. Set by
      * {@link com.jamex.refereestaffer.service.RefereeService#calculateStats}; null when
@@ -73,7 +70,7 @@ public class Referee {
     }
 
     public Referee(Long id, String firstName, String lastName, String email, List<Match> matches, int experience,
-                   Double averageGrade, Short numberOfMatchesInRound, Map<Team, Short> teamsRefereed, boolean busy) {
+                   Double averageGrade, Short numberOfMatchesInRound, Map<Team, Short> teamsRefereed) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -83,7 +80,6 @@ public class Referee {
         this.averageGrade = averageGrade;
         this.numberOfMatchesInRound = numberOfMatchesInRound;
         this.teamsRefereed = teamsRefereed;
-        this.busy = busy;
     }
 
     public Referee(String firstName, String lastName) {
@@ -100,6 +96,16 @@ public class Referee {
 
     public Long getId() {
         return id;
+    }
+
+    /**
+     * "S C" = "Sędzia z Centrali" (central-level referee assigned top-down by PZPN).
+     * The imported CSV stores such assignments with firstName="S", lastName="C" as a
+     * sentinel meaning "the staffer must not touch this match". Kept as a name-based
+     * sentinel for now — modelling it as an explicit flag is a separate ticket.
+     */
+    public boolean isCentralSentinel() {
+        return "S".equals(firstName) && "C".equals(lastName);
     }
 
     public String getFirstName() {
@@ -144,14 +150,6 @@ public class Referee {
 
     public void setTeamsRefereed(Map<Team, Short> teamsRefereed) {
         this.teamsRefereed = teamsRefereed;
-    }
-
-    public boolean isBusy() {
-        return busy;
-    }
-
-    public void setBusy(boolean busy) {
-        this.busy = busy;
     }
 
     public Short getLastQueue() {
@@ -207,7 +205,6 @@ public class Referee {
         private Double averageGrade;
         private Short numberOfMatchesInRound;
         private Map<Team, Short> teamsRefereed;
-        private boolean busy;
 
         public Builder id(Long id) {
             this.id = id;
@@ -254,14 +251,9 @@ public class Referee {
             return this;
         }
 
-        public Builder busy(boolean busy) {
-            this.busy = busy;
-            return this;
-        }
-
         public Referee build() {
             return new Referee(id, firstName, lastName, email, matches, experience,
-                    averageGrade, numberOfMatchesInRound, teamsRefereed, busy);
+                    averageGrade, numberOfMatchesInRound, teamsRefereed);
         }
     }
 }

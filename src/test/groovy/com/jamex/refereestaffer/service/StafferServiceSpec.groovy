@@ -3,9 +3,12 @@ package com.jamex.refereestaffer.service
 import com.jamex.refereestaffer.model.converter.MatchConverter
 import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.*
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.model.exception.StafferException
+import com.jamex.refereestaffer.model.request.StaffingLockRequest
 import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.MatchRepository
+import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.repository.VacationRepository
 import spock.lang.Specification
 import spock.lang.Subject
@@ -20,12 +23,14 @@ class StafferServiceSpec extends Specification {
     ConfigurationRepository configurationRepository = Mock()
     VacationRepository vacationRepository = Mock()
     MatchRepository matchRepository = Mock()
+    RefereeRepository refereeRepository = Mock()
     MatchConverter matchConverter = Mock()
     MatchService matchService = Mock()
     RefereeService refereeService = Mock()
 
     def setup() {
-        stafferService = new StafferService(configurationRepository, vacationRepository, matchRepository, matchConverter, matchService, refereeService)
+        stafferService = new StafferService(configurationRepository, vacationRepository, matchRepository,
+                refereeRepository, matchConverter, matchService, refereeService)
     }
 
     def "should assign referees to matches in queue"() {
@@ -39,9 +44,21 @@ class StafferServiceSpec extends Specification {
                 .build()
         // After RefereeService.calculateStats, averageGrade is always non-null — the
         // no-grades fallback (DEFAULT_GRADE = 8.3) is applied there. Setting it
-        // explicitly here mirrors the real invariant.
-        def ref1 = [averageGrade: 8.1d, teamsRefereed: Map.of(team1, (short) 1, team2, (short) 1), numberOfMatchesInRound: 7] as Referee
-        def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, experience: 100, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
+        // explicitly here mirrors the real invariant. Ids are needed because the
+        // staffer deduplicates already-assigned referees by id.
+        def ref1 = Referee.builder()
+                .id(1L)
+                .averageGrade(8.1d)
+                .teamsRefereed(Map.of(team1, (short) 1, team2, (short) 1))
+                .numberOfMatchesInRound((short) 7)
+                .build()
+        def ref2 = Referee.builder()
+                .id(2L)
+                .averageGrade(RefereeService.DEFAULT_GRADE)
+                .experience(100)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
         def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def match1 = Match.builder()
                 .home(team1)
@@ -88,12 +105,12 @@ class StafferServiceSpec extends Specification {
 
     def "should not assign referees to matches if referee has vacation"() {
         given:
-        def ref1 = [averageGrade: 8.6d] as Referee
-        def ref2 = [averageGrade: RefereeService.DEFAULT_GRADE, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
-        def ref3 = [averageGrade: RefereeService.DEFAULT_GRADE, teamsRefereed: [:], numberOfMatchesInRound: 0] as Referee
-        def ref4 = [averageGrade: 8.6d] as Referee
-        def ref5 = [averageGrade: 8.6d] as Referee
-        def ref6 = [averageGrade: 8.6d] as Referee
+        def ref1 = Referee.builder().id(1L).averageGrade(8.6d).build()
+        def ref2 = Referee.builder().id(2L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref3 = Referee.builder().id(3L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref4 = Referee.builder().id(4L).averageGrade(8.6d).build()
+        def ref5 = Referee.builder().id(5L).averageGrade(8.6d).build()
+        def ref6 = Referee.builder().id(6L).averageGrade(8.6d).build()
         def referees = [ref1, ref2, ref3, ref4, ref5, ref6]
         def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def matchDate = matchDateTime.toLocalDate()
@@ -251,5 +268,161 @@ class StafferServiceSpec extends Specification {
         1 * matchRepository.findAllByRefereeInAndDateOnDay([referee], matchDateTime) >> [conflictingMatch]
         0 * matchConverter.convertFromEntities(_)
         thrown(StafferException)
+    }
+
+    def "should pin locked pair and auto-staff only the remaining matches"() {
+        given:
+        short queue = 3
+        def team1 = Team.builder().name("team A").build()
+        def team2 = Team.builder().name("team B").build()
+        def lockedReferee = Referee.builder().id(11l).firstName("Locked").lastName("Referee").build()
+        def freeReferee = Referee.builder().id(22l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        // Match.date is nullable = false in the entity, and the staffer queries same-day
+        // matches per candidate, so the fixtures carry a real date.
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def lockedMatch = Match.builder().id(1l).home(team1).away(team2).date(matchDateTime).build()
+        def otherMatch = Match.builder().id(2l).home(team2).away(team1).date(matchDateTime).build()
+        def locks = [new StaffingLockRequest(1l, 11l)]
+
+        when:
+        stafferService.staffReferees(queue, locks)
+
+        then:
+        lockedMatch.referee == lockedReferee
+        otherMatch.referee == freeReferee
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [lockedMatch, otherMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [lockedMatch, otherMatch]
+        1 * refereeRepository.findById(11l) >> Optional.of(lockedReferee)
+        // Pinned state must be flushed before the native availability query runs.
+        1 * matchRepository.flush()
+        // The pool already excludes the locked referee — only the auto-staffed match draws from it.
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [freeReferee]
+        1 * refereeService.calculateStats([freeReferee])
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([freeReferee], matchDateTime) >> []
+        1 * matchConverter.convertFromEntities([lockedMatch, otherMatch])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should clear stale assignment and re-staff the match on regenerate"() {
+        given:
+        short queue = 3
+        def staleReferee = Referee.builder().id(1l).firstName("Stale").lastName("Assignment").build()
+        def newReferee = Referee.builder().id(2l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        // Match.date is nullable = false in the entity, and the staffer queries same-day
+        // matches per candidate, so the fixture carries a real date.
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def match = Match.builder()
+                .id(5l)
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .referee(staleReferee)
+                .date(matchDateTime)
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        match.referee == newReferee
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * matchRepository.flush()
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [newReferee]
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([newReferee], matchDateTime) >> []
+        1 * matchConverter.convertFromEntities([match])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should reject lock referencing a match that is not assignable in the queue"() {
+        given:
+        short queue = 4
+        def assignableMatch = Match.builder().id(1l).build()
+        def locks = [new StaffingLockRequest(99l, 11l)]
+
+        when:
+        stafferService.staffReferees(queue, locks)
+
+        then:
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [assignableMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [assignableMatch]
+        0 * refereeRepository.findById(_)
+        0 * refereeService.getAvailableRefereesForQueue(_)
+        def exception = thrown(StafferException)
+        exception.message == String.format(StafferService.LOCKED_MATCH_NOT_ASSIGNABLE, 99l, queue)
+        assignableMatch.referee == null
+    }
+
+    def "should reject lock pinning a referee who keeps a non-reassignable match in the queue"() {
+        given:
+        short queue = 4
+        def busyReferee = Referee.builder().id(11l).firstName("Busy").lastName("Referee").build()
+        def assignableMatch = Match.builder().id(1l).build()
+        def finishedMatch = Match.builder()
+                .id(2l)
+                .referee(busyReferee)
+                .homeScore((short) 1).awayScore((short) 0)
+                .build()
+        def locks = [new StaffingLockRequest(1l, 11l)]
+
+        when:
+        stafferService.staffReferees(queue, locks)
+
+        then:
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [assignableMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [assignableMatch, finishedMatch]
+        0 * refereeRepository.findById(_)
+        def exception = thrown(StafferException)
+        exception.message == String.format(StafferService.LOCKED_REFEREE_UNAVAILABLE, 11l, queue)
+        assignableMatch.referee == null
+        finishedMatch.referee == busyReferee
+    }
+
+    def "should reject duplicate locks"() {
+        given:
+        short queue = 4
+        def matches = [Match.builder().id(1l).build(), Match.builder().id(2l).build()]
+
+        when:
+        stafferService.staffReferees(queue, locks)
+
+        then:
+        1 * matchService.getMatchesToAssignInQueue(queue) >> matches
+        1 * matchRepository.findAllByQueue(queue) >> matches
+        0 * refereeRepository.findById(_)
+        def exception = thrown(StafferException)
+        exception.message == expectedMessage
+
+        where:
+        locks                                                              | expectedMessage
+        [new StaffingLockRequest(1l, 11l), new StaffingLockRequest(1l, 12l)] | String.format(StafferService.DUPLICATE_LOCKED_MATCH, 1l)
+        [new StaffingLockRequest(1l, 11l), new StaffingLockRequest(2l, 11l)] | String.format(StafferService.DUPLICATE_LOCKED_REFEREE, 11l)
+    }
+
+    def "should throw RefereeNotFoundException when locked referee does not exist"() {
+        given:
+        short queue = 4
+        def match = Match.builder().id(1l).build()
+        def locks = [new StaffingLockRequest(1l, 77l)]
+
+        when:
+        stafferService.staffReferees(queue, locks)
+
+        then:
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * matchRepository.findAllByQueue(queue) >> [match]
+        1 * refereeRepository.findById(77l) >> Optional.empty()
+        0 * refereeService.getAvailableRefereesForQueue(_)
+        thrown(RefereeNotFoundException)
+    }
+
+    private static Map<ConfigName, Double> allOnesConfig() {
+        [
+                (ConfigName.AVERAGE_GRADE_MULTIPLIER)     : 1.0d,
+                (ConfigName.EXPERIENCE_MULTIPLIER)        : 1.0d,
+                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER) : 1.0d,
+                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): 1.0d,
+                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): 1.0d
+        ]
     }
 }

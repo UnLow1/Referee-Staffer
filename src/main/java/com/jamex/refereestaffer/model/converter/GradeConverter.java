@@ -18,7 +18,7 @@ public class GradeConverter implements BaseConverter<Grade, GradeDto> {
 
     @Override
     public GradeDto convertFromEntity(Grade entity) {
-        return new GradeDto(entity.getId(), entity.getValue());
+        return new GradeDto(entity.getId(), entity.getValue(), entity.getSecondValue());
     }
 
     @Override
@@ -30,6 +30,6 @@ public class GradeConverter implements BaseConverter<Grade, GradeDto> {
                     .map(Grade::getMatch)
                     .orElseThrow(() -> new GradeNotFoundException(dto.id()));
         }
-        return new Grade(dto.id(), dto.value(), match);
+        return new Grade(dto.id(), dto.value(), dto.secondValue(), match);
     }
 }
