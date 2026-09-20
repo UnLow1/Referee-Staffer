@@ -156,6 +156,7 @@ public class StafferService {
     }
 
     private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config) {
+        var assignedRefereeIds = new HashSet<Long>();
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
             var vacations = vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(match.getDate());
@@ -165,7 +166,7 @@ public class StafferService {
                     .toList();
 
             var availableReferees = referees.stream()
-                    .filter(ref -> !ref.isBusy())
+                    .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
                     .filter(ref -> !refereesWithVacations.contains(ref))
                     .toList();
 
@@ -182,8 +183,7 @@ public class StafferService {
             var chosenReferee = sortedRefereesPotentialLvlMap.keySet().stream()
                     .findFirst()
                     .orElseThrow(StafferException::new);
-            // TODO separate list for assigned referees id - get rid off field busy
-            chosenReferee.setBusy(true);
+            assignedRefereeIds.add(chosenReferee.getId());
 
             match.setReferee(chosenReferee);
         }
