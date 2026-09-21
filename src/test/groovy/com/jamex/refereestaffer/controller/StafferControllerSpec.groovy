@@ -32,7 +32,7 @@ class StafferControllerSpec extends Specification {
 
     def "should report the assignments a regenerate would overwrite"() {
         when:
-        def response = mockMvc.perform(get("/api/staffer/12/assignments")).andReturn().response
+        def response = mockMvc.perform(get("/api/staffer/12/overwrite-preview")).andReturn().response
 
         then:
         1 * stafferService.getOverwrittenAssignments(12 as short) >> new StaffingOverwriteDto(12 as short, [5l, 7l])

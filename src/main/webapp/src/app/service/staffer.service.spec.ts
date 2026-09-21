@@ -43,11 +43,11 @@ describe('StafferService', () => {
     httpTesting.verify();
   });
 
-  it('getOverwrittenAssignments GETs the queue assignments preview', () => {
+  it('getOverwrittenAssignments GETs the overwrite preview for the queue', () => {
     let result: StaffingOverwrite | undefined;
     service.getOverwrittenAssignments(5).subscribe(overwrite => result = overwrite);
 
-    const req = httpTesting.expectOne(`${stafferUrl}/5/assignments`);
+    const req = httpTesting.expectOne(`${stafferUrl}/5/overwrite-preview`);
     expect(req.request.method).toBe('GET');
     req.flush({queue: 5, assignedMatchIds: [3, 9]});
 
