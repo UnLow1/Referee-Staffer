@@ -180,8 +180,11 @@
     <div class="panel__body empty-state__body">
       @if (loading()) {
         <div class="muted">Loading the cast for queue {{ queue() }}…</div>
+      } @else if (loadFailed()) {
+        <div class="muted">Couldn't load the cast for queue {{ queue() }}.</div>
+        <button type="button" class="btn" (click)="loadStoredCast()">Try again</button>
       } @else if (matches() !== null) {
-        <div class="muted">Queue {{ queue() }} has no matches to staff.</div>
+        <div class="muted">Queue {{ queue() }} has no matches to staff — its assignments, if any, are final.</div>
       } @else {
         <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
       }

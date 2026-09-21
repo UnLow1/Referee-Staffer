@@ -10,6 +10,7 @@ import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +69,9 @@ public class RefereeService {
     }
 
     public void calculateStats(List<Referee> referees) {
-        calculateStats(referees, Set.of());
+        // Collections.emptySet(), not Set.of(): the latter throws on a contains(null) lookup,
+        // which an unsaved match would trigger in the filter below.
+        calculateStats(referees, Collections.emptySet());
     }
 
     /**
@@ -90,9 +93,7 @@ public class RefereeService {
         // session than this query, so Hibernate returns different instances — and Referee
         // compares by identity, which would make every lookup below miss.
         var matchesByRefereeId = matchRepository.findAllByRefereeIn(referees).stream()
-                // A match without an id cannot be one of the ignored ones — and Set.of(),
-                // which the single-argument overload passes, rejects a null lookup outright.
-                .filter(match -> match.getId() == null || !ignoredMatchIds.contains(match.getId()))
+                .filter(match -> !ignoredMatchIds.contains(match.getId()))
                 .collect(Collectors.groupingBy(match -> match.getReferee().getId()));
 
         for (var referee : referees) {

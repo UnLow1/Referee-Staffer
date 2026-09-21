@@ -206,6 +206,44 @@ describe('StafferComponent', () => {
       expect(component.savedAt()).toBeNull();
     });
 
+    it('offers a retry when the cast could not be loaded', () => {
+      stafferService.getStoredCast.mockReturnValue(throwError(() => new Error('boom')));
+
+      component.loadStoredCast();
+
+      expect(component.loadFailed()).toBe(true);
+      expect(component.loading()).toBe(false);
+      expect(component.canExport()).toBe(false);
+
+      stafferService.getStoredCast.mockReturnValue(of(matches));
+      component.loadStoredCast();
+
+      expect(component.loadFailed()).toBe(false);
+      expect(component.matches()).toEqual(matches);
+    });
+
+    it('ignores a failure from a queue the stepper has already left', () => {
+      const abandoned = new Subject<Match[]>();
+      const current = new Subject<Match[]>();
+      stafferService.getStoredCast.mockReturnValueOnce(abandoned).mockReturnValueOnce(current);
+
+      component.incQueue();
+      component.incQueue();
+      expect(component.loading()).toBe(true);
+
+      abandoned.error(new Error('boom'));
+
+      // The newer request still owns the loading state, and the screen must not claim the
+      // queue it is now showing failed.
+      expect(component.loading()).toBe(true);
+      expect(component.loadFailed()).toBe(false);
+
+      current.next(matches);
+      current.complete();
+      expect(component.loading()).toBe(false);
+      expect(component.matches()).toEqual(matches);
+    });
+
     it('ignores a response that lands after the queue moved on', () => {
       const slow = new Subject<Match[]>();
       stafferService.getStoredCast.mockReturnValueOnce(slow);
@@ -255,7 +293,10 @@ describe('StafferComponent', () => {
 
       expect(component.loading()).toBe(false);
       expect(component.matches()).toEqual(matches);
-      expect(component.persisted()).toBe(true);
+      // The stored cast is still on screen, but a failed request leaves the screen in an
+      // unknown state, so it stops claiming to agree with the database until it reloads.
+      expect(component.persisted()).toBe(false);
+      expect(component.loadFailed()).toBe(true);
     });
 
     it('marks the cast as a draft until it is saved', () => {
@@ -521,8 +562,6 @@ describe('StafferComponent', () => {
     });
 
     it('is blocked until a generated cast has been saved', () => {
-      expect(component.canExport()).toBe(false);
-
       component.generate();
       expect(component.canExport()).toBe(false);
 
@@ -530,13 +569,30 @@ describe('StafferComponent', () => {
       expect(component.canExport()).toBe(true);
     });
 
-    it('stays blocked for a stored cast with no assignments', () => {
-      stafferService.getStoredCast.mockReturnValue(of([makeMatch(41), makeMatch(42)]));
+    it('allows exporting a played queue, whose cast is empty but whose sheet is not', () => {
+      // getStoredCast only returns matches the staffer may still re-decide, so a played
+      // queue answers with an empty cast — the assignment sheet still covers the queue.
+      stafferService.getStoredCast.mockReturnValue(of([]));
+
+      component.loadStoredCast();
+      component.exportPdf();
+
+      expect(component.persisted()).toBe(true);
+      expect(component.canExport()).toBe(true);
+      expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(1);
+    });
+
+    it('is blocked while a cast request is in flight', () => {
+      const slow = new Subject<Match[]>();
+      stafferService.getStoredCast.mockReturnValue(slow);
 
       component.loadStoredCast();
 
-      expect(component.persisted()).toBe(true);
       expect(component.canExport()).toBe(false);
+
+      slow.next(matches);
+      slow.complete();
+      expect(component.canExport()).toBe(true);
     });
 
     it('blocks again once the cast is regenerated', () => {
@@ -547,7 +603,9 @@ describe('StafferComponent', () => {
       expect(component.canExport()).toBe(false);
     });
 
-    it('does nothing when called without a saved cast', () => {
+    it('does nothing while an unsaved draft is on screen', () => {
+      component.generate();
+
       component.exportPdf();
 
       expect(matchService.downloadAssignmentsPdf).not.toHaveBeenCalled();

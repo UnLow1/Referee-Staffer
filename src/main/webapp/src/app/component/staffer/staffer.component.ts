@@ -89,10 +89,13 @@ export class StafferComponent implements OnInit {
   readonly savedAt = signal<Date | null>(null);
   /**
    * Whether the cast on screen is the one the backend has stored. True right after a load
-   * or a successful save, false for a generated draft and after any manual swap. The PDF is
-   * rendered from stored assignments, so this is what gates the export.
+   * or a successful save, false for a generated draft, after any manual swap, and while a
+   * request is in flight. The PDF is rendered from stored assignments, so this is what gates
+   * the export.
    */
   readonly persisted = signal(false);
+  /** Set when a cast request failed, so the empty state can offer a retry instead of a lie. */
+  readonly loadFailed = signal(false);
   readonly loading = signal(false);
   readonly exporting = signal(false);
 
@@ -118,11 +121,6 @@ export class StafferComponent implements OnInit {
 
   readonly lockCount = computed(() => this.locks().size);
 
-  /** Matches of the cast on screen that have a referee. */
-  readonly assignedCount = computed(() =>
-    (this.matches() ?? []).filter(m => m.refereeId != null).length
-  );
-
   readonly matchCount = computed(() => this.matches()?.length ?? 0);
 
   readonly hasCast = computed(() => this.matchCount() > 0);
@@ -131,18 +129,22 @@ export class StafferComponent implements OnInit {
    * The sheet is rendered from what the backend has stored, so it may only be exported while
    * the table on screen agrees with the database: a stored cast straight after loading it, or
    * a draft that has been accepted with Save cast. A sheet that silently disagreed with the
-   * table would be worse than no sheet. A queue with nothing assigned yet has nothing to
-   * export either.
+   * table would be worse than no sheet.
+   *
+   * Deliberately not conditioned on the cast being non-empty: the sheet covers the whole
+   * queue, including the matches the staffer may not reassign (central assignments, played
+   * ones), so a played queue has an empty cast here and a complete sheet. A queue with no
+   * matches at all is the one case this lets through, and the backend answers it with a
+   * plain "No matches have been found for queue = N".
    */
-  readonly canExport = computed(() => this.persisted() && this.assignedCount() > 0);
+  readonly canExport = computed(() => this.persisted());
 
   /** Why the Export PDF button is (not) available — shown as its tooltip. */
-  readonly exportHint = computed(() => {
-    if (this.canExport()) return 'Download the saved cast for this queue as a PDF';
-    if (!this.hasCast()) return 'Nothing to export — this queue has no matches to staff';
-    if (this.assignedCount() === 0) return 'Nothing to export — no referee is assigned in this queue yet';
-    return 'Save the cast first — the sheet is rendered from the saved assignments';
-  });
+  readonly exportHint = computed(() =>
+    this.canExport()
+      ? 'Download the stored assignments of this queue as a PDF — the sheet covers every match in it'
+      : 'Save the cast first — the sheet is rendered from the stored assignments'
+  );
 
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
@@ -201,6 +203,11 @@ export class StafferComponent implements OnInit {
   private fetchCast(cast$: Observable<Match[]>, persisted: boolean): void {
     this.loading.set(true);
     this.savedAt.set(null);
+    this.loadFailed.set(false);
+    // In flight the table belongs to no queue in particular, so it agrees with nothing —
+    // this is what keeps Export PDF from firing at the new queue while the old cast is still
+    // on screen.
+    this.persisted.set(false);
     const requestedQueue = this.queue();
     forkJoin({
       matches: cast$,
@@ -209,7 +216,8 @@ export class StafferComponent implements OnInit {
     }).subscribe({
       next: ({matches, standings, referees}) => {
         // Guard against a race: the queue stepper may have moved on while this was in
-        // flight, and a late response must not overwrite the newer queue's cast.
+        // flight, and a late response must not overwrite the newer queue's cast. Returning
+        // here deliberately leaves `loading` alone — the newer request owns it now.
         if (this.queue() !== requestedQueue) {
           return;
         }
@@ -229,7 +237,15 @@ export class StafferComponent implements OnInit {
         this.persisted.set(persisted);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => {
+        // Same race guard: a failure from a queue the user has already left must not clear
+        // the newer request's loading state.
+        if (this.queue() !== requestedQueue) {
+          return;
+        }
+        this.loadFailed.set(true);
+        this.loading.set(false);
+      }
     });
   }
 

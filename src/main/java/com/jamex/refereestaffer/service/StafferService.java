@@ -67,11 +67,19 @@ public class StafferService {
     }
 
     /**
-     * The cast a queue currently has stored, over the same match set a generate covers
-     * ({@link MatchService#getMatchesToAssignInQueue}). The Staffer screen loads it on entry
-     * and on every queue change, so a saved cast can be reviewed and exported without being
-     * regenerated — before RS-105 regenerating was the only way to see one, and it destroyed
-     * what it was meant to show.
+     * The stored assignments of the matches the staffer may (re)decide in a queue — the same
+     * match set a generate covers ({@link MatchService#getMatchesToAssignInQueue}), so that
+     * what the screen loads and what a regenerate would replace are the same rows. The Staffer
+     * screen loads it on entry and on every queue change, so a saved cast can be reviewed and
+     * exported without being regenerated — before RS-105 regenerating was the only way to see
+     * one, and it destroyed what it was meant to show.
+     *
+     * <p>Deliberately <em>not</em> the whole queue: matches kept out by
+     * {@link Match#isReassignable()} (central "S C" assignments, played matches) keep their
+     * referee and are none of the staffer's business. They do appear on the assignment sheet,
+     * which renders the full queue — so a played queue answers with an empty cast here while
+     * its PDF is complete, and the export is gated on the screen being in sync rather than on
+     * the cast being non-empty.
      */
     @Transactional(readOnly = true)
     public Collection<MatchDto> getStoredCast(short queue) {
@@ -112,15 +120,20 @@ public class StafferService {
         // persistence context before anything is assigned to them — a managed entity would be
         // flushed on commit and the draft would not be a draft. Every association the cast
         // reads (home, away, referee) is eagerly fetched, so detaching costs nothing here.
+        // Note the consequence: the queue queries below (lock validation, referee pool) load
+        // the same rows again as fresh managed instances, so the persistence context holds a
+        // second copy of each staffed match carrying its *stored* referee. Nothing touches
+        // those copies — but anything added here that writes must be explicit about which of
+        // the two it means.
         sortedMatchesToStaff.forEach(entityManager::detach);
         applyLocks(queue, sortedMatchesToStaff, locks);
 
         // Referees pinned by a lock leave the pool explicitly. The pool query cannot see it
         // any more: it reads the database, and the pinning only ever happened in memory.
-        var pinnedRefereeIds = sortedMatchesToStaff.stream()
-                .map(Match::getReferee)
-                .filter(Objects::nonNull)
-                .map(Referee::getId)
+        // Read from the request rather than from the matches: what applyLocks leaves assigned
+        // happens to be the same set today, but only because it clears everything first.
+        var pinnedRefereeIds = locks.stream()
+                .map(StaffingLockRequest::refereeId)
                 .collect(Collectors.toSet());
         var referees = refereeService.getAvailableRefereesForQueue(queue).stream()
                 .filter(referee -> !pinnedRefereeIds.contains(referee.getId()))
@@ -258,7 +271,7 @@ public class StafferService {
             return Set.of();
         }
         return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
-                .filter(match -> match.getId() == null || !staffedMatchIds.contains(match.getId()))
+                .filter(match -> !staffedMatchIds.contains(match.getId()))
                 .map(Match::getReferee)
                 .collect(Collectors.toSet());
     }
