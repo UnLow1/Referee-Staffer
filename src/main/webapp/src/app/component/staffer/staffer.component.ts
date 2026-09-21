@@ -18,11 +18,21 @@ import {MeterComponent} from '../common/meter/meter.component';
 import {ChipComponent} from '../common/chip/chip.component';
 import {KpiComponent} from '../common/kpi/kpi.component';
 import {DrawerComponent} from '../common/drawer/drawer.component';
+import {ConfirmDialogComponent} from '../common/confirm-dialog/confirm-dialog.component';
+import {ModalData} from '../../model/modalData';
 
 interface MatchFlags {
   sameCity: boolean;
   isTop: boolean;
   isBot: boolean;
+}
+
+/**
+ * Open state of the overwrite guard. `count` is how many existing assignments the pending
+ * regenerate would clear, or null when the backend check itself failed.
+ */
+interface OverwriteWarning {
+  count: number | null;
 }
 
 interface Candidate {
@@ -43,7 +53,7 @@ interface Candidate {
   changeDetection: ChangeDetectionStrategy.Eager,
   imports: [
     IconComponent, TeamPillComponent, RefAvatarComponent, MeterComponent,
-    ChipComponent, KpiComponent, DrawerComponent
+    ChipComponent, KpiComponent, DrawerComponent, ConfirmDialogComponent
   ]
 })
 export class StafferComponent {
@@ -80,6 +90,10 @@ export class StafferComponent {
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
   readonly exporting = signal(false);
+  /** True while the pre-generate overwrite check is in flight. */
+  readonly checkingOverwrite = signal(false);
+  /** Non-null while the overwrite confirm dialog is open — see requestGenerate(). */
+  readonly overwriteWarning = signal<OverwriteWarning | null>(null);
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
@@ -107,6 +121,23 @@ export class StafferComponent {
    */
   readonly canExport = computed(() => this.matches() !== null && this.savedAt() !== null);
 
+  readonly overwriteGuard = computed<ModalData>(() => {
+    const count = this.overwriteWarning()?.count ?? null;
+    const message = count === null
+      ? `The existing cast for queue ${this.queue()} could not be checked. Generating replaces every`
+        + ' assignment in the queue that is not locked, including any made by hand, and cannot be undone.'
+      : `Generating replaces ${count} existing ${count === 1 ? 'assignment' : 'assignments'}`
+        + ` in queue ${this.queue()}, including any made by hand. Locked rows keep their referee.`
+        + ' This cannot be undone.';
+    return {
+      header: 'Overwrite the current cast?',
+      message,
+      confirmLabel: 'Generate anyway',
+      tone: 'warn',
+      icon: 'alert'
+    };
+  });
+
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
     if (id == null) return null;
@@ -129,6 +160,49 @@ export class StafferComponent {
     this.locks.set(new Map());
   }
 
+  /**
+   * Generate button entry point. Staffing clears every assignable match in the queue and
+   * persists that immediately, so a regenerate silently destroys assignments made by hand
+   * in the match form. Ask first whenever there is something to lose (RS-109); locked rows
+   * survive the run, so they are not counted. Nothing at stake means no dialog.
+   */
+  requestGenerate(): void {
+    if (this.loading() || this.checkingOverwrite()) return;
+    this.checkingOverwrite.set(true);
+    this.stafferService.getOverwrittenAssignments(this.queue()).subscribe({
+      next: overwrite => {
+        this.checkingOverwrite.set(false);
+        const locks = this.locks();
+        const count = overwrite.assignedMatchIds.filter(id => !locks.has(id)).length;
+        if (count === 0) {
+          this.generate();
+          return;
+        }
+        this.overwriteWarning.set({count});
+      },
+      // Fail closed: a queue we could not read is not an empty one, and generating would
+      // overwrite whatever is in it. The interceptor already toasts the failure; the guard
+      // asks instead of guessing.
+      error: () => {
+        this.checkingOverwrite.set(false);
+        this.overwriteWarning.set({count: null});
+      }
+    });
+  }
+
+  confirmOverwrite(): void {
+    this.overwriteWarning.set(null);
+    this.generate();
+  }
+
+  cancelOverwrite(): void {
+    this.overwriteWarning.set(null);
+  }
+
+  /**
+   * Runs the staffing request unconditionally. Callers from the UI go through
+   * requestGenerate() so the overwrite guard is not bypassed.
+   */
   generate(): void {
     this.loading.set(true);
     this.savedAt.set(null);

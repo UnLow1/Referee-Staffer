@@ -23,7 +23,8 @@
       <app-icon name="download" [size]="12"></app-icon>
       {{ exporting() ? 'Exporting…' : 'Export PDF' }}
     </button>
-    <button type="button" class="btn btn--primary" (click)="generate()" [disabled]="loading()">
+    <button type="button" class="btn btn--primary" (click)="requestGenerate()"
+            [disabled]="loading() || checkingOverwrite()">
       <app-icon name="play" [size]="12"></app-icon>
       {{ loading() ? 'Generating…' : 'Generate cast' }}
     </button>
@@ -274,3 +275,9 @@
     </div>
   </app-drawer>
 }
+
+<!-- Overwrite guard (RS-109) — generating clears and persists over every unlocked
+     assignment in the queue, hand-made ones included, so it is confirmed first. -->
+<app-confirm-dialog [open]="overwriteWarning() !== null" [data]="overwriteGuard()"
+                    (confirmed)="confirmOverwrite()" (cancelled)="cancelOverwrite()">
+</app-confirm-dialog>
