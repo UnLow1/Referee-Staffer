@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,16 +39,48 @@ public class RefereeService {
         this.configurationRepository = configurationRepository;
     }
 
+    /**
+     * Referees that may be cast in a queue: everyone except the central "S C" sentinel and
+     * those already tied to a match in the queue the staffer must not touch (a central or a
+     * finished one — see {@link Match#isReassignable()}).
+     *
+     * <p>Deliberately ignores assignments on reassignable matches: since RS-105 generating a
+     * cast is a draft that does not write to the database, so the stored assignments of the
+     * very matches being re-decided are not evidence that a referee is taken. The old
+     * "referee has no match in this queue" query could not express that — it would have made
+     * every referee of a saved cast unavailable for its own regenerate, and left the Staffer
+     * drawer with an empty candidate list on a queue that is already staffed.
+     */
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
-        return refereeRepository.findAllWithNoMatchInQueue(queue).stream()
+        var keptRefereeIds = matchRepository.findAllByQueue(queue).stream()
+                .filter(match -> !match.isReassignable())
+                // A non-reassignable match always has a referee — see Match#isReassignable.
+                .map(match -> match.getReferee().getId())
+                .collect(Collectors.toSet());
+
+        return refereeRepository.findAll().stream()
                 // Central "S C" assignments already have a referee set in the imported data
                 // and must not be reassigned by the staffer — see Referee#isCentralSentinel.
                 // TODO longer-term: model this as a Referee flag / separate column instead of a name sentinel.
                 .filter(referee -> !referee.isCentralSentinel())
+                .filter(referee -> !keptRefereeIds.contains(referee.getId()))
                 .toList();
     }
 
     public void calculateStats(List<Referee> referees) {
+        calculateStats(referees, Set.of());
+    }
+
+    /**
+     * @param ignoredMatchIds matches that must not count towards the stats. The staffer passes
+     *                        the queue it is staffing, so a regenerate scores referees as if
+     *                        that queue were still empty — otherwise the assignment a referee
+     *                        currently holds there would penalise them (matches refereed,
+     *                        teams refereed) for a pairing that is being re-decided anyway.
+     *                        Before RS-105 staffing got this for free: it cleared and flushed
+     *                        the assignments before reading them back.
+     */
+    public void calculateStats(List<Referee> referees, Set<Long> ignoredMatchIds) {
         if (referees.isEmpty()) {
             return;
         }
@@ -57,6 +90,9 @@ public class RefereeService {
         // session than this query, so Hibernate returns different instances — and Referee
         // compares by identity, which would make every lookup below miss.
         var matchesByRefereeId = matchRepository.findAllByRefereeIn(referees).stream()
+                // A match without an id cannot be one of the ignored ones — and Set.of(),
+                // which the single-argument overload passes, rejects a null lookup outright.
+                .filter(match -> match.getId() == null || !ignoredMatchIds.contains(match.getId()))
                 .collect(Collectors.groupingBy(match -> match.getReferee().getId()));
 
         for (var referee : referees) {

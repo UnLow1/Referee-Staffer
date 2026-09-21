@@ -10,6 +10,7 @@ import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.repository.VacationRepository
+import jakarta.persistence.EntityManager
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -27,10 +28,11 @@ class StafferServiceSpec extends Specification {
     MatchConverter matchConverter = Mock()
     MatchService matchService = Mock()
     RefereeService refereeService = Mock()
+    EntityManager entityManager = Mock()
 
     def setup() {
         stafferService = new StafferService(configurationRepository, vacationRepository, matchRepository,
-                refereeRepository, matchConverter, matchService, refereeService)
+                refereeRepository, matchConverter, matchService, refereeService, entityManager)
     }
 
     def "should assign referees to matches in queue"() {
@@ -134,7 +136,7 @@ class StafferServiceSpec extends Specification {
         2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> vacations
         2 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> []
         1 * refereeService.getAvailableRefereesForQueue(_) >> referees
-        1 * refereeService.calculateStats(referees)
+        1 * refereeService.calculateStats(referees, _)
         1 * matchService.getMatchesToAssignInQueue(_) >> matches
         1 * matchConverter.convertFromEntities(matches)
         1 * configurationRepository.findAllAsMap() >> [
@@ -160,7 +162,7 @@ class StafferServiceSpec extends Specification {
 
         then:
         1 * refereeService.getAvailableRefereesForQueue(queue) >> []
-        1 * refereeService.calculateStats([])
+        1 * refereeService.calculateStats([], _)
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
         1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
@@ -192,7 +194,7 @@ class StafferServiceSpec extends Specification {
 
         then:
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [referee]
-        1 * refereeService.calculateStats([referee])
+        1 * refereeService.calculateStats([referee], _)
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
         1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> [vacation]
@@ -226,7 +228,7 @@ class StafferServiceSpec extends Specification {
         then:
         match.referee == ref2
         1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
-        1 * refereeService.calculateStats(referees)
+        1 * refereeService.calculateStats(referees, _)
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
         1 * configurationRepository.findAllAsMap() >> [
                 (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : 1.0d,
@@ -261,7 +263,7 @@ class StafferServiceSpec extends Specification {
 
         then:
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [referee]
-        1 * refereeService.calculateStats([referee])
+        1 * refereeService.calculateStats([referee], _)
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
         1 * configurationRepository.findAllAsMap() >> [:]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
@@ -293,11 +295,11 @@ class StafferServiceSpec extends Specification {
         1 * matchService.getMatchesToAssignInQueue(queue) >> [lockedMatch, otherMatch]
         1 * matchRepository.findAllByQueue(queue) >> [lockedMatch, otherMatch]
         1 * refereeRepository.findById(11l) >> Optional.of(lockedReferee)
-        // Pinned state must be flushed before the native availability query runs.
-        1 * matchRepository.flush()
+        // Nothing is written any more — the pinned pair only ever lives in memory.
+        0 * matchRepository.flush()
         // The pool already excludes the locked referee — only the auto-staffed match draws from it.
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [freeReferee]
-        1 * refereeService.calculateStats([freeReferee])
+        1 * refereeService.calculateStats([freeReferee], _)
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
         1 * matchRepository.findAllByRefereeInAndDateOnDay([freeReferee], matchDateTime) >> []
         1 * matchConverter.convertFromEntities([lockedMatch, otherMatch])
@@ -326,7 +328,7 @@ class StafferServiceSpec extends Specification {
         then:
         match.referee == newReferee
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
-        1 * matchRepository.flush()
+        0 * matchRepository.flush()
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [newReferee]
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
         1 * matchRepository.findAllByRefereeInAndDateOnDay([newReferee], matchDateTime) >> []
@@ -414,6 +416,110 @@ class StafferServiceSpec extends Specification {
         1 * refereeRepository.findById(77l) >> Optional.empty()
         0 * refereeService.getAvailableRefereesForQueue(_)
         thrown(RefereeNotFoundException)
+    }
+
+    def "should detach every staffed match so the generated cast is not persisted"() {
+        given:
+        short queue = 6
+        def referee = Referee.builder().id(1l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def match = Match.builder()
+                .id(5l)
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .date(matchDateTime)
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then: "the match leaves the persistence context before the algorithm assigns anything"
+        1 * entityManager.detach(match)
+        and: "and nothing is pushed to the database"
+        0 * matchRepository.flush()
+        0 * matchRepository.save(_)
+        0 * matchRepository.saveAll(_)
+        and:
+        match.referee == referee
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [referee]
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([referee], matchDateTime) >> []
+        1 * matchConverter.convertFromEntities([match])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should score the pool as if the staffed queue were empty"() {
+        given:
+        short queue = 6
+        def ref1 = Referee.builder().id(1l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref2 = Referee.builder().id(2l).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def match1 = Match.builder().id(5l).home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build()).date(matchDateTime).build()
+        def match2 = Match.builder().id(6l).home(Team.builder().name("away").build())
+                .away(Team.builder().name("home").build()).date(matchDateTime).build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then: "the matches being re-decided are excluded from the referee stats"
+        1 * refereeService.calculateStats([ref1, ref2], [5l, 6l] as Set)
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match1, match2]
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [ref1, ref2]
+        2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        2 * matchRepository.findAllByRefereeInAndDateOnDay([ref1, ref2], matchDateTime) >> []
+        1 * matchConverter.convertFromEntities([match1, match2])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should drop a locked referee from the pool the algorithm draws from"() {
+        given:
+        short queue = 3
+        def lockedReferee = Referee.builder().id(11l).firstName("Locked").lastName("Referee").build()
+        def freeReferee = Referee.builder().id(22l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def lockedMatch = Match.builder().id(1l).home(Team.builder().name("A").build())
+                .away(Team.builder().name("B").build()).date(matchDateTime).build()
+        def otherMatch = Match.builder().id(2l).home(Team.builder().name("B").build())
+                .away(Team.builder().name("A").build()).date(matchDateTime).build()
+
+        when:
+        stafferService.staffReferees(queue, [new StaffingLockRequest(1l, 11l)])
+
+        then: "the pool still lists the pinned referee — the staffer has to exclude them itself"
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [lockedReferee, freeReferee]
+        1 * refereeService.calculateStats([freeReferee], _)
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([freeReferee], matchDateTime) >> []
+        and: "so the pinned referee cannot be handed a second match in the queue"
+        lockedMatch.referee == lockedReferee
+        otherMatch.referee == freeReferee
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [lockedMatch, otherMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [lockedMatch, otherMatch]
+        1 * refereeRepository.findById(11l) >> Optional.of(lockedReferee)
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        1 * matchConverter.convertFromEntities([lockedMatch, otherMatch])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should return the stored cast without touching the assignments"() {
+        given:
+        short queue = 8
+        def storedReferee = Referee.builder().id(1l).firstName("Stored").lastName("Referee").build()
+        def match = Match.builder().id(1l).referee(storedReferee).build()
+        def dtos = [MatchDto.builder().id(1l).refereeId(1l).build()]
+
+        when:
+        def result = stafferService.getStoredCast(queue)
+
+        then:
+        result == dtos
+        match.referee == storedReferee
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * matchConverter.convertFromEntities([match]) >> dtos
+        0 * entityManager.detach(_)
+        0 * refereeService.getAvailableRefereesForQueue(_)
+        0 * matchRepository.flush()
     }
 
     private static Map<ConfigName, Double> allOnesConfig() {

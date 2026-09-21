@@ -20,8 +20,9 @@ import java.time.LocalDateTime
 /**
  * Integration test for the staffing flow that exercises the real Spring context against H2.
  * The unit tests in {@link com.jamex.refereestaffer.service.StafferServiceSpec} cover the
- * algorithm with mocks — this one's job is to prove that referee assignment actually
- * persists to the database, which is the part dependency-injected mocks can never verify.
+ * algorithm with mocks — this one's job is to prove what mocks can never prove: that
+ * generating a cast leaves the database alone (RS-105), and that a cast already stored there
+ * neither blocks a regenerate nor gets silently overwritten by one.
  *
  * <p>{@code @Isolated} because the in-memory H2 is shared JVM-wide with the other
  * integration specs and setup() wipes the domain tables; {@code SAME_THREAD} on top
@@ -48,7 +49,7 @@ class StafferIntegrationSpec extends Specification {
         teamRepository.deleteAll()
     }
 
-    def "should persist referee assignment to database after staffing"() {
+    def "should return the generated cast without writing it to the database"() {
         given:
         def team1 = teamRepository.save(new Team("Team1", "City1"))
         def team2 = teamRepository.save(new Team("Team2", "City2"))
@@ -58,19 +59,17 @@ class StafferIntegrationSpec extends Specification {
                 new Match(queue, team1, team2, LocalDateTime.now().plusDays(1), null, null, null))
 
         when:
-        stafferService.staffReferees(queue)
+        def result = stafferService.staffReferees(queue)
 
-        then:
-        // Re-read from the DB rather than trusting the in-memory entity. Without
-        // @Transactional on staffReferees the entity returned by the match query becomes
-        // detached after the repository call commits, and the subsequent setReferee
-        // mutation never gets flushed. Re-fetching forces us to read the persisted state.
-        def persisted = matchRepository.findById(matchToStaff.id).orElseThrow()
-        persisted.referee != null
-        persisted.referee.id == referee.id
+        then: "the draft carries the assignment"
+        result*.id == [matchToStaff.id]
+        result*.refereeId == [referee.id]
+
+        and: "but the database is untouched — only Save cast persists a cast"
+        matchRepository.findById(matchToStaff.id).orElseThrow().referee == null
     }
 
-    def "should preserve locked assignment and re-staff the rest on regenerate"() {
+    def "should not overwrite a saved cast when regenerating"() {
         given:
         def team1 = teamRepository.save(new Team("Team1", "City1"))
         def team2 = teamRepository.save(new Team("Team2", "City2"))
@@ -79,20 +78,42 @@ class StafferIntegrationSpec extends Specification {
         def strongReferee = refereeRepository.save(new Referee("Strong", "Referee", "strong@referees.com", 10))
         def weakReferee = refereeRepository.save(new Referee("Weak", "Referee", "weak@referees.com", 0))
         short queue = 1
-        def match1 = matchRepository.save(
-                new Match(queue, team1, team2, LocalDateTime.now().plusDays(1), null, null, null))
-        def match2 = matchRepository.save(
-                new Match(queue, team3, team4, LocalDateTime.now().plusDays(1), null, null, null))
+        def matchDate = LocalDateTime.now().plusDays(1)
+        and: "a cast saved by hand, the way Save cast persists one"
+        def savedMatch1 = matchRepository.save(new Match(queue, team1, team2, matchDate, weakReferee, null, null))
+        def savedMatch2 = matchRepository.save(new Match(queue, team3, team4, matchDate, strongReferee, null, null))
 
-        and: "a first staffing run has already persisted a full cast"
-        stafferService.staffReferees(queue)
+        when:
+        def result = stafferService.staffReferees(queue)
 
-        when: "the cast is regenerated with match1 pinned to the weak referee"
-        stafferService.staffReferees(queue, [new StaffingLockRequest(match1.id, weakReferee.id)])
+        then: "the saved cast survives the regenerate untouched"
+        matchRepository.findById(savedMatch1.id).orElseThrow().referee.id == weakReferee.id
+        matchRepository.findById(savedMatch2.id).orElseThrow().referee.id == strongReferee.id
 
-        then: "the pinned pair survives and the other match is re-staffed from the remaining pool"
-        matchRepository.findById(match1.id).orElseThrow().referee.id == weakReferee.id
-        matchRepository.findById(match2.id).orElseThrow().referee.id == strongReferee.id
+        and: "and both referees were still available to the draft — a saved cast is not a booking"
+        result*.refereeId as Set == [weakReferee.id, strongReferee.id] as Set
+    }
+
+    def "should preserve locked assignment and re-staff the rest in the returned draft"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        def strongReferee = refereeRepository.save(new Referee("Strong", "Referee", "strong@referees.com", 10))
+        def weakReferee = refereeRepository.save(new Referee("Weak", "Referee", "weak@referees.com", 0))
+        short queue = 1
+        def matchDate = LocalDateTime.now().plusDays(1)
+        def match1 = matchRepository.save(new Match(queue, team1, team2, matchDate, null, null, null))
+        def match2 = matchRepository.save(new Match(queue, team3, team4, matchDate, null, null, null))
+
+        when: "the cast is generated with match1 pinned to the weak referee"
+        def result = stafferService.staffReferees(queue, [new StaffingLockRequest(match1.id, weakReferee.id)])
+
+        then: "the pinned pair survives and the other match is staffed from the remaining pool"
+        def byMatchId = result.collectEntries { [(it.id()): it.refereeId()] }
+        byMatchId[match1.id] == weakReferee.id
+        byMatchId[match2.id] == strongReferee.id
     }
 
     def "should not touch central assignments when regenerating"() {
@@ -112,10 +133,33 @@ class StafferIntegrationSpec extends Specification {
         when:
         def result = stafferService.staffReferees(queue)
 
-        then: "the central assignment is kept and excluded from the returned cast"
+        then: "the central assignment is kept in the database and excluded from the cast"
         matchRepository.findById(centralMatch.id).orElseThrow().referee.id == centralReferee.id
-        matchRepository.findById(openMatch.id).orElseThrow().referee.id == realReferee.id
         result*.id == [openMatch.id]
+        result*.refereeId == [realReferee.id]
+    }
+
+    def "should not offer a referee kept by a finished match in the same queue"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        // Higher experience would win on potential if the finished match did not keep them.
+        def keptReferee = refereeRepository.save(new Referee("Kept", "Referee", "kept@ref.com", 99))
+        def freeReferee = refereeRepository.save(new Referee("Free", "Referee", "free@ref.com", 1))
+        short queue = 1
+        matchRepository.save(new Match(queue, team3, team4, LocalDateTime.now().minusDays(1), keptReferee,
+                (short) 2, (short) 1))
+        def matchToStaff = matchRepository.save(
+                new Match(queue, team1, team2, LocalDateTime.now().plusDays(1), null, null, null))
+
+        when:
+        def result = stafferService.staffReferees(queue)
+
+        then:
+        result*.id == [matchToStaff.id]
+        result*.refereeId == [freeReferee.id]
     }
 
     def "should skip referee who already has a match on the same day in another queue"() {
@@ -135,12 +179,11 @@ class StafferIntegrationSpec extends Specification {
         def matchToStaff = matchRepository.save(new Match(queue, team1, team2, matchDay, null, null, null))
 
         when:
-        stafferService.staffReferees(queue)
+        def result = stafferService.staffReferees(queue)
 
         then:
-        def persisted = matchRepository.findById(matchToStaff.id).orElseThrow()
-        persisted.referee != null
-        persisted.referee.id == freeReferee.id
+        result*.id == [matchToStaff.id]
+        result*.refereeId == [freeReferee.id]
     }
 
     def "should assign referee whose other matches are on adjacent days"() {
@@ -159,11 +202,35 @@ class StafferIntegrationSpec extends Specification {
         def matchToStaff = matchRepository.save(new Match(queue, team1, team2, matchDay, null, null, null))
 
         when:
-        stafferService.staffReferees(queue)
+        def result = stafferService.staffReferees(queue)
 
         then:
-        def persisted = matchRepository.findById(matchToStaff.id).orElseThrow()
-        persisted.referee != null
-        persisted.referee.id == referee.id
+        result*.id == [matchToStaff.id]
+        result*.refereeId == [referee.id]
+    }
+
+    def "should return the stored cast without regenerating it"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        def savedReferee = refereeRepository.save(new Referee("Saved", "Referee", "saved@ref.com", 5))
+        def centralReferee = refereeRepository.save(new Referee("S", "C"))
+        short queue = 3
+        def matchDate = LocalDateTime.now().plusDays(1)
+        def savedMatch = matchRepository.save(new Match(queue, team1, team2, matchDate, savedReferee, null, null))
+        matchRepository.save(new Match(queue, team3, team4, matchDate, centralReferee, null, null))
+        matchRepository.save(new Match((short) 4, team1, team3, matchDate, null, null, null))
+
+        when:
+        def result = stafferService.getStoredCast(queue)
+
+        then: "the stored assignment comes back as-is, central matches stay out of the cast"
+        result*.id == [savedMatch.id]
+        result*.refereeId == [savedReferee.id]
+
+        and: "and reading a cast changes nothing"
+        matchRepository.findById(savedMatch.id).orElseThrow().referee.id == savedReferee.id
     }
 }
