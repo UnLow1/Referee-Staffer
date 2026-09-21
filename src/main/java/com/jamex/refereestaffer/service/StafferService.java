@@ -14,6 +14,7 @@ import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
 import com.jamex.refereestaffer.repository.VacationRepository;
+import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -49,10 +50,12 @@ public class StafferService {
     private final MatchConverter matchConverter;
     private final MatchService matchService;
     private final RefereeService refereeService;
+    private final EntityManager entityManager;
 
     public StafferService(ConfigurationRepository configurationRepository, VacationRepository vacationRepository,
                           MatchRepository matchRepository, RefereeRepository refereeRepository,
-                          MatchConverter matchConverter, MatchService matchService, RefereeService refereeService) {
+                          MatchConverter matchConverter, MatchService matchService, RefereeService refereeService,
+                          EntityManager entityManager) {
         this.configurationRepository = configurationRepository;
         this.vacationRepository = vacationRepository;
         this.matchRepository = matchRepository;
@@ -60,36 +63,87 @@ public class StafferService {
         this.matchConverter = matchConverter;
         this.matchService = matchService;
         this.refereeService = refereeService;
+        this.entityManager = entityManager;
     }
 
-    // @Transactional must sit on this overload too: the delegation below is a self-invocation,
-    // so it bypasses the Spring proxy and would otherwise run without a transaction (entities
-    // detached, assignments never flushed — the exact bug StafferIntegrationSpec guards against).
-    @Transactional
+    /**
+     * The stored assignments of the matches the staffer may (re)decide in a queue — the same
+     * match set a generate covers ({@link MatchService#getMatchesToAssignInQueue}), so that
+     * what the screen loads and what a regenerate would replace are the same rows. The Staffer
+     * screen loads it on entry and on every queue change, so a saved cast can be reviewed and
+     * exported without being regenerated — before RS-105 regenerating was the only way to see
+     * one, and it destroyed what it was meant to show.
+     *
+     * <p>Deliberately <em>not</em> the whole queue: matches kept out by
+     * {@link Match#isReassignable()} (central "S C" assignments, played matches) keep their
+     * referee and are none of the staffer's business. They do appear on the assignment sheet,
+     * which renders the full queue — so a played queue answers with an empty cast here while
+     * its PDF is complete, and the export is gated on the screen being in sync rather than on
+     * the cast being non-empty.
+     */
+    @Transactional(readOnly = true)
+    public Collection<MatchDto> getStoredCast(short queue) {
+        return matchConverter.convertFromEntities(matchService.getMatchesToAssignInQueue(queue));
+    }
+
+    // @Transactional(readOnly = true) must sit on this overload too: the delegation below is a
+    // self-invocation, so it bypasses the Spring proxy and would otherwise run outside the
+    // read-only transaction the draft relies on.
+    @Transactional(readOnly = true)
     public Collection<MatchDto> staffReferees(short queue) {
         return staffReferees(queue, List.of());
     }
 
     /**
-     * (Re)generates the cast for a queue. Locked pairs pin a referee to a match up front:
-     * the match keeps that exact referee and the referee is unavailable for the rest of the
-     * cast. Every other assignable match (see {@link MatchService#getMatchesToAssignInQueue})
+     * (Re)generates the cast for a queue and returns it as a <strong>draft</strong>: nothing
+     * is written to the database, so the caller can review, swap and discard it freely.
+     * Persisting is the explicit job of "Save cast" (PUT /api/matches). Before RS-105 this
+     * method mutated managed entities inside a read-write transaction, which meant clicking
+     * "Generate cast" already overwrote a saved cast — silently and irreversibly.
+     *
+     * <p>Two things keep the draft a draft: the transaction is read-only (Hibernate runs the
+     * session with {@code FlushMode.MANUAL}, so dirty checking never writes), and every match
+     * the algorithm touches is detached from the persistence context before it is mutated.
+     *
+     * <p>Locked pairs pin a referee to a match up front: the match keeps that exact referee
+     * and the referee is unavailable for the rest of the cast. Every other assignable match
      * is staffed from scratch, so a regenerate reshuffles previous auto-assignments instead
      * of silently keeping them.
      *
      * <p>Locks deliberately bypass the vacation filter — a pinned pair is an explicit user
      * decision, and rejecting it here would make the UI's lock state impossible to restore.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Collection<MatchDto> staffReferees(short queue, List<StaffingLockRequest> locks) {
         var sortedMatchesToStaff = matchService.getMatchesToAssignInQueue(queue);
+        // The algorithm uses Match.referee as its working state, so the matches leave the
+        // persistence context before anything is assigned to them — a managed entity would be
+        // flushed on commit and the draft would not be a draft. Every association the cast
+        // reads (home, away, referee) is eagerly fetched, so detaching costs nothing here.
+        // Note the consequence: the queue queries below (lock validation, referee pool) load
+        // the same rows again as fresh managed instances, so the persistence context holds a
+        // second copy of each staffed match carrying its *stored* referee. Nothing touches
+        // those copies — but anything added here that writes must be explicit about which of
+        // the two it means.
+        sortedMatchesToStaff.forEach(entityManager::detach);
         applyLocks(queue, sortedMatchesToStaff, locks);
-        // Push the cleared/pinned assignments to the DB before querying availability —
-        // findAllWithNoMatchInQueue is a native query, so it only sees flushed state.
-        matchRepository.flush();
 
-        var referees = refereeService.getAvailableRefereesForQueue(queue);
-        refereeService.calculateStats(referees);
+        // Referees pinned by a lock leave the pool explicitly. The pool query cannot see it
+        // any more: it reads the database, and the pinning only ever happened in memory.
+        // Read from the request rather than from the matches: what applyLocks leaves assigned
+        // happens to be the same set today, but only because it clears everything first.
+        var pinnedRefereeIds = locks.stream()
+                .map(StaffingLockRequest::refereeId)
+                .collect(Collectors.toSet());
+        var referees = refereeService.getAvailableRefereesForQueue(queue).stream()
+                .filter(referee -> !pinnedRefereeIds.contains(referee.getId()))
+                .toList();
+        // Everything downstream must look at the queue as if it were still empty: the stored
+        // assignments of these very matches are what the run is re-deciding, so they may
+        // neither penalise a referee (matches/teams already refereed) nor book them for the
+        // day. Before RS-105 staffing got that for free by clearing and flushing first.
+        var staffedMatchIds = matchIds(sortedMatchesToStaff);
+        refereeService.calculateStats(referees, staffedMatchIds);
         // Load all config values up front instead of hitting the DB per (referee × match) — see
         // countRefereePotentialLvl. With ~15 referees × ~8 matches that's 600 → 1 query.
         var config = configurationRepository.findAllAsMap();
@@ -97,9 +151,16 @@ public class StafferService {
         var matchesToAutoStaff = sortedMatchesToStaff.stream()
                 .filter(match -> match.getReferee() == null)
                 .toList();
-        assignRefereesToMatches(referees, matchesToAutoStaff, config);
+        assignRefereesToMatches(referees, matchesToAutoStaff, config, staffedMatchIds);
 
         return matchConverter.convertFromEntities(sortedMatchesToStaff);
+    }
+
+    private static Set<Long> matchIds(List<Match> matches) {
+        return matches.stream()
+                .map(Match::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -157,7 +218,8 @@ public class StafferService {
         }
     }
 
-    private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config) {
+    private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config,
+                                         Set<Long> staffedMatchIds) {
         var assignedRefereeIds = new HashSet<Long>();
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
@@ -167,7 +229,7 @@ public class StafferService {
                     .map(Vacation::getReferee)
                     .toList();
 
-            var refereesWithMatchOnSameDay = findRefereesWithMatchOnDay(referees, match.getDate());
+            var refereesWithMatchOnSameDay = findRefereesWithMatchOnDay(referees, match.getDate(), staffedMatchIds);
 
             var availableReferees = referees.stream()
                     .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
@@ -196,15 +258,20 @@ public class StafferService {
 
     /**
      * Referees that already officiate another match on the same calendar day. The queue-level
-     * uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a match from a
+     * uniqueness check (getAvailableRefereesForQueue) does not cover this: a match from a
      * different queue can be rescheduled onto this day, and one referee must never have two
      * matches on one day (RS-57).
+     *
+     * <p>The matches this run is staffing are skipped: their stored assignments are being
+     * re-decided right now, so counting them would let a saved cast block its own regenerate.
      */
-    private Set<Referee> findRefereesWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
+    private Set<Referee> findRefereesWithMatchOnDay(List<Referee> referees, LocalDateTime date,
+                                                    Set<Long> staffedMatchIds) {
         if (referees.isEmpty()) {
             return Set.of();
         }
         return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
+                .filter(match -> !staffedMatchIds.contains(match.getId()))
                 .map(Match::getReferee)
                 .collect(Collectors.toSet());
     }

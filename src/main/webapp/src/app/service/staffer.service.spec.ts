@@ -42,6 +42,17 @@ describe('StafferService', () => {
     httpTesting.verify();
   });
 
+  it('getStoredCast GETs the queue URL', () => {
+    let result: Match[] | undefined;
+    service.getStoredCast(5).subscribe(matches => result = matches);
+
+    const req = httpTesting.expectOne(`${stafferUrl}/5`);
+    expect(req.request.method).toBe('GET');
+    req.flush([match]);
+
+    expect(result).toEqual([match]);
+  });
+
   it('staffReferees POSTs to the queue URL with no locks by default', () => {
     let result: Match[] | undefined;
     service.staffReferees(5).subscribe(matches => result = matches);

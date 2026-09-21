@@ -25,17 +25,57 @@ class RefereeServiceSpec extends Specification {
         refereeService = new RefereeService(refereeRepository, matchRepository, configurationRepository)
     }
 
-    def "should return available referees"() {
+    def "should keep referees of reassignable matches in the pool and drop the ones with a kept assignment"() {
         given:
         Short queue = 4
-        def availableReferees = createReferees()
+        def (autoAssigned, free) = createReferees()
+        def finishedReferee = Referee.builder().id(3L).firstName("Finished").lastName("Referee").build()
+        def centralReferee = Referee.builder().id(4L).firstName("S").lastName("C").build()
+        def team1 = Team.builder().name("team1").build()
+        def team2 = Team.builder().name("team2").build()
+        def queueMatches = [
+                // open match — nobody is blocked by it
+                Match.builder().id(1L).home(team1).away(team2).build(),
+                // previously staffed, still reassignable: its referee must stay available,
+                // because a regenerate re-decides exactly this assignment
+                Match.builder().id(2L).home(team2).away(team1).referee(autoAssigned).build(),
+                // finished — its referee is locked into this queue for good
+                Match.builder().id(3L).home(team1).away(team2).referee(finishedReferee)
+                        .homeScore((short) 1).awayScore((short) 0).build(),
+                // central assignment — likewise untouchable
+                Match.builder().id(4L).home(team2).away(team1).referee(centralReferee).build()
+        ]
 
         when:
         def result = refereeService.getAvailableRefereesForQueue(queue)
 
         then:
-        1 * refereeRepository.findAllWithNoMatchInQueue(queue) >> availableReferees
-        result.size() == 2
+        1 * matchRepository.findAllByQueue(queue) >> queueMatches
+        1 * refereeRepository.findAll() >> [autoAssigned, free, finishedReferee, centralReferee]
+        result == [autoAssigned, free]
+    }
+
+    def "should ignore the staffed queue's own matches when calculating stats"() {
+        given:
+        def referee = Referee.builder().id(1L).firstName("John").lastName("Smith").build()
+        def team1 = Team.builder().name("team1").build()
+        def team2 = Team.builder().name("team2").build()
+        def team3 = Team.builder().name("team3").build()
+        // The match being re-decided must not count: neither as a refereed match nor as
+        // familiarity with team1/team2, otherwise a regenerate penalises the referee for
+        // the very assignment it is about to reshuffle.
+        def matchBeingStaffed = Match.builder().id(10L).home(team1).away(team2).referee(referee).build()
+        def otherMatch = Match.builder().id(11L).home(team1).away(team3).referee(referee).build()
+
+        when:
+        refereeService.calculateStats([referee], [10L] as Set)
+
+        then:
+        1 * matchRepository.findAllByRefereeIn([referee]) >> [matchBeingStaffed, otherMatch]
+        referee.numberOfMatchesInRound == (short) 1
+        referee.teamsRefereed.get(team1) == 1
+        referee.teamsRefereed.get(team3) == 1
+        !referee.teamsRefereed.containsKey(team2)
     }
 
     def "should fall back to default grade when referee has no matches"() {

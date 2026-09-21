@@ -94,6 +94,28 @@ public class Match {
         return referee;
     }
 
+    /**
+     * Whether the staffer may (re)decide this match's referee. Unassigned matches always
+     * qualify; an assigned one keeps its referee when it is a central assignment (the
+     * "S C" sentinel — see {@link Referee#isCentralSentinel()}) or already carries a score,
+     * because history must not be rewritten. Note that a single entered score is enough to
+     * pin it — scores only ever show up once a match has been played.
+     *
+     * <p>Lives on the entity so both sides of staffing agree on it: the match set a cast is
+     * built from ({@link com.jamex.refereestaffer.service.MatchService#getMatchesToAssignInQueue})
+     * and the referee pool it draws from
+     * ({@link com.jamex.refereestaffer.service.RefereeService#getAvailableRefereesForQueue}).
+     */
+    public boolean isReassignable() {
+        if (referee == null) {
+            return true;
+        }
+        if (referee.isCentralSentinel()) {
+            return false;
+        }
+        return homeScore == null && awayScore == null;
+    }
+
     public void setReferee(Referee referee) {
         this.referee = referee;
     }
