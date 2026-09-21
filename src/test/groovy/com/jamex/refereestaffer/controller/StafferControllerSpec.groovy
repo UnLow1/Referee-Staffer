@@ -62,15 +62,22 @@ class StafferControllerSpec extends Specification {
         response.status == 200
     }
 
-    // Staffing persists referee assignments, so the endpoint must not be reachable via a
-    // safe method — a GET-triggering crawler or browser prefetch would mutate the DB.
-    def "should reject GET with method not allowed"() {
+    // Since RS-105 a GET is the read-only counterpart of the POST: it returns the cast the
+    // queue has stored and must never run the algorithm.
+    def "should return the stored cast for a queue on GET"() {
+        given:
+        def storedCast = [MatchDto.builder().id(1l).refereeId(4l).build()]
+
         when:
         def response = mockMvc.perform(get("/api/staffer/7")).andReturn().response
 
         then:
+        1 * stafferService.getStoredCast(7 as short) >> storedCast
         0 * stafferService.staffReferees(_, _)
-        response.status == 405
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json*.id == [1]
+        json*.refereeId == [4]
     }
 
     def "should respond 409 with problem detail when there are not enough referees"() {
