@@ -17,9 +17,7 @@
       Clear locks
     </button>
     <button type="button" class="btn" (click)="exportPdf()" [disabled]="!canExport() || exporting()"
-            [title]="canExport()
-              ? 'Download the saved cast for this queue as a PDF'
-              : 'Save the cast first — the sheet is rendered from the saved assignments'">
+            [title]="exportHint()">
       <app-icon name="download" [size]="12"></app-icon>
       {{ exporting() ? 'Exporting…' : 'Export PDF' }}
     </button>
@@ -61,17 +59,17 @@
   </div>
 }
 
-<!-- KPI strip — shows once a cast has been generated -->
-@if (matches(); as ms) {
+<!-- KPI strip — shows once there is a cast on screen, stored or generated -->
+@if (hasCast()) {
   <div class="panel panel--kpi-strip">
     <div class="kpi-strip-grid">
-      <app-kpi label="Matches in queue" [value]="ms.length"></app-kpi>
+      <app-kpi label="Matches in queue" [value]="matchCount()"></app-kpi>
       <app-kpi label="Available referees" [value]="referees().length"
-               [delta]="ms.length > referees().length ? 'Below match count' : 'Pool covers queue'"></app-kpi>
+               [delta]="matchCount() > referees().length ? 'Below match count' : 'Pool covers queue'"></app-kpi>
       <app-kpi label="Total difficulty" [value]="totalDifficulty()"
-               [delta]="'Σ across ' + ms.length + ' matches'"></app-kpi>
+               [delta]="'Σ across ' + matchCount() + ' matches'"></app-kpi>
       <app-kpi label="Locked assignments"
-               [value]="lockCount() + '/' + ms.length"
+               [value]="lockCount() + '/' + matchCount()"
                [delta]="lockCount() > 0 ? 'Preserved on regenerate' : 'All flexible'"></app-kpi>
     </div>
   </div>
@@ -163,8 +161,10 @@
       <div class="muted">
         @if (savedAt(); as t) {
           <span class="saved-at"><app-icon name="check" [size]="12"></app-icon>Saved {{ formatTime(t) }}</span>
+        } @else if (persisted()) {
+          <span class="saved-at"><app-icon name="check" [size]="12"></app-icon>Stored cast for queue {{ queue() }}</span>
         } @else {
-          Unsaved changes will be lost on page refresh
+          Draft — nothing is stored until you click Save cast
         }
       </div>
       <div class="foot-actions">
@@ -175,10 +175,16 @@
     </div>
   </div>
 } @else {
-  <!-- Empty state — pre-generation -->
+  <!-- Empty state — nothing to show for this queue (yet) -->
   <div class="panel empty-state">
     <div class="panel__body empty-state__body">
-      <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
+      @if (loading()) {
+        <div class="muted">Loading the cast for queue {{ queue() }}…</div>
+      } @else if (matches() !== null) {
+        <div class="muted">Queue {{ queue() }} has no matches to staff.</div>
+      } @else {
+        <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
+      }
     </div>
   </div>
 }

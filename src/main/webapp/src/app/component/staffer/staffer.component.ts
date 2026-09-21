@@ -1,5 +1,5 @@
-import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
-import {forkJoin} from 'rxjs';
+import {Component, computed, inject, signal, ChangeDetectionStrategy, OnInit} from '@angular/core';
+import {forkJoin, Observable} from 'rxjs';
 import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -32,9 +32,14 @@ interface Candidate {
 }
 
 /**
- * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
- * swap individual rows, then save. Locked pairs are sent with the staffing request,
- * so a regenerate preserves them server-side and reshuffles only the rest.
+ * Staffer — the auto-assignment workspace. Pick a queue, review what is stored for it,
+ * generate a new cast, lock or swap individual rows, then save. Locked pairs are sent with
+ * the staffing request, so a regenerate preserves them server-side and reshuffles the rest.
+ *
+ * <p>Since RS-105 generating is a draft: the backend computes the cast without writing it,
+ * so nothing reaches the database until Save cast. The screen therefore has two sources for
+ * the table — the stored cast (loaded on entry and on every queue change) and a generated
+ * draft — and `persisted` says which one is on screen.
  */
 @Component({
   selector: 'app-staffer',
@@ -46,7 +51,7 @@ interface Candidate {
     ChipComponent, KpiComponent, DrawerComponent
   ]
 })
-export class StafferComponent {
+export class StafferComponent implements OnInit {
   private readonly stafferService = inject(StafferService);
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
@@ -77,12 +82,26 @@ export class StafferComponent {
   readonly drawerMatchId = signal<number | null>(null);
   /** Lazy-loaded breakdown for the currently-open drawer. Null while pending or absent. */
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
+  /**
+   * Set when this screen saved the cast, so the footer can say when. A stored cast loaded
+   * from the backend leaves it null — nothing records when it was saved.
+   */
   readonly savedAt = signal<Date | null>(null);
+  /**
+   * Whether the cast on screen is the one the backend has stored. True right after a load
+   * or a successful save, false for a generated draft and after any manual swap. The PDF is
+   * rendered from stored assignments, so this is what gates the export.
+   */
+  readonly persisted = signal(false);
   readonly loading = signal(false);
   readonly exporting = signal(false);
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
+  }
+
+  ngOnInit(): void {
+    this.loadStoredCast();
   }
 
   // ——— Derived state ———
@@ -99,13 +118,31 @@ export class StafferComponent {
 
   readonly lockCount = computed(() => this.locks().size);
 
+  /** Matches of the cast on screen that have a referee. */
+  readonly assignedCount = computed(() =>
+    (this.matches() ?? []).filter(m => m.refereeId != null).length
+  );
+
+  readonly matchCount = computed(() => this.matches()?.length ?? 0);
+
+  readonly hasCast = computed(() => this.matchCount() > 0);
+
   /**
-   * The sheet is rendered from what the backend has stored, so it may only be exported
-   * once the cast on screen has been accepted with Save cast. Generating alone is not
-   * enough: manual swaps live in the component until saved, and a sheet that silently
-   * disagreed with the table on screen would be worse than no sheet.
+   * The sheet is rendered from what the backend has stored, so it may only be exported while
+   * the table on screen agrees with the database: a stored cast straight after loading it, or
+   * a draft that has been accepted with Save cast. A sheet that silently disagreed with the
+   * table would be worse than no sheet. A queue with nothing assigned yet has nothing to
+   * export either.
    */
-  readonly canExport = computed(() => this.matches() !== null && this.savedAt() !== null);
+  readonly canExport = computed(() => this.persisted() && this.assignedCount() > 0);
+
+  /** Why the Export PDF button is (not) available — shown as its tooltip. */
+  readonly exportHint = computed(() => {
+    if (this.canExport()) return 'Download the saved cast for this queue as a PDF';
+    if (!this.hasCast()) return 'Nothing to export — this queue has no matches to staff';
+    if (this.assignedCount() === 0) return 'Nothing to export — no referee is assigned in this queue yet';
+    return 'Save the cast first — the sheet is rendered from the saved assignments';
+  });
 
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
@@ -117,28 +154,65 @@ export class StafferComponent {
 
   incQueue(): void {
     this.queue.update(q => q + 1);
-    this.clearLocks();
+    this.onQueueChanged();
   }
 
   decQueue(): void {
-    this.queue.update(q => Math.max(1, q - 1));
-    this.clearLocks();
+    if (this.queue() === 1) {
+      return;
+    }
+    this.queue.update(q => q - 1);
+    this.onQueueChanged();
   }
 
   clearLocks(): void {
     this.locks.set(new Map());
   }
 
+  /**
+   * Shows what the backend has stored for the selected queue. Called on entry and on every
+   * queue change, so the saved cast can be reviewed and exported without regenerating it —
+   * which used to be the only way to see one, and destroyed it in the process.
+   */
+  loadStoredCast(): void {
+    this.fetchCast(this.stafferService.getStoredCast(this.queue()), true);
+  }
+
+  /**
+   * Asks the backend for a fresh cast. The response is a draft — nothing is stored until
+   * Save cast — so the table stops matching the database until then.
+   */
   generate(): void {
+    const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
+    this.fetchCast(this.stafferService.staffReferees(this.queue(), locks), false);
+  }
+
+  private onQueueChanged(): void {
+    // Locks reference matches of the previous queue, and so does an open drawer.
+    this.clearLocks();
+    this.closeDrawer();
+    this.loadStoredCast();
+  }
+
+  /**
+   * Loads a cast — stored or freshly generated — together with everything the table renders
+   * around it, and records whether what lands on screen matches the database.
+   */
+  private fetchCast(cast$: Observable<Match[]>, persisted: boolean): void {
     this.loading.set(true);
     this.savedAt.set(null);
-    const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
+    const requestedQueue = this.queue();
     forkJoin({
-      matches: this.stafferService.staffReferees(this.queue(), locks),
+      matches: cast$,
       standings: this.teamService.getStandings(),
-      referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
+      referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue)
     }).subscribe({
       next: ({matches, standings, referees}) => {
+        // Guard against a race: the queue stepper may have moved on while this was in
+        // flight, and a late response must not overwrite the newer queue's cast.
+        if (this.queue() !== requestedQueue) {
+          return;
+        }
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
         // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
@@ -152,6 +226,7 @@ export class StafferComponent {
         this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
         this.matches.set([...matches]);
+        this.persisted.set(persisted);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
@@ -159,7 +234,7 @@ export class StafferComponent {
   }
 
   /**
-   * Downloads the assignment sheet PDF for the selected queue. Gated on a saved cast
+   * Downloads the assignment sheet PDF for the selected queue. Gated on a stored cast
    * (see canExport) — the template disables the button, and this guard keeps the rule
    * in one place for any other caller.
    */
@@ -217,13 +292,18 @@ export class StafferComponent {
       next.set(match.id, refereeId);
       return next;
     });
+    // The swap lives in this component only — the table no longer matches the database.
     this.savedAt.set(null);
+    this.persisted.set(false);
   }
 
   save(): void {
     const ms = this.matches();
-    if (!ms) return;
-    this.matchService.updateList(ms).subscribe(() => this.savedAt.set(new Date()));
+    if (!ms || ms.length === 0) return;
+    this.matchService.updateList(ms).subscribe(() => {
+      this.savedAt.set(new Date());
+      this.persisted.set(true);
+    });
   }
 
   // ——— Read helpers used by the template ———

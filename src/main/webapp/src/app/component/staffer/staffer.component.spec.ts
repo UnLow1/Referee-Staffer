@@ -100,7 +100,7 @@ describe('StafferComponent', () => {
   }
 
   beforeEach(async () => {
-    stafferService = createMock<StafferService>(['staffReferees']);
+    stafferService = createMock<StafferService>(['staffReferees', 'getStoredCast']);
     teamService = createMock<TeamService>(['getStandings']);
     refereeService = createMock<RefereeService>(['findRefereesAvailableForQueue']);
     matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
@@ -108,6 +108,9 @@ describe('StafferComponent', () => {
     edgeTeams = signal(3);
 
     stafferService.staffReferees.mockReturnValue(of(matches));
+    // Default: nothing stored yet, so the screen starts on the empty state the way it did
+    // before RS-105. Tests that need a saved cast override this.
+    stafferService.getStoredCast.mockReturnValue(of([]));
     teamService.getStandings.mockReturnValue(of(standings));
     refereeService.findRefereesAvailableForQueue.mockReturnValue(of(referees));
     matchService.getDifficultyBreakdown.mockImplementation(id => of(makeBreakdown(id)));
@@ -144,6 +147,77 @@ describe('StafferComponent', () => {
       component.decQueue();
       expect(component.queue()).toBe(1);
     });
+
+    it('loads the stored cast of the queue it lands on', () => {
+      stafferService.getStoredCast.mockClear();
+
+      component.incQueue();
+
+      expect(stafferService.getStoredCast).toHaveBeenCalledWith(2);
+      expect(refereeService.findRefereesAvailableForQueue).toHaveBeenCalledWith(2);
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+    });
+
+    it('does not reload when the queue cannot go any lower', () => {
+      stafferService.getStoredCast.mockClear();
+
+      component.decQueue();
+
+      expect(stafferService.getStoredCast).not.toHaveBeenCalled();
+    });
+
+    it('closes an open drawer — it belongs to the previous queue', () => {
+      component.generate();
+      component.openDrawer(component.matches()![0]);
+      expect(component.drawerMatch()).not.toBeNull();
+
+      component.incQueue();
+
+      expect(component.drawerMatch()).toBeNull();
+      expect(component.drawerBreakdown()).toBeNull();
+    });
+  });
+
+  describe('stored cast', () => {
+    it('loads what the backend has stored for queue 1 on entry', () => {
+      // beforeEach already ran ngOnInit through the first detectChanges.
+      expect(stafferService.getStoredCast).toHaveBeenCalledWith(1);
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.matches()).toEqual([]);
+      expect(component.persisted()).toBe(true);
+    });
+
+    it('shows the stored cast without regenerating it, and allows exporting it right away', () => {
+      stafferService.getStoredCast.mockReturnValue(of(matches));
+
+      component.loadStoredCast();
+
+      expect(component.matches()).toEqual(matches);
+      expect(component.persisted()).toBe(true);
+      expect(component.canExport()).toBe(true);
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+    });
+
+    it('leaves no save marker — nothing records when a stored cast was saved', () => {
+      stafferService.getStoredCast.mockReturnValue(of(matches));
+
+      component.loadStoredCast();
+
+      expect(component.savedAt()).toBeNull();
+    });
+
+    it('ignores a response that lands after the queue moved on', () => {
+      const slow = new Subject<Match[]>();
+      stafferService.getStoredCast.mockReturnValueOnce(slow);
+
+      component.incQueue();
+      component.incQueue();
+      slow.next(matches);
+      slow.complete();
+
+      expect(component.queue()).toBe(3);
+      expect(component.matches()).toEqual([]);
+    });
   });
 
   describe('generate', () => {
@@ -172,13 +246,27 @@ describe('StafferComponent', () => {
       expect(component.loading()).toBe(false);
     });
 
-    it('clears loading and leaves matches untouched on error', () => {
+    it('clears loading and leaves the cast on screen untouched on error', () => {
+      stafferService.getStoredCast.mockReturnValue(of(matches));
+      component.loadStoredCast();
       stafferService.staffReferees.mockReturnValue(throwError(() => new Error('boom')));
 
       component.generate();
 
       expect(component.loading()).toBe(false);
-      expect(component.matches()).toBeNull();
+      expect(component.matches()).toEqual(matches);
+      expect(component.persisted()).toBe(true);
+    });
+
+    it('marks the cast as a draft until it is saved', () => {
+      component.generate();
+
+      expect(component.persisted()).toBe(false);
+      expect(component.canExport()).toBe(false);
+
+      component.save();
+
+      expect(component.persisted()).toBe(true);
     });
 
     it('resets the saved-at marker so a stale "Saved" note never shows for a new cast', () => {
@@ -253,7 +341,10 @@ describe('StafferComponent', () => {
       component.incQueue();
       expect(component.lockCount()).toBe(0);
 
+      component.generate();
       component.toggleLock(component.matches()![0]);
+      expect(component.lockCount()).toBe(1);
+
       component.decQueue();
       expect(component.lockCount()).toBe(0);
     });
@@ -276,12 +367,15 @@ describe('StafferComponent', () => {
       expect(component.locks().get(12)).toBe(102);
     });
 
-    it('invalidates the saved-at marker', () => {
+    it('invalidates the saved-at marker and the stored-cast flag', () => {
       component.save();
       expect(component.savedAt()).not.toBeNull();
+      expect(component.persisted()).toBe(true);
 
       component.swap(component.matches()![0], 103);
       expect(component.savedAt()).toBeNull();
+      expect(component.persisted()).toBe(false);
+      expect(component.canExport()).toBe(false);
     });
   });
 
@@ -405,7 +499,7 @@ describe('StafferComponent', () => {
       expect(component.savedAt()).toBeInstanceOf(Date);
     });
 
-    it('does nothing before a cast is generated', () => {
+    it('does nothing while the queue has no cast to save', () => {
       component.save();
 
       expect(matchService.updateList).not.toHaveBeenCalled();
@@ -426,7 +520,7 @@ describe('StafferComponent', () => {
       matchService.downloadAssignmentsPdf.mockReturnValue(of(new Blob(['%PDF-'], {type: 'application/pdf'})));
     });
 
-    it('is blocked until a cast has been generated and saved', () => {
+    it('is blocked until a generated cast has been saved', () => {
       expect(component.canExport()).toBe(false);
 
       component.generate();
@@ -434,6 +528,15 @@ describe('StafferComponent', () => {
 
       component.save();
       expect(component.canExport()).toBe(true);
+    });
+
+    it('stays blocked for a stored cast with no assignments', () => {
+      stafferService.getStoredCast.mockReturnValue(of([makeMatch(41), makeMatch(42)]));
+
+      component.loadStoredCast();
+
+      expect(component.persisted()).toBe(true);
+      expect(component.canExport()).toBe(false);
     });
 
     it('blocks again once the cast is regenerated', () => {
