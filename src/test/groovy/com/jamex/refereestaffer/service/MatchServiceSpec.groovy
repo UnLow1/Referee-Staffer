@@ -413,6 +413,39 @@ class MatchServiceSpec extends Specification {
         1 * teamRepository.count() >> 3
     }
 
+    def "should list assignable matches without scoring or sorting them"() {
+        given:
+        short queue = 2
+        def homeTeam = [points: 0, place: 0, city: "city1"] as Team
+        def awayTeam = [points: 0, place: 0, city: "city2"] as Team
+        def unassigned = Match.builder().id(1l).home(homeTeam).away(awayTeam).build()
+        def assignedUnfinished = Match.builder()
+                .id(2l).home(homeTeam).away(awayTeam)
+                .referee(new Referee("John", "Doe"))
+                .build()
+        def centralAssigned = Match.builder()
+                .id(3l).home(homeTeam).away(awayTeam)
+                .referee(new Referee("S", "C"))
+                .build()
+        def finishedAssigned = Match.builder()
+                .id(4l).home(homeTeam).away(awayTeam)
+                .referee(new Referee("Jane", "Smith"))
+                .homeScore((short) 2).awayScore((short) 1)
+                .build()
+
+        when:
+        def result = matchService.getAssignableMatchesInQueue(queue)
+
+        then:
+        result == [unassigned, assignedUnfinished]
+        // Callers that only need the set must not pay for (nor trigger) the difficulty pass.
+        result.every { it.hardnessLvl == 0d }
+        1 * matchRepository.findAllByQueue(queue) >> [unassigned, assignedUnfinished, centralAssigned, finishedAssigned]
+        0 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull()
+        0 * configurationRepository._
+        0 * teamRepository._
+    }
+
     def "should throw MatchNotFoundException when computing breakdown for missing match"() {
         given:
         def matchId = 44l
