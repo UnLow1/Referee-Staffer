@@ -29,11 +29,13 @@ public class StafferController {
     }
 
     /**
-     * Assignments a staffing run for this queue would clear (RS-109). Read-only and cheap:
-     * the Staffer screen calls it right before regenerating so it can warn — with a count —
-     * that existing (possibly hand-made) assignments are about to be overwritten.
+     * Assignments a staffing run for this queue would clear (RS-109) — the doomed ones, not
+     * the queue's cast. Read-only and cheap: the Staffer screen calls it right before
+     * regenerating so it can warn — with a count — that existing (possibly hand-made)
+     * assignments are about to be overwritten. Named for that narrow job on purpose, so the
+     * obvious {@code /{queue}/assignments} stays free for loading the actual cast (RS-105).
      */
-    @GetMapping("/{queue}/assignments")
+    @GetMapping("/{queue}/overwrite-preview")
     public StaffingOverwriteDto getOverwrittenAssignments(@PathVariable short queue) {
         log.info("Checking existing assignments in queue {}", queue);
         return stafferService.getOverwrittenAssignments(queue);

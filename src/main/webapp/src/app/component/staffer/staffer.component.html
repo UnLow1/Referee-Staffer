@@ -26,7 +26,7 @@
     <button type="button" class="btn btn--primary" (click)="requestGenerate()"
             [disabled]="loading() || checkingOverwrite()">
       <app-icon name="play" [size]="12"></app-icon>
-      {{ loading() ? 'Generating…' : 'Generate cast' }}
+      {{ generateLabel() }}
     </button>
   </div>
 </div>

@@ -80,24 +80,6 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
   });
 
-  await test.step('regenerating a staffed queue asks before overwriting it', async () => {
-    // RS-109: staffing clears and persists over every unlocked assignment in the queue,
-    // so a second Generate must go through the confirm modal. Cancelling leaves the saved
-    // cast alone — which Export PDF staying enabled proves, since a real run would reset
-    // the saved marker and disable it again.
-    await page.getByRole('button', { name: 'Generate cast' }).click();
-
-    const modal = page.getByRole('alertdialog', { name: 'Overwrite the current cast?' });
-    await expect(modal).toBeVisible();
-    await expect(modal).toContainText(
-      `replaces ${MATCHES_IN_STAFFED_QUEUE} existing assignments in queue ${STAFFED_QUEUE}`);
-
-    await modal.getByRole('button', { name: 'Cancel' }).click();
-    await expect(modal).toBeHidden();
-    await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
-    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
-  });
-
   await test.step('export the saved cast as a PDF', async () => {
     // The download itself is the point: the component builds an object URL and clicks a
     // synthetic anchor, which jsdom cannot exercise — the unit spec can only assert that
@@ -113,6 +95,37 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     const bytes = fs.readFileSync(downloadPath);
     expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     expect(bytes.length).toBeGreaterThan(500);
+  });
+
+  await test.step('regenerating a staffed queue asks before overwriting it', async () => {
+    // RS-109: staffing clears and persists over every unlocked assignment in the queue, so
+    // a second Generate must go through the confirm modal. Runs after the export so both
+    // branches can be exercised: cancelling must leave the saved cast alone (Export PDF
+    // stays enabled), confirming must really regenerate (the saved marker resets, which
+    // disables Export again).
+    await page.getByRole('button', { name: 'Generate cast' }).click();
+
+    const modal = page.getByRole('alertdialog', { name: 'Overwrite the current cast?' });
+    await expect(modal).toBeVisible();
+    // The count is the queue's assignable, already-assigned matches. No fixture row in this
+    // queue is an "S C" (central) match, which would keep its referee and not be counted.
+    await expect(modal).toContainText(
+      `replaces ${MATCHES_IN_STAFFED_QUEUE} existing assignments in queue ${STAFFED_QUEUE}`);
+
+    await modal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal).toBeHidden();
+    await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
+
+    await page.getByRole('button', { name: 'Generate cast' }).click();
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Generate anyway' }).click();
+
+    await expect(modal).toBeHidden();
+    await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    await expect(page.locator('tr.cast-row .referee-cell app-ref-avatar'))
+      .toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeDisabled();
   });
 
   await test.step('standings reflect the imported results', async () => {

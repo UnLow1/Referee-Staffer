@@ -229,7 +229,7 @@ describe('StafferComponent', () => {
       component.requestGenerate();
 
       expect(stafferService.staffReferees).not.toHaveBeenCalled();
-      expect(component.overwriteWarning()).toEqual({count: 2});
+      expect(component.overwriteWarning()).toEqual({queue: 1, count: 2});
       expect(component.overwriteGuard().message).toContain('replaces 2 existing assignments');
     });
 
@@ -269,7 +269,7 @@ describe('StafferComponent', () => {
 
       component.requestGenerate();
 
-      expect(component.overwriteWarning()).toEqual({count: 1});
+      expect(component.overwriteWarning()).toEqual({queue: 1, count: 1});
     });
 
     it('skips the dialog when every existing assignment is locked', () => {
@@ -291,9 +291,69 @@ describe('StafferComponent', () => {
       component.requestGenerate();
 
       expect(stafferService.staffReferees).not.toHaveBeenCalled();
-      expect(component.overwriteWarning()).toEqual({count: null});
+      expect(component.overwriteWarning()).toEqual({queue: 1, count: null});
       expect(component.checkingOverwrite()).toBe(false);
       expect(component.overwriteGuard().message).toContain('could not be checked');
+    });
+
+    it('does not apply a stale check to a queue the user switched to', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      component.requestGenerate();  // checks queue 1
+      component.incQueue();         // user moves to queue 2 while the check is in flight
+      check.next(noOverwrite(1));   // queue 1 is empty — queue 2 was never checked
+      check.complete();
+
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.overwriteWarning()).toBeNull();
+    });
+
+    it('does not warn about another queue after the user switched', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      component.requestGenerate();
+      component.incQueue();
+      check.next(overwrite(1, [11, 13]));
+      check.complete();
+
+      expect(component.overwriteWarning()).toBeNull();
+    });
+
+    it('drops a failed check for a queue the user has left', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      component.requestGenerate();
+      component.incQueue();
+      check.error(new Error('boom'));
+
+      expect(component.overwriteWarning()).toBeNull();
+      expect(component.checkingOverwrite()).toBe(false);
+    });
+
+    it('names the checked queue in the dialog even if the selection moves afterwards', () => {
+      component.incQueue();
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(2, [11])));
+      component.requestGenerate();
+
+      component.incQueue();
+
+      expect(component.overwriteGuard().message).toContain('in queue 2');
+    });
+
+    it('labels the button while the check is in flight', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      expect(component.generateLabel()).toBe('Generate cast');
+      component.requestGenerate();
+      expect(component.generateLabel()).toBe('Checking…');
+
+      check.next(noOverwrite(1));
+      check.complete();
+      expect(component.generateLabel()).toBe('Generate cast');
     });
 
     it('ignores a second click while the check is still in flight', () => {

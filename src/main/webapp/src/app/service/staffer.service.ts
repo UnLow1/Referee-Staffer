@@ -18,7 +18,7 @@ export class StafferService {
   public getOverwrittenAssignments(queue: number): Observable<StaffingOverwrite> {
     // GET — read-only preview of the assignments a staffing run would clear, used by the
     // Staffer screen's overwrite guard before it posts the (mutating) staffing request.
-    return this.http.get<StaffingOverwrite>(`${this.stafferUrl}/${queue}/assignments`)
+    return this.http.get<StaffingOverwrite>(`${this.stafferUrl}/${queue}/overwrite-preview`)
   }
 
   public staffReferees(queue: number, locks: StaffingLock[] = []): Observable<Match[]> {

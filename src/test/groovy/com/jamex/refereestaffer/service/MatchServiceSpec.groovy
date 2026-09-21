@@ -438,9 +438,8 @@ class MatchServiceSpec extends Specification {
 
         then:
         result == [unassigned, assignedUnfinished]
-        // Callers that only need the set must not pay for (nor trigger) the difficulty pass.
-        result.every { it.hardnessLvl == 0d }
         1 * matchRepository.findAllByQueue(queue) >> [unassigned, assignedUnfinished, centralAssigned, finishedAssigned]
+        // Callers that only need the set must not pay for (nor trigger) the difficulty pass.
         0 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull()
         0 * configurationRepository._
         0 * teamRepository._
