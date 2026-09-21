@@ -6,6 +6,7 @@ import {StafferService} from './staffer.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
 import {Match} from '../model/match';
+import {StaffingOverwrite} from '../model/staffingOverwrite';
 
 describe('StafferService', () => {
   const stafferUrl = '/api/staffer';
@@ -40,6 +41,17 @@ describe('StafferService', () => {
 
   afterEach(() => {
     httpTesting.verify();
+  });
+
+  it('getOverwrittenAssignments GETs the overwrite preview for the queue', () => {
+    let result: StaffingOverwrite | undefined;
+    service.getOverwrittenAssignments(5).subscribe(overwrite => result = overwrite);
+
+    const req = httpTesting.expectOne(`${stafferUrl}/5/overwrite-preview`);
+    expect(req.request.method).toBe('GET');
+    req.flush({queue: 5, assignedMatchIds: [3, 9]});
+
+    expect(result).toEqual({queue: 5, assignedMatchIds: [3, 9]});
   });
 
   it('staffReferees POSTs to the queue URL with no locks by default', () => {

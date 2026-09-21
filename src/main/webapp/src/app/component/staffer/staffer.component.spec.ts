@@ -13,6 +13,7 @@ import {Match} from '../../model/match';
 import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {StaffingOverwrite} from '../../model/staffingOverwrite';
 import {createMock} from '../../testing/mock';
 import {saveAs} from 'file-saver';
 
@@ -90,6 +91,14 @@ describe('StafferComponent', () => {
     makeReferee(103, {potential: 95, experience: 15})
   ];
 
+  function overwrite(queue: number, assignedMatchIds: number[]): StaffingOverwrite {
+    return {queue, assignedMatchIds};
+  }
+
+  function noOverwrite(queue: number): StaffingOverwrite {
+    return overwrite(queue, []);
+  }
+
   function makeBreakdown(matchId: number): DifficultyBreakdown {
     return {
       matchId,
@@ -100,7 +109,7 @@ describe('StafferComponent', () => {
   }
 
   beforeEach(async () => {
-    stafferService = createMock<StafferService>(['staffReferees']);
+    stafferService = createMock<StafferService>(['staffReferees', 'getOverwrittenAssignments']);
     teamService = createMock<TeamService>(['getStandings']);
     refereeService = createMock<RefereeService>(['findRefereesAvailableForQueue']);
     matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
@@ -108,6 +117,8 @@ describe('StafferComponent', () => {
     edgeTeams = signal(3);
 
     stafferService.staffReferees.mockReturnValue(of(matches));
+    // Default: nothing cast in the queue yet, so the overwrite guard stays out of the way.
+    stafferService.getOverwrittenAssignments.mockReturnValue(of(noOverwrite(1)));
     teamService.getStandings.mockReturnValue(of(standings));
     refereeService.findRefereesAvailableForQueue.mockReturnValue(of(referees));
     matchService.getDifficultyBreakdown.mockImplementation(id => of(makeBreakdown(id)));
@@ -197,6 +208,168 @@ describe('StafferComponent', () => {
       component.generate();
 
       expect(stafferService.staffReferees).toHaveBeenCalledWith(1, [{matchId: 11, refereeId: 100}]);
+    });
+  });
+
+  describe('overwrite guard', () => {
+    it('checks the selected queue and generates straight away when nothing is assigned yet', () => {
+      component.incQueue();
+
+      component.requestGenerate();
+
+      expect(stafferService.getOverwrittenAssignments).toHaveBeenCalledWith(2);
+      expect(stafferService.staffReferees).toHaveBeenCalledWith(2, []);
+      expect(component.overwriteWarning()).toBeNull();
+      expect(component.checkingOverwrite()).toBe(false);
+    });
+
+    it('asks before replacing existing assignments instead of staffing', () => {
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11, 13])));
+
+      component.requestGenerate();
+
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.overwriteWarning()).toEqual({queue: 1, count: 2});
+      expect(component.overwriteGuard().message).toContain('replaces 2 existing assignments');
+    });
+
+    it('phrases a single overwritten assignment in the singular', () => {
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11])));
+
+      component.requestGenerate();
+
+      expect(component.overwriteGuard().message).toContain('replaces 1 existing assignment in queue 1');
+    });
+
+    it('staffs the queue once the overwrite is confirmed and closes the dialog', () => {
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11])));
+      component.requestGenerate();
+
+      component.confirmOverwrite();
+
+      expect(stafferService.staffReferees).toHaveBeenCalledWith(1, []);
+      expect(component.overwriteWarning()).toBeNull();
+    });
+
+    it('leaves the stored cast untouched when the overwrite is cancelled', () => {
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11])));
+      component.requestGenerate();
+
+      component.cancelOverwrite();
+
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.overwriteWarning()).toBeNull();
+      expect(component.matches()).toBeNull();
+    });
+
+    it('does not count locked matches — a lock survives the run', () => {
+      component.generate();
+      component.toggleLock(component.matches()![0]); // match 11, referee 100
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11, 13])));
+
+      component.requestGenerate();
+
+      expect(component.overwriteWarning()).toEqual({queue: 1, count: 1});
+    });
+
+    it('skips the dialog when every existing assignment is locked', () => {
+      component.generate();
+      component.toggleLock(component.matches()![0]); // match 11
+      component.toggleLock(component.matches()![2]); // match 13
+      stafferService.staffReferees.mockClear();
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11, 13])));
+
+      component.requestGenerate();
+
+      expect(component.overwriteWarning()).toBeNull();
+      expect(stafferService.staffReferees).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks anyway when the check itself fails — an unreadable queue is not an empty one', () => {
+      stafferService.getOverwrittenAssignments.mockReturnValue(throwError(() => new Error('boom')));
+
+      component.requestGenerate();
+
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.overwriteWarning()).toEqual({queue: 1, count: null});
+      expect(component.checkingOverwrite()).toBe(false);
+      expect(component.overwriteGuard().message).toContain('could not be checked');
+    });
+
+    it('does not apply a stale check to a queue the user switched to', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      component.requestGenerate();  // checks queue 1
+      component.incQueue();         // user moves to queue 2 while the check is in flight
+      check.next(noOverwrite(1));   // queue 1 is empty — queue 2 was never checked
+      check.complete();
+
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.overwriteWarning()).toBeNull();
+    });
+
+    it('does not warn about another queue after the user switched', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      component.requestGenerate();
+      component.incQueue();
+      check.next(overwrite(1, [11, 13]));
+      check.complete();
+
+      expect(component.overwriteWarning()).toBeNull();
+    });
+
+    it('drops a failed check for a queue the user has left', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      component.requestGenerate();
+      component.incQueue();
+      check.error(new Error('boom'));
+
+      expect(component.overwriteWarning()).toBeNull();
+      expect(component.checkingOverwrite()).toBe(false);
+    });
+
+    it('names the checked queue in the dialog even if the selection moves afterwards', () => {
+      component.incQueue();
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(2, [11])));
+      component.requestGenerate();
+
+      component.incQueue();
+
+      expect(component.overwriteGuard().message).toContain('in queue 2');
+    });
+
+    it('labels the button while the check is in flight', () => {
+      const check = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(check);
+
+      expect(component.generateLabel()).toBe('Generate cast');
+      component.requestGenerate();
+      expect(component.generateLabel()).toBe('Checking…');
+
+      check.next(noOverwrite(1));
+      check.complete();
+      expect(component.generateLabel()).toBe('Generate cast');
+    });
+
+    it('ignores a second click while the check is still in flight', () => {
+      const checkSubject = new Subject<StaffingOverwrite>();
+      stafferService.getOverwrittenAssignments.mockReturnValue(checkSubject);
+
+      component.requestGenerate();
+      expect(component.checkingOverwrite()).toBe(true);
+      component.requestGenerate();
+
+      expect(stafferService.getOverwrittenAssignments).toHaveBeenCalledTimes(1);
+
+      checkSubject.next(noOverwrite(1));
+      checkSubject.complete();
+      expect(component.checkingOverwrite()).toBe(false);
+      expect(stafferService.staffReferees).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -510,6 +683,25 @@ describe('StafferComponent', () => {
       expect(el.querySelector('.empty-state')).toBeNull();
       expect(el.querySelector('.panel--kpi-strip')).not.toBeNull();
       expect(el.querySelectorAll('tr.cast-row').length).toBe(3);
+    });
+
+    it('opens the confirm modal instead of staffing when the queue already has a cast', () => {
+      stafferService.getOverwrittenAssignments.mockReturnValue(of(overwrite(1, [11, 13])));
+      const el: HTMLElement = fixture.nativeElement;
+
+      (el.querySelector('.page-head__actions .btn--primary') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const modal = el.querySelector('.modal');
+      expect(modal).not.toBeNull();
+      expect(modal!.textContent).toContain('replaces 2 existing assignments');
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+
+      (modal!.querySelector('.btn--primary') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(stafferService.staffReferees).toHaveBeenCalledWith(1, []);
+      expect(el.querySelector('.modal')).toBeNull();
     });
 
     it('gates the algorithm explainer on the UI setting', () => {

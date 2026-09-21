@@ -118,6 +118,53 @@ class StafferIntegrationSpec extends Specification {
         result*.id == [openMatch.id]
     }
 
+    def "should report exactly the assignments a staffing run then clears"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        def team5 = teamRepository.save(new Team("Team5", "City5"))
+        def team6 = teamRepository.save(new Team("Team6", "City6"))
+        def team7 = teamRepository.save(new Team("Team7", "City7"))
+        def team8 = teamRepository.save(new Team("Team8", "City8"))
+        def centralReferee = refereeRepository.save(new Referee("S", "C"))
+        def manualReferee = refereeRepository.save(new Referee("Manual", "Pick", "manual@ref.com", 5))
+        def finishedReferee = refereeRepository.save(new Referee("Past", "Referee", "past@ref.com", 5))
+        // Two clearly stronger referees for the two assignable matches, so the manual pick
+        // cannot be re-drawn by chance and the overwrite is unambiguous.
+        refereeRepository.save(new Referee("Strong", "One", "strong1@ref.com", 99))
+        refereeRepository.save(new Referee("Strong", "Two", "strong2@ref.com", 98))
+        short queue = 1
+        def matchDay = LocalDateTime.now().plusDays(1)
+        def manuallyAssigned = matchRepository.save(
+                new Match(queue, team1, team2, matchDay, manualReferee, null, null))
+        def centralMatch = matchRepository.save(
+                new Match(queue, team3, team4, matchDay, centralReferee, null, null))
+        def finishedMatch = matchRepository.save(
+                new Match(queue, team5, team6, matchDay, finishedReferee, (short) 2, (short) 1))
+        def unassigned = matchRepository.save(
+                new Match(queue, team7, team8, matchDay, null, null, null))
+
+        when: "the screen asks what a regenerate would take away"
+        def preview = stafferService.getOverwrittenAssignments(queue)
+
+        then: "only the hand-made assignment is at risk"
+        preview.queue() == queue
+        preview.assignedMatchIds() == [manuallyAssigned.id]
+
+        when: "the regenerate actually runs"
+        stafferService.staffReferees(queue)
+
+        then: "exactly the previewed assignment was cleared and re-cast; the rest kept theirs"
+        // The point of the feature: the warning and the run read the same set, against a
+        // real database rather than a mocked MatchService.
+        matchRepository.findById(manuallyAssigned.id).orElseThrow().referee.id != manualReferee.id
+        matchRepository.findById(centralMatch.id).orElseThrow().referee.id == centralReferee.id
+        matchRepository.findById(finishedMatch.id).orElseThrow().referee.id == finishedReferee.id
+        matchRepository.findById(unassigned.id).orElseThrow().referee != null
+    }
+
     def "should skip referee who already has a match on the same day in another queue"() {
         given:
         def team1 = teamRepository.save(new Team("Team1", "City1"))

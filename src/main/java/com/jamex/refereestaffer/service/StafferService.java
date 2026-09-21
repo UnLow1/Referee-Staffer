@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
 import com.jamex.refereestaffer.model.dto.MatchDto;
+import com.jamex.refereestaffer.model.dto.StaffingOverwriteDto;
 import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
@@ -60,6 +61,27 @@ public class StafferService {
         this.matchConverter = matchConverter;
         this.matchService = matchService;
         this.refereeService = refereeService;
+    }
+
+    /**
+     * Read-only preview of what a regenerate would destroy in this queue (RS-109): the
+     * assignable matches that already have a referee. Staffing clears every assignable
+     * match before re-casting and persists it at once, so without this the UI cannot warn
+     * that manual assignments are about to disappear.
+     *
+     * <p>The set comes from {@link MatchService#getAssignableMatchesInQueue(Short)} — the
+     * very filter {@link #staffReferees(short, List)} works on — so the warning cannot
+     * drift from the behavior it describes. Central ("S C") assignments and finished
+     * matches are not assignable and are therefore never counted.
+     */
+    @Transactional(readOnly = true)
+    public StaffingOverwriteDto getOverwrittenAssignments(short queue) {
+        var assignedMatchIds = matchService.getAssignableMatchesInQueue(queue).stream()
+                .filter(match -> match.getReferee() != null)
+                .map(Match::getId)
+                .sorted()
+                .toList();
+        return new StaffingOverwriteDto(queue, assignedMatchIds);
     }
 
     // @Transactional must sit on this overload too: the delegation below is a self-invocation,

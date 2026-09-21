@@ -33,6 +33,43 @@ class StafferServiceSpec extends Specification {
                 refereeRepository, matchConverter, matchService, refereeService)
     }
 
+    def "should report assignable matches that already carry an assignment as overwritten"() {
+        given:
+        short queue = 3
+        // Deliberately out of id order: the preview is consumed as a set by the UI, but a
+        // stable order keeps the payload (and this expectation) predictable.
+        def assignedLate = Match.builder().id(7l).referee(new Referee("John", "Doe")).build()
+        def unassigned = Match.builder().id(8l).build()
+        def assignedEarly = Match.builder().id(5l).referee(new Referee("Jane", "Smith")).build()
+
+        when:
+        def result = stafferService.getOverwrittenAssignments(queue)
+
+        then:
+        // Central and finished assignments never reach here — getAssignableMatchesInQueue
+        // filters them out, which is exactly why the preview reuses it (MatchServiceSpec
+        // covers that filter).
+        1 * matchService.getAssignableMatchesInQueue(queue) >> [assignedLate, unassigned, assignedEarly]
+        result.queue() == queue
+        result.assignedMatchIds() == [5l, 7l]
+        // A preview must not touch the cast it describes.
+        0 * matchRepository._
+        0 * refereeRepository._
+    }
+
+    def "should report nothing to overwrite for a queue that has no assignments"() {
+        given:
+        short queue = 4
+        def unassigned = Match.builder().id(1l).build()
+
+        when:
+        def result = stafferService.getOverwrittenAssignments(queue)
+
+        then:
+        1 * matchService.getAssignableMatchesInQueue(queue) >> [unassigned]
+        result.assignedMatchIds().isEmpty()
+    }
+
     def "should assign referees to matches in queue"() {
         given:
         short queue = 2
