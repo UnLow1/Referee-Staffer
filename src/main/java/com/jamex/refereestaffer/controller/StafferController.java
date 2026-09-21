@@ -1,10 +1,12 @@
 package com.jamex.refereestaffer.controller;
 
 import com.jamex.refereestaffer.model.dto.MatchDto;
+import com.jamex.refereestaffer.model.dto.StaffingOverwriteDto;
 import com.jamex.refereestaffer.model.request.StaffingLockRequest;
 import com.jamex.refereestaffer.service.StafferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +26,17 @@ public class StafferController {
 
     public StafferController(StafferService stafferService) {
         this.stafferService = stafferService;
+    }
+
+    /**
+     * Assignments a staffing run for this queue would clear (RS-109). Read-only and cheap:
+     * the Staffer screen calls it right before regenerating so it can warn — with a count —
+     * that existing (possibly hand-made) assignments are about to be overwritten.
+     */
+    @GetMapping("/{queue}/assignments")
+    public StaffingOverwriteDto getOverwrittenAssignments(@PathVariable short queue) {
+        log.info("Checking existing assignments in queue {}", queue);
+        return stafferService.getOverwrittenAssignments(queue);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.jamex.refereestaffer.controller
 
 import com.jamex.refereestaffer.model.dto.MatchDto
+import com.jamex.refereestaffer.model.dto.StaffingOverwriteDto
 import com.jamex.refereestaffer.model.exception.StafferException
 import com.jamex.refereestaffer.model.request.StaffingLockRequest
 import com.jamex.refereestaffer.service.StafferService
@@ -28,6 +29,19 @@ class StafferControllerSpec extends Specification {
 
     @SpringBean
     StafferService stafferService = Mock()
+
+    def "should report the assignments a regenerate would overwrite"() {
+        when:
+        def response = mockMvc.perform(get("/api/staffer/12/assignments")).andReturn().response
+
+        then:
+        1 * stafferService.getOverwrittenAssignments(12 as short) >> new StaffingOverwriteDto(12 as short, [5l, 7l])
+        0 * stafferService.staffReferees(_, _)
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.queue == 12
+        json.assignedMatchIds == [5, 7]
+    }
 
     def "should staff referees to matches in provided queue"() {
         given:
