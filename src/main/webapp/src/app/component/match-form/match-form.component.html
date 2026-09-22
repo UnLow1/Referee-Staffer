@@ -33,7 +33,7 @@
         <label class="lbl" for="homeTeam">Home team<span class="req">*</span></label>
         <select class="select" id="homeTeam" name="homeTeam" [(ngModel)]="model.homeTeamId" required #homeTeam="ngModel">
           <option [ngValue]="undefined" disabled hidden>Home</option>
-          @for (team of teams | excludeValue: model.awayTeamId; track team.id) {
+          @for (team of teams() | excludeValue: model.awayTeamId; track team.id) {
             <option [ngValue]="team.id">{{ team.name }} · {{ team.city }}</option>
           }
         </select>
@@ -46,7 +46,7 @@
         <label class="lbl" for="awayTeam">Away team<span class="req">*</span></label>
         <select class="select" id="awayTeam" name="awayTeam" [(ngModel)]="model.awayTeamId" required #awayTeam="ngModel">
           <option [ngValue]="undefined" disabled hidden>Away</option>
-          @for (team of teams | excludeValue: model.homeTeamId; track team.id) {
+          @for (team of teams() | excludeValue: model.homeTeamId; track team.id) {
             <option [ngValue]="team.id">{{ team.name }} · {{ team.city }}</option>
           }
         </select>
@@ -62,7 +62,7 @@
       <select class="select" id="referee" name="referee" [(ngModel)]="model.refereeId">
         <option hidden [ngValue]="null">Unassigned — run staffer to fill</option>
         <option [ngValue]="undefined">Unassigned — run staffer to fill</option>
-        @for (ref of referees; track ref.id) {
+        @for (ref of referees(); track ref.id) {
           <option [ngValue]="ref.id">{{ ref.firstName }} {{ ref.lastName }}</option>
         }
       </select>
