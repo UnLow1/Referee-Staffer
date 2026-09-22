@@ -1,0 +1,18 @@
+<!doctype html>
+<!--
+  Stand-in for the Angular shell that `mvn package` bakes into src/main/resources/static.
+
+  The backend CI job builds with -DskipFrontend=true, so that file does not exist when the Spock
+  specs run and SpaFallbackIntegrationSpec would have nothing to forward to. Test resources come
+  first on the classpath, so this copy is also the one served when the real build output is present
+  — keep any assertion against it true for both files.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Referee Staffer</title>
+</head>
+<body>
+<app-root></app-root>
+</body>
+</html>
