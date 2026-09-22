@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -20,6 +20,11 @@ import {IconComponent} from '../common/icon/icon.component';
  * The grade branch in onSubmit reflects that `Match` references the grade by `gradeId`
  * while the form edits a separate `grade.value`; the save/update/delete decision tree
  * must stay intact.
+ *
+ * `teams` and `referees` are signals: they are filled from HTTP after the drawer is
+ * already on screen, so the assignment itself has to mark the view dirty (RS-116).
+ * `model` and `grade` stay plain objects — they are two-way bound form state, written
+ * synchronously from the @Input (model) or by user input, which repaints on its own.
  */
 @Component({
   selector: 'app-match-form',
@@ -38,8 +43,8 @@ export class MatchFormComponent implements OnInit {
   @Output() saved = new EventEmitter<Match>();
   @Output() closed = new EventEmitter<void>();
 
-  teams: Team[] = [];
-  referees: Referee[] = [];
+  readonly teams = signal<Team[]>([]);
+  readonly referees = signal<Referee[]>([]);
   model: Match = {} as Match;
   grade: Grade = {} as Grade;
 
@@ -52,8 +57,8 @@ export class MatchFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.teamService.findAll().subscribe(teams => this.teams = teams);
-    this.refereeService.findAll().subscribe(referees => this.referees = referees);
+    this.teamService.findAll().subscribe(teams => this.teams.set(teams));
+    this.refereeService.findAll().subscribe(referees => this.referees.set(referees));
     if (this.match) {
       this.model = {...this.match};
       if (this.match.gradeId) {

@@ -21,11 +21,13 @@ describe('MatchFormComponent', () => {
 
   const teams: Team[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Gdansk', points: 30}
+    {id: 2, name: 'Beta', city: 'Gdansk', points: 30},
+    {id: 3, name: 'Gamma', city: 'Lodz', points: 20}
   ];
 
   const referees: Referee[] = [
-    {id: 100, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10}
+    {id: 100, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10},
+    {id: 101, firstName: 'Anna', lastName: 'Nowak', email: 'anna@example.com', experience: 4}
   ];
 
   function makeMatch(overrides: Partial<Match> = {}): Match {
@@ -77,8 +79,8 @@ describe('MatchFormComponent', () => {
     it('loads teams and referees for the selects in add mode', () => {
       const component = createComponent(null).componentInstance;
 
-      expect(component.teams).toEqual(teams);
-      expect(component.referees).toEqual(referees);
+      expect(component.teams()).toEqual(teams);
+      expect(component.referees()).toEqual(referees);
       expect(component.editMode).toBe(false);
       expect(component.model).toEqual({} as Match);
       expect(gradeService.findById).not.toHaveBeenCalled();
@@ -115,6 +117,84 @@ describe('MatchFormComponent', () => {
       const editFixture = createComponent(makeMatch());
       expect((editFixture.nativeElement as HTMLElement).querySelector('.drawer__title')?.textContent)
         .toContain('Edit match');
+    });
+  });
+
+  // RS-116: teams and referees arrive from HTTP after the drawer is already rendered, and
+  // the drawer used to show them only once something else happened to repaint the view.
+  // These lock in the acceptance criteria — both selects carry their full option list and
+  // the edited match's selection with no interaction in between.
+  describe('selects filled from asynchronous responses', () => {
+    let teams$: Subject<Team[]>;
+    let referees$: Subject<Referee[]>;
+
+    beforeEach(() => {
+      teams$ = new Subject<Team[]>();
+      referees$ = new Subject<Referee[]>();
+      teamService.findAll.mockReturnValue(teams$);
+      refereeService.findAll.mockReturnValue(referees$);
+    });
+
+    function selectOf(fixture: ComponentFixture<MatchFormComponent>, id: string): HTMLSelectElement {
+      return (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(id)!;
+    }
+
+    /** Option labels a user can actually pick — the hidden placeholders are not choices. */
+    function offeredOptions(select: HTMLSelectElement): string[] {
+      return Array.from(select.options).filter(option => !option.hidden).map(option => option.textContent!.trim());
+    }
+
+    function selectedLabel(select: HTMLSelectElement): string | null {
+      return select.selectedIndex < 0 ? null : select.options[select.selectedIndex].textContent!.trim();
+    }
+
+    /** Renders the drawer, then lets both responses land the way the network would. */
+    async function createAndDeliverResponses(match: Match | null): Promise<ComponentFixture<MatchFormComponent>> {
+      const fixture = createComponent(match);
+      fixture.autoDetectChanges();
+
+      teams$.next(teams);
+      referees$.next(referees);
+      // No manual detectChanges() here on purpose: the point of the regression is that
+      // the responses themselves have to repaint the drawer.
+      await fixture.whenStable();
+      return fixture;
+    }
+
+    it('shows the edited match selections once the responses land', async () => {
+      const fixture = await createAndDeliverResponses(makeMatch());
+
+      expect(selectedLabel(selectOf(fixture, '#homeTeam'))).toBe('Alfa · Krakow');
+      expect(selectedLabel(selectOf(fixture, '#awayTeam'))).toBe('Beta · Gdansk');
+      expect(selectedLabel(selectOf(fixture, '#referee'))).toBe('Jan Kowalski');
+    });
+
+    it('offers every team but the opponent, and every referee, without any interaction', async () => {
+      const fixture = await createAndDeliverResponses(makeMatch());
+
+      // The opposite side is filtered out by the excludeValue pipe.
+      expect(offeredOptions(selectOf(fixture, '#homeTeam'))).toEqual(['Alfa · Krakow', 'Gamma · Lodz']);
+      expect(offeredOptions(selectOf(fixture, '#awayTeam'))).toEqual(['Beta · Gdansk', 'Gamma · Lodz']);
+      expect(offeredOptions(selectOf(fixture, '#referee')))
+        .toEqual(['Unassigned — run staffer to fill', 'Jan Kowalski', 'Anna Nowak']);
+    });
+
+    it('fills the add-mode selects too, with nothing preselected', async () => {
+      const fixture = await createAndDeliverResponses(null);
+
+      expect(offeredOptions(selectOf(fixture, '#homeTeam')))
+        .toEqual(['Alfa · Krakow', 'Beta · Gdansk', 'Gamma · Lodz']);
+      expect(offeredOptions(selectOf(fixture, '#referee')))
+        .toEqual(['Unassigned — run staffer to fill', 'Jan Kowalski', 'Anna Nowak']);
+      // Nothing real is preselected — the hidden placeholder still holds the selection.
+      expect(selectedLabel(selectOf(fixture, '#homeTeam'))).toBe('Home');
+    });
+
+    it('leaves the selects empty until the responses arrive', () => {
+      const fixture = createComponent(null);
+
+      expect(offeredOptions(selectOf(fixture, '#homeTeam'))).toEqual([]);
+      expect(offeredOptions(selectOf(fixture, '#referee'))).toEqual(['Unassigned — run staffer to fill']);
     });
   });
 
