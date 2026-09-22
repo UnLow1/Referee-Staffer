@@ -33,7 +33,7 @@
         <label class="lbl" for="homeTeam">Home team<span class="req">*</span></label>
         <select class="select" id="homeTeam" name="homeTeam" [(ngModel)]="model.homeTeamId" required #homeTeam="ngModel">
           <option [ngValue]="undefined" disabled hidden>Home</option>
-          @for (team of teams | excludeValue: model.awayTeamId; track team.id) {
+          @for (team of teams() | excludeValue: model.awayTeamId; track team.id) {
             <option [ngValue]="team.id">{{ team.name }} · {{ team.city }}</option>
           }
         </select>
@@ -46,7 +46,7 @@
         <label class="lbl" for="awayTeam">Away team<span class="req">*</span></label>
         <select class="select" id="awayTeam" name="awayTeam" [(ngModel)]="model.awayTeamId" required #awayTeam="ngModel">
           <option [ngValue]="undefined" disabled hidden>Away</option>
-          @for (team of teams | excludeValue: model.homeTeamId; track team.id) {
+          @for (team of teams() | excludeValue: model.homeTeamId; track team.id) {
             <option [ngValue]="team.id">{{ team.name }} · {{ team.city }}</option>
           }
         </select>
@@ -62,7 +62,7 @@
       <select class="select" id="referee" name="referee" [(ngModel)]="model.refereeId">
         <option hidden [ngValue]="null">Unassigned — run staffer to fill</option>
         <option [ngValue]="undefined">Unassigned — run staffer to fill</option>
-        @for (ref of referees; track ref.id) {
+        @for (ref of referees(); track ref.id) {
           <option [ngValue]="ref.id">{{ ref.firstName }} {{ ref.lastName }}</option>
         }
       </select>
@@ -82,11 +82,11 @@
         <label class="lbl" for="grade">Ref grade<span class="opt">optional</span></label>
         <div class="grade-split">
           <input class="input num" type="number" id="grade" name="grade" min="0" step="0.1" placeholder="0.0"
-                 [(ngModel)]="grade.value" (ngModelChange)="onGradeValueChange($event)">
+                 [(ngModel)]="grade().value" (ngModelChange)="onGradeValueChange($event)">
           <span class="grade-split__sep mono">/</span>
           <input class="input num" type="number" id="secondGrade" name="secondGrade" min="0" step="0.1" placeholder="—"
                  title="Second component of a split grade (e.g. 7.9/8.3)"
-                 [(ngModel)]="grade.secondValue" [disabled]="gradeValueMissing">
+                 [(ngModel)]="grade().secondValue" [disabled]="gradeValueMissing">
         </div>
         <span class="hint">Split grade? Put the second component after the slash.</span>
       </div>

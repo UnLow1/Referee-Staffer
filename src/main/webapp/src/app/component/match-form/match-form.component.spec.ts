@@ -1,4 +1,5 @@
 import type {MockedObject} from 'vitest';
+import {EnvironmentProviders, Provider, ɵprovideZonelessChangeDetectionInternal as provideZonelessChangeDetectionInternal} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgForm} from '@angular/forms';
 import {of, Subject} from 'rxjs';
@@ -21,11 +22,13 @@ describe('MatchFormComponent', () => {
 
   const teams: Team[] = [
     {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Gdansk', points: 30}
+    {id: 2, name: 'Beta', city: 'Gdansk', points: 30},
+    {id: 3, name: 'Gamma', city: 'Lodz', points: 20}
   ];
 
   const referees: Referee[] = [
-    {id: 100, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10}
+    {id: 100, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10},
+    {id: 101, firstName: 'Anna', lastName: 'Nowak', email: 'anna@example.com', experience: 4}
   ];
 
   function makeMatch(overrides: Partial<Match> = {}): Match {
@@ -46,6 +49,19 @@ describe('MatchFormComponent', () => {
   const validForm = {valid: true} as NgForm;
   const invalidForm = {valid: false} as NgForm;
 
+  async function configureTestBed(extraProviders: (Provider | EnvironmentProviders)[] = []): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [MatchFormComponent],
+      providers: [
+        {provide: MatchService, useValue: matchService},
+        {provide: TeamService, useValue: teamService},
+        {provide: RefereeService, useValue: refereeService},
+        {provide: GradeService, useValue: gradeService},
+        ...extraProviders
+      ]
+    }).compileComponents();
+  }
+
   beforeEach(async () => {
     matchService = createMock<MatchService>(['save', 'update']);
     teamService = createMock<TeamService>(['findAll']);
@@ -55,15 +71,7 @@ describe('MatchFormComponent', () => {
     teamService.findAll.mockReturnValue(of(teams));
     refereeService.findAll.mockReturnValue(of(referees));
 
-    await TestBed.configureTestingModule({
-      imports: [MatchFormComponent],
-      providers: [
-        {provide: MatchService, useValue: matchService},
-        {provide: TeamService, useValue: teamService},
-        {provide: RefereeService, useValue: refereeService},
-        {provide: GradeService, useValue: gradeService}
-      ]
-    }).compileComponents();
+    await configureTestBed();
   });
 
   function createComponent(match: Match | null): ComponentFixture<MatchFormComponent> {
@@ -77,8 +85,8 @@ describe('MatchFormComponent', () => {
     it('loads teams and referees for the selects in add mode', () => {
       const component = createComponent(null).componentInstance;
 
-      expect(component.teams).toEqual(teams);
-      expect(component.referees).toEqual(referees);
+      expect(component.teams()).toEqual(teams);
+      expect(component.referees()).toEqual(referees);
       expect(component.editMode).toBe(false);
       expect(component.model).toEqual({} as Match);
       expect(gradeService.findById).not.toHaveBeenCalled();
@@ -103,7 +111,7 @@ describe('MatchFormComponent', () => {
       const component = createComponent(makeMatch({gradeId: 5})).componentInstance;
 
       expect(gradeService.findById).toHaveBeenCalledWith(5);
-      expect(component.grade).toEqual(grade);
+      expect(component.grade()).toEqual(grade);
     });
 
     it('shows the mode in the drawer title', () => {
@@ -115,6 +123,105 @@ describe('MatchFormComponent', () => {
       const editFixture = createComponent(makeMatch());
       expect((editFixture.nativeElement as HTMLElement).querySelector('.drawer__title')?.textContent)
         .toContain('Edit match');
+    });
+  });
+
+  // RS-116: teams, referees and the stored grade arrive from HTTP after the drawer is
+  // already rendered, and the drawer used to show them only once something else happened
+  // to repaint the view.
+  //
+  // These run zoneless on purpose. TestBed is zone-based by default, which repaints a
+  // CheckAlways component on any async boundary and so hides the defect entirely — under
+  // zone-based change detection this block passes against the plain-field version too.
+  // Zoneless is both the mode the bug appeared in and the one the component must survive
+  // on its own, independently of what app.config.ts provides. The internal provider is the
+  // one `bootstrapApplication` prepends; the public `provideZonelessChangeDetection()` has
+  // the same providers but warns (NG0914) whenever zone.js is loaded, which every run of
+  // this suite is.
+  describe('selects filled from asynchronous responses', () => {
+    let teams$: Subject<Team[]>;
+    let referees$: Subject<Referee[]>;
+    let grade$: Subject<Grade>;
+
+    beforeEach(async () => {
+      teams$ = new Subject<Team[]>();
+      referees$ = new Subject<Referee[]>();
+      grade$ = new Subject<Grade>();
+      teamService.findAll.mockReturnValue(teams$);
+      refereeService.findAll.mockReturnValue(referees$);
+
+      TestBed.resetTestingModule();
+      await configureTestBed([provideZonelessChangeDetectionInternal()]);
+    });
+
+    function selectOf(fixture: ComponentFixture<MatchFormComponent>, id: string): HTMLSelectElement {
+      return (fixture.nativeElement as HTMLElement).querySelector<HTMLSelectElement>(id)!;
+    }
+
+    /** Option labels a user can actually pick — the hidden placeholders are not choices. */
+    function offeredOptions(select: HTMLSelectElement): string[] {
+      return Array.from(select.options).filter(option => !option.hidden).map(option => option.textContent!.trim());
+    }
+
+    function selectedLabel(select: HTMLSelectElement): string | null {
+      return select.selectedIndex < 0 ? null : select.options[select.selectedIndex].textContent!.trim();
+    }
+
+    /** Renders the drawer, then lets the responses land the way the network would. */
+    async function createAndDeliverResponses(match: Match | null): Promise<ComponentFixture<MatchFormComponent>> {
+      const fixture = createComponent(match);
+      fixture.autoDetectChanges();
+
+      // Nothing from the responses is rendered yet, so whatever the assertions below
+      // find got there because the responses themselves repainted the drawer.
+      expect(offeredOptions(selectOf(fixture, '#homeTeam'))).toEqual([]);
+
+      teams$.next(teams);
+      referees$.next(referees);
+      // No manual detectChanges() here on purpose.
+      await fixture.whenStable();
+      return fixture;
+    }
+
+    it('shows the edited match selections once the responses land', async () => {
+      const fixture = await createAndDeliverResponses(makeMatch());
+
+      expect(selectedLabel(selectOf(fixture, '#homeTeam'))).toBe('Alfa · Krakow');
+      expect(selectedLabel(selectOf(fixture, '#awayTeam'))).toBe('Beta · Gdansk');
+      expect(selectedLabel(selectOf(fixture, '#referee'))).toBe('Jan Kowalski');
+    });
+
+    it('offers every team but the opponent, and every referee, without any interaction', async () => {
+      const fixture = await createAndDeliverResponses(makeMatch());
+
+      // The opposite side is filtered out by the excludeValue pipe.
+      expect(offeredOptions(selectOf(fixture, '#homeTeam'))).toEqual(['Alfa · Krakow', 'Gamma · Lodz']);
+      expect(offeredOptions(selectOf(fixture, '#awayTeam'))).toEqual(['Beta · Gdansk', 'Gamma · Lodz']);
+      expect(offeredOptions(selectOf(fixture, '#referee')))
+        .toEqual(['Unassigned — run staffer to fill', 'Jan Kowalski', 'Anna Nowak']);
+    });
+
+    it('fills the add-mode selects too, with nothing preselected', async () => {
+      const fixture = await createAndDeliverResponses(null);
+
+      expect(offeredOptions(selectOf(fixture, '#homeTeam')))
+        .toEqual(['Alfa · Krakow', 'Beta · Gdansk', 'Gamma · Lodz']);
+      expect(offeredOptions(selectOf(fixture, '#referee')))
+        .toEqual(['Unassigned — run staffer to fill', 'Jan Kowalski', 'Anna Nowak']);
+      // Nothing real is preselected — the hidden placeholder still holds the selection.
+      expect(selectedLabel(selectOf(fixture, '#homeTeam'))).toBe('Home');
+    });
+
+    it('renders the stored grade once its response lands', async () => {
+      gradeService.findById.mockReturnValue(grade$);
+      const fixture = await createAndDeliverResponses(makeMatch({gradeId: 5}));
+
+      grade$.next({id: 5, value: 7.9, secondValue: 8.3});
+      await fixture.whenStable();
+
+      const input = (id: string) => (fixture.nativeElement as HTMLElement).querySelector<HTMLInputElement>(id)!;
+      expect(input('#grade').value).toBe('7.9');
+      expect(input('#secondGrade').value).toBe('8.3');
     });
   });
 
@@ -149,12 +256,12 @@ describe('MatchFormComponent', () => {
       matchService.save.mockReturnValue(of(saved));
       gradeService.save.mockReturnValue(of({id: 6, value: 7.9, secondValue: 8.3}));
 
-      component.grade.value = 7.9;
-      component.grade.secondValue = 8.3;
+      component.grade().value = 7.9;
+      component.grade().secondValue = 8.3;
       component.onSubmit(validForm);
 
-      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade);
-      expect(component.grade.secondValue).toBe(8.3);
+      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade());
+      expect(component.grade().secondValue).toBe(8.3);
     });
 
     it('saves an entered grade against the newly created match before emitting', () => {
@@ -166,15 +273,15 @@ describe('MatchFormComponent', () => {
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
-      component.grade.value = 8.4;
+      component.grade().value = 8.4;
       component.onSubmit(validForm);
 
       // The grade must be attached to the match id returned by the backend,
       // and `saved` must not fire until the grade round-trip finishes.
-      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade);
+      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade());
       expect(emitted).toEqual([]);
 
-      gradeSave.next(component.grade);
+      gradeSave.next(component.grade());
       expect(emitted).toEqual([saved]);
     });
   });
@@ -212,10 +319,10 @@ describe('MatchFormComponent', () => {
       createInEditMode(5, {id: 5, value: 7.5});
       gradeService.update.mockReturnValue(of({id: 5, value: 8.0}));
 
-      component.grade.value = 8.0;
+      component.grade().value = 8.0;
       component.onSubmit(validForm);
 
-      expect(gradeService.update).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.update).toHaveBeenCalledWith(component.grade());
       expect(gradeService.save).not.toHaveBeenCalled();
       expect(gradeService.delete).not.toHaveBeenCalled();
       expect(emitted).toEqual([updated]);
@@ -225,10 +332,10 @@ describe('MatchFormComponent', () => {
       createInEditMode();
       gradeService.save.mockReturnValue(of({id: 6, value: 8.2}));
 
-      component.grade.value = 8.2;
+      component.grade().value = 8.2;
       component.onSubmit(validForm);
 
-      expect(gradeService.save).toHaveBeenCalledWith(updated, component.grade);
+      expect(gradeService.save).toHaveBeenCalledWith(updated, component.grade());
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.delete).not.toHaveBeenCalled();
       expect(emitted).toEqual([updated]);
@@ -239,10 +346,10 @@ describe('MatchFormComponent', () => {
       const gradeDelete = new Subject<void>();
       gradeService.delete.mockReturnValue(gradeDelete);
 
-      component.grade.value = undefined as unknown as number;
+      component.grade().value = undefined as unknown as number;
       component.onSubmit(validForm);
 
-      expect(gradeService.delete).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.delete).toHaveBeenCalledWith(component.grade());
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.save).not.toHaveBeenCalled();
       // Emission waits for the delete to complete.
@@ -264,22 +371,22 @@ describe('MatchFormComponent', () => {
   describe('split grade input', () => {
     it('drops the second component when the first one is cleared', () => {
       const component = createComponent(null).componentInstance;
-      component.grade.value = 7.9;
-      component.grade.secondValue = 8.3;
+      component.grade().value = 7.9;
+      component.grade().secondValue = 8.3;
 
       component.onGradeValueChange(null);
 
-      expect(component.grade.secondValue).toBeUndefined();
+      expect(component.grade().secondValue).toBeUndefined();
     });
 
     it('keeps the second component while the first one has a value', () => {
       const component = createComponent(null).componentInstance;
-      component.grade.value = 7.9;
-      component.grade.secondValue = 8.3;
+      component.grade().value = 7.9;
+      component.grade().secondValue = 8.3;
 
       component.onGradeValueChange(8.0);
 
-      expect(component.grade.secondValue).toBe(8.3);
+      expect(component.grade().secondValue).toBe(8.3);
     });
   });
 });
