@@ -63,9 +63,10 @@ public class SpaFallbackErrorViewResolver implements ErrorViewResolver {
 
     /**
      * Note what cannot be checked here: the HTTP method. Tomcat presents the error dispatch as a
-     * GET regardless of the original request, so a POST to an unknown non-API path also ends up on
-     * the shell. Harmless — no browser posts to an Angular route, and every server namespace is
-     * excluded by path below, whatever the method.
+     * GET regardless of the original request, so {@code POST /referees} answers 200 with the shell
+     * where it used to answer 404. Harmless — no browser posts to an Angular route, and every
+     * server namespace is excluded by path below, whatever the method — and pinned by a spec so the
+     * behaviour is on record rather than merely described.
      */
     private static boolean isSpaNavigation(HttpServletRequest request, HttpStatus status) {
         if (status != HttpStatus.NOT_FOUND) {
@@ -84,7 +85,9 @@ public class SpaFallbackErrorViewResolver implements ErrorViewResolver {
                 ? errorUri
                 : request.getRequestURI();
         var contextPath = request.getContextPath();
-        if (StringUtils.hasText(contextPath) && uri.startsWith(contextPath)) {
+        // Segment boundary, same as isServerPath: a bare startsWith would maul /application/x
+        // into lication/x under a /app context path.
+        if (StringUtils.hasText(contextPath) && (uri.equals(contextPath) || uri.startsWith(contextPath + "/"))) {
             uri = uri.substring(contextPath.length());
         }
         return StringUtils.hasText(uri) ? uri : "/";
@@ -99,6 +102,12 @@ public class SpaFallbackErrorViewResolver implements ErrorViewResolver {
      * A missing asset ({@code /main-K7QZ4T3I.js}, {@code /favicon.ico}) must stay a 404: answering it
      * with HTML would feed the page a script that fails to parse instead of an honest error. Angular
      * routes carry no file extension, so a dot in the last segment is a good enough discriminator.
+     *
+     * <p>It cuts the other way too, and that is the constraint to remember: an Angular route whose
+     * last segment contains a dot ({@code /referees/jan.kowalski}) would be read as an asset and
+     * 404. Every route in {@code app.routes.ts} takes numeric ids today. Matching a list of known
+     * extensions instead would fail the other way — an unrecognised extension would be answered
+     * with the shell — so the dot stays, and the constraint is written down here and in CLAUDE.md.
      */
     private static boolean looksLikeStaticAsset(String path) {
         return path.substring(path.lastIndexOf('/') + 1).indexOf('.') >= 0;
