@@ -46,7 +46,7 @@ class SpaFallbackErrorViewResolverSpec extends Specification {
 
         where:
         path                          | _
-        '/api/referees/999'           | _   // a missing resource must stay a ProblemDetail 404
+        '/api/referees/999'           | _   // shaped like a real API call, which must never get the shell
         '/api'                        | _
         '/v3/api-docs/swagger-config' | _
         '/swagger-ui/index.html'      | _
