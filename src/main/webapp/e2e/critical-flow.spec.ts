@@ -24,9 +24,8 @@ const STAFFED_QUEUE = 3;
 const MATCHES_IN_STAFFED_QUEUE = 2;
 
 test('critical flow: import CSV, staff and save a queue, export the PDF, read standings', async ({ page }) => {
-  // The jar serves the SPA without a deep-link fallback (unknown paths 404), so the
-  // suite loads the app root once and then moves between screens via the shell nav,
-  // exactly as a user would.
+  // The flow is walked through the shell nav from the app root, exactly as a user would;
+  // deep-linking straight to a screen is covered by the last step (RS-98).
   await test.step('import the CSV dataset', async () => {
     await page.goto('/');
     await page.getByRole('link', { name: 'Import data' }).click();
@@ -107,5 +106,21 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     await expect(page.locator('table.tbl tbody tr')).toHaveCount(Number(EXPECTED.teams));
     await expect(page.getByText('No standings yet')).toHaveCount(0);
     await expect(page.locator('table.tbl tbody')).toContainText('Alpha FC');
+  });
+
+  await test.step('a deep link and a reload land on the requested screen', async () => {
+    // Regression net for RS-98: the jar has no route for /standings, so without the
+    // server-side SPA fallback both of these end on a whitelabel 404 instead of the app.
+    // The status is asserted as well as the render — the fallback answers the shell with an
+    // overridden 200, and a page that renders under a 404 would otherwise pass unnoticed.
+    const deepLink = await page.goto('/standings');
+    expect(deepLink?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: 'Standings' })).toBeVisible();
+    await expect(page.locator('table.tbl tbody tr')).toHaveCount(Number(EXPECTED.teams));
+
+    const reloaded = await page.reload();
+    expect(reloaded?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: 'Standings' })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe('/standings');
   });
 });
