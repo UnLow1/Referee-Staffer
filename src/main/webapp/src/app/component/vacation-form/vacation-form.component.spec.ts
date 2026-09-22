@@ -49,7 +49,7 @@ describe('VacationFormComponent', () => {
   it('sorts the referee select by last name', () => {
     const component = create(null).componentInstance;
 
-    expect(component.referees.map(r => r.lastName)).toEqual(['Adamski', 'Zielinski']);
+    expect(component.referees().map(r => r.lastName)).toEqual(['Adamski', 'Zielinski']);
   });
 
   it('copies the edited vacation into the model', () => {

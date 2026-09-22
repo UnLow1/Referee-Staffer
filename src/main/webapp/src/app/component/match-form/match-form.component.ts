@@ -21,10 +21,13 @@ import {IconComponent} from '../common/icon/icon.component';
  * while the form edits a separate `grade.value`; the save/update/delete decision tree
  * must stay intact.
  *
- * `teams` and `referees` are signals: they are filled from HTTP after the drawer is
- * already on screen, so the assignment itself has to mark the view dirty (RS-116).
- * `model` and `grade` stay plain objects — they are two-way bound form state, written
- * synchronously from the @Input (model) or by user input, which repaints on its own.
+ * Every field filled from HTTP after the drawer is already on screen lives in a signal,
+ * so the write itself marks the view dirty (RS-116). That covers `teams`, `referees` and
+ * `grade`. `grade` is a signal used as a box: `set()` is what the async load needs, while
+ * the two-way `[(ngModel)]` bindings keep mutating the object in place — those edits come
+ * from DOM events, which schedule change detection on their own. `model` stays a plain
+ * object: it is written synchronously from the @Input before the first render, so it
+ * never races the view.
  */
 @Component({
   selector: 'app-match-form',
@@ -46,7 +49,7 @@ export class MatchFormComponent implements OnInit {
   readonly teams = signal<Team[]>([]);
   readonly referees = signal<Referee[]>([]);
   model: Match = {} as Match;
-  grade: Grade = {} as Grade;
+  readonly grade = signal<Grade>({} as Grade);
 
   get editMode(): boolean {
     return this.match != null;
@@ -62,7 +65,7 @@ export class MatchFormComponent implements OnInit {
     if (this.match) {
       this.model = {...this.match};
       if (this.match.gradeId) {
-        this.gradeService.findById(this.match.gradeId).subscribe(grade => this.grade = grade);
+        this.gradeService.findById(this.match.gradeId).subscribe(grade => this.grade.set(grade));
       }
     }
   }
@@ -72,18 +75,18 @@ export class MatchFormComponent implements OnInit {
     if (this.editMode)
       this.matchService.update(this.model).subscribe(match => {
         if (this.isGradeUpdated())
-          this.gradeService.update(this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.update(this.grade()).subscribe(() => this.saved.emit(match));
         else if (this.isNewGradeAdded())
-          this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.save(match, this.grade()).subscribe(() => this.saved.emit(match));
         else if (this.isGradeRemoved())
-          this.gradeService.delete(this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.delete(this.grade()).subscribe(() => this.saved.emit(match));
         else
           this.saved.emit(match);
       });
     else
       this.matchService.save(this.model).subscribe(match => {
         if (this.isNewGradeAdded())
-          this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.save(match, this.grade()).subscribe(() => this.saved.emit(match));
         else
           this.saved.emit(match);
       });
@@ -91,21 +94,21 @@ export class MatchFormComponent implements OnInit {
 
   /** Gates the second grade input — a split grade needs its first component first. */
   get gradeValueMissing(): boolean {
-    return this.grade.value == null;
+    return this.grade().value == null;
   }
 
   onGradeValueChange(value: number | null): void {
     // A split grade can't consist of the second component alone — clearing the first
     // part drops the second one too (the input is disabled in that state anyway).
-    if (value == null) this.grade.secondValue = undefined;
+    if (value == null) this.grade().secondValue = undefined;
   }
 
   private isGradeRemoved() {
-    return this.grade.id;
+    return this.grade().id;
   }
 
   private isNewGradeAdded() {
-    return this.grade.value;
+    return this.grade().value;
   }
 
   private isGradeUpdated() {

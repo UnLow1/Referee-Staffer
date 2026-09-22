@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Vacation} from '../../model/vacation';
 import {Referee} from '../../model/referee';
@@ -14,6 +14,10 @@ import {IconComponent} from '../common/icon/icon.component';
  * type="date" inputs; since Angular's min/max validators don't cover dates, the
  * end-after-start rule is enforced via `endBeforeStart` (ISO strings compare
  * lexicographically) and folded into the drawer's `valid` input.
+ *
+ * `referees` is a signal because it is filled from HTTP after the drawer is already on
+ * screen — the same defect class as RS-116 in the match form. `model` stays a plain
+ * object: it is two-way bound form state written synchronously from the @Input.
  */
 @Component({
   selector: 'app-vacation-form',
@@ -30,7 +34,7 @@ export class VacationFormComponent implements OnInit {
   @Output() saved = new EventEmitter<Vacation>();
   @Output() closed = new EventEmitter<void>();
 
-  referees: Referee[] = [];
+  readonly referees = signal<Referee[]>([]);
   model: Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'> = {
     refereeId: undefined as unknown as number,
     startDate: undefined as unknown as Date,
@@ -48,7 +52,7 @@ export class VacationFormComponent implements OnInit {
 
   ngOnInit(): void {
     this.refereeService.findAll().subscribe(referees => {
-      this.referees = [...referees].sort((a, b) => (a.lastName ?? '').localeCompare(b.lastName ?? ''));
+      this.referees.set([...referees].sort((a, b) => (a.lastName ?? '').localeCompare(b.lastName ?? '')));
     });
     if (this.vacation) {
       const {refereeId, startDate, endDate} = this.vacation;

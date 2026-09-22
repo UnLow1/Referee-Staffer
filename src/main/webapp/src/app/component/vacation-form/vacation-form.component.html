@@ -11,7 +11,7 @@
       <label class="lbl" for="referee">Referee<span class="req">*</span></label>
       <select class="select" id="referee" name="referee" [(ngModel)]="model.refereeId" required #referee="ngModel">
         <option [ngValue]="undefined" disabled hidden>Choose referee</option>
-        @for (ref of referees; track ref.id) {
+        @for (ref of referees(); track ref.id) {
           <option [ngValue]="ref.id">{{ ref.firstName }} {{ ref.lastName }}</option>
         }
       </select>
