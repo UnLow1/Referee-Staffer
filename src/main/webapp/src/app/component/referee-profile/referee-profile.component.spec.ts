@@ -37,9 +37,9 @@ describe('RefereeProfileComponent', () => {
   }
 
   const teams: Team[] = [
-    {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Krakow', points: 35},
-    {id: 3, name: 'Gamma', city: 'Gdansk', points: 30}
+    {id: 1, name: 'Alfa', city: 'Krakow'},
+    {id: 2, name: 'Beta', city: 'Krakow'},
+    {id: 3, name: 'Gamma', city: 'Gdansk'}
   ];
   const grades: Grade[] = [{id: 500, value: 8.5}];
 

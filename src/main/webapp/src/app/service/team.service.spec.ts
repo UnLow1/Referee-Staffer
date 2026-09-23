@@ -10,7 +10,7 @@ import {Standings} from '../model/standing';
 
 describe('TeamService', () => {
   const teamsUrl = '/api/teams';
-  const team: Team = {id: 1, name: 'Legia', city: 'Warszawa', points: 42, short: 'LEG'};
+  const team: Team = {id: 1, name: 'Legia', city: 'Warszawa', short: 'LEG'};
 
   let service: TeamService;
   let httpTesting: HttpTestingController;
@@ -96,7 +96,7 @@ describe('TeamService', () => {
   it('getStandings GETs the standings endpoint', () => {
     const standings: Standings = {
       afterQueue: 12,
-      rows: [{...team, place: 1, played: 10, wins: 8, draws: 1, losses: 1, goalsFor: 20, goalsAgainst: 7}]
+      rows: [{...team, points: 25, place: 1, played: 10, wins: 8, draws: 1, losses: 1, goalsFor: 20, goalsAgainst: 7}]
     };
     let result: Standings | undefined;
     service.getStandings().subscribe(response => result = response);

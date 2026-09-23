@@ -10,7 +10,7 @@ import {createMock} from '../../testing/mock';
 describe('TeamFormComponent', () => {
   let teamService: MockedObject<TeamService>;
 
-  const existing: Team = {id: 3, name: 'Alfa', city: 'Krakow', points: 40, short: 'ALF'};
+  const existing: Team = {id: 3, name: 'Alfa', city: 'Krakow', short: 'ALF'};
   const validForm = {valid: true} as NgForm;
 
   beforeEach(async () => {
@@ -53,7 +53,7 @@ describe('TeamFormComponent', () => {
 
   it('saves a new team and emits the backend response', () => {
     const component = create(null).componentInstance;
-    const saved: Team = {id: 10, name: 'Beta', city: 'Gdansk', points: 0};
+    const saved: Team = {id: 10, name: 'Beta', city: 'Gdansk'};
     teamService.save.mockReturnValue(of(saved));
     const emitted: Team[] = [];
     component.saved.subscribe(t => emitted.push(t));
@@ -73,7 +73,7 @@ describe('TeamFormComponent', () => {
     component.onSubmit(validForm);
 
     expect(teamService.update).toHaveBeenCalledWith(expect.objectContaining({
-      id: 3, name: 'Alfa', city: 'Wieliczka', points: 40, short: 'ALF'
+      id: 3, name: 'Alfa', city: 'Wieliczka', short: 'ALF'
     }));
     expect(teamService.save).not.toHaveBeenCalled();
   });

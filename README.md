@@ -59,7 +59,7 @@ where
 $\mu$ = `DIFFICULTY_LEVEL_MULTIPLIER` [1.0], $\lambda$ = `DIFFICULTY_LEVEL_INCREMENTER` [100.0] <br>
 $\Delta P_{i}$ - absolute difference in league points between the two teams in match $i$ (closer teams ⇒ harder match) <br>
 $\sigma$ = `DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER` [10.0], $\tau$ = `DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER` [7.0], $\beta_{L}$ = `DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER` [5.0] <br>
-$N$ = `NUMBER_OF_EDGE_TEAMS` [3], $M$ - total number of teams in the database (ranked or not)
+$N$ = `NUMBER_OF_EDGE_TEAMS` [3], $M$ - number of teams in the standings (every team, see below)
 
 $$C_{i} = \begin{cases} 1 & \text{both teams share a (non-null) city — a derby} \\ 0 & \text{otherwise} \end{cases}$$
 
@@ -69,8 +69,10 @@ $$L_{i} = \begin{cases} 1 & \text{both teams' places} > M - N \text{ (bottom edg
 
 The edge is configurable, not the hard-coded "top 3 / last 3" this README used to describe: with
 the default $N = 3$ it happens to mean top-3 / bottom-3. At most one of $T_{i}$, $L_{i}$ can be 1.
-Both bonuses are suppressed when either team has no place yet: only teams that have appeared in
-a finished match are ranked, so an unranked team can never count as a top- or bottom-edge side.
+Both bonuses stay at 0 until the season's first finished match: before that every team is level
+and the table is only alphabetical. From then on the standings rank **every** team, including
+ones with no finished match yet — they sort to the bottom of the table with zeroed stats. Ties
+break by goal difference, then goals scored, then name.
 
 ### Referee's effective value
 
