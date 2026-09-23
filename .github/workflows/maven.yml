@@ -30,11 +30,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up JDK 26
+      # Keep in sync with java.version in pom.xml and with the same step in
+      # codeql-analysis.yml and e2e.yml — all four move together or the build
+      # fails with "invalid target release".
+      - name: Set up JDK 27
         uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
-          java-version: '26'
+          java-version: '27'
           cache: 'maven'
 
       # -DskipFrontend=true skips the frontend-maven-plugin executions
@@ -42,6 +45,32 @@ jobs:
       # workflow (frontend.yml).
       - name: Build with Maven (backend only)
         run: mvn -B -DskipFrontend=true package --file pom.xml
+
+      # pom.xml sets <skipBytecodeCheck>true</skipBytecodeCheck> on gmavenplus,
+      # which disables the plugin's own validation of targetBytecode. Groovy does
+      # not fail on an unrecognized value either: CompilerConfiguration snaps it to
+      # the nearest lower JDK it knows. A stale targetBytecode would therefore
+      # downgrade the emitted spec bytecode and still build green, so assert the
+      # class file version here. Expected major = java.version + 44 (27 -> 71).
+      - name: Verify emitted spec bytecode matches java.version
+        run: |
+          java_version=$(sed -n 's|.*<java\.version>\([0-9]\{1,\}\)</java\.version>.*|\1|p' pom.xml)
+          if [ -z "$java_version" ]; then
+            echo "Could not read <java.version> from pom.xml"
+            exit 1
+          fi
+          expected=$((java_version + 44))
+          spec_class=$(find target/test-classes -name '*Spec.class' | sort | head -n 1)
+          if [ -z "$spec_class" ]; then
+            echo "No compiled *Spec class found under target/test-classes"
+            exit 1
+          fi
+          actual=$(javap -v "$spec_class" | sed -n 's/.*major version: \([0-9]\{1,\}\).*/\1/p' | head -n 1)
+          echo "$spec_class: major version $actual (java.version=$java_version, expected $expected)"
+          if [ "$actual" != "$expected" ]; then
+            echo "Spec bytecode is major $actual but java.version=$java_version expects $expected"
+            exit 1
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7

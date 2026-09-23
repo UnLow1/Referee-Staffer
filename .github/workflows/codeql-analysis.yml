@@ -50,11 +50,14 @@ jobs:
         # Prefix the list here with "+" to use these queries and those in the config file.
         # queries: ./path/to/local/query, your-org/your-repo/queries@main
 
-    - name: Set up JDK 26
+    # Keep in sync with java.version in pom.xml and with the same step in
+    # maven.yml and e2e.yml — autobuild compiles the project, so a stale JDK
+    # here fails with "invalid target release".
+    - name: Set up JDK 27
       uses: actions/setup-java@v6
       with:
         distribution: 'temurin'
-        java-version: '26'
+        java-version: '27'
         cache: 'maven'
 
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
