@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -117,26 +118,36 @@ public class MatchService {
      * {@code Team} instances are different objects and {@code Team} has no
      * {@code equals}/{@code hashCode} (see RS-75).
      *
-     * <p>The read-model ranks every persisted team, so in production {@link #placeOf} is
-     * null only for a team that is not in the table at all — a match referencing a team
-     * deleted between the two queries. Such a match simply gets no edge-zone bonus.
+     * <p>Both lookups fall back for a team the table does not list, and those fallbacks are
+     * unreachable rather than a real case: the read-model gives every persisted team a row,
+     * and a team cannot be deleted out from under a match anyway ({@code Match.home}/
+     * {@code away} are FK columns and {@code teamRepository.deleteById} does not cascade, so
+     * the delete fails instead). They exist so a future caller handing in a partial table
+     * gets no zone bonus rather than an NPE. Note they are not symmetric — a missing team
+     * reads as 0 points, which the base part still scores as "level on points", while a
+     * missing place skips the zone check entirely. Distinguishing the two would need a
+     * sentinel the production path can never produce.
      *
-     * @param size number of ranked teams, i.e. the divisor the bottom zone is measured
-     *             against. It is the table's own row count rather than a separate
-     *             {@code teamRepository.count()}: before RS-99 those were two different
-     *             populations (only teams with a finished match were ranked, but the
-     *             divisor counted all of them), which kept the bottom-of-table bonus from
-     *             ever firing early in a season.
+     * @param ranked whether the table is backed by at least one finished match. An
+     *               all-zero table orders purely on team name, which is not a ranking, so
+     *               the edge zones stay closed until the season has produced a result.
      */
-    public record LeagueTable(Map<Long, Short> pointsByTeamId, Map<Long, Short> placeByTeamId, int size) {
+    public record LeagueTable(Map<Long, Short> pointsByTeamId, Map<Long, Short> placeByTeamId, boolean ranked) {
 
-        /** Projects the standings rows onto the two lookups the scoring needs. */
+        /**
+         * Projects the standings rows onto the two lookups the scoring needs. {@code toMap}
+         * is fail-fast here (NPE on a null id, ISE on a duplicate) rather than last-write-
+         * wins; both need a team without a primary key to reach this, which persistence
+         * rules out.
+         */
         public static LeagueTable from(StandingsDto standings) {
-            var pointsByTeamId = standings.rows().stream()
-                    .collect(Collectors.toMap(StandingsDto.Row::id, StandingsDto.Row::points));
-            var placeByTeamId = standings.rows().stream()
-                    .collect(Collectors.toMap(StandingsDto.Row::id, StandingsDto.Row::place));
-            return new LeagueTable(pointsByTeamId, placeByTeamId, standings.rows().size());
+            var pointsByTeamId = new HashMap<Long, Short>();
+            var placeByTeamId = new HashMap<Long, Short>();
+            for (var row : standings.rows()) {
+                pointsByTeamId.put(row.id(), row.points());
+                placeByTeamId.put(row.id(), row.place());
+            }
+            return new LeagueTable(pointsByTeamId, placeByTeamId, standings.afterQueue() != null);
         }
 
         public short pointsOf(Team team) {
@@ -145,6 +156,17 @@ public class MatchService {
 
         public Short placeOf(Team team) {
             return placeByTeamId.get(team.getId());
+        }
+
+        /**
+         * Number of ranked teams — the divisor the bottom zone is measured against. Derived
+         * from the places themselves so it cannot drift from the population that was ranked:
+         * that drift was the RS-99 bug, where places went only to teams with a finished
+         * match while the divisor counted every team, leaving {@code place > size - edge}
+         * unreachable early in a season.
+         */
+        public int size() {
+            return placeByTeamId.size();
         }
     }
 
@@ -256,9 +278,15 @@ public class MatchService {
     /** Returns [top, bottom] — at most one of them can be non-zero. */
     private double[] computeEdgeMatchParts(Team homeTeam, Team awayTeam, LeagueTable table,
                                            Map<ConfigName, Double> config) {
-        // place is null only for a team the table does not know at all; the read-model
-        // gives every persisted team a row, so this is the deleted-between-queries case.
-        // Such a match cannot be classified as a top- or bottom-of-table fixture.
+        // Before the first result of the season every team is level on 0/0/0, so the table
+        // order is the alphabet and nothing is genuinely top or bottom of it. Zones open
+        // once a match has been played; from then on a team that has not played yet does
+        // get a place and can be classified, which is the behaviour change RS-99 accepted.
+        if (!table.ranked()) {
+            return new double[]{0.0, 0.0};
+        }
+        // A null place means the table does not list the team at all — defensive only, see
+        // LeagueTable. Such a match cannot be classified as a top- or bottom-of-table fixture.
         var homePlace = table.placeOf(homeTeam);
         var awayPlace = table.placeOf(awayTeam);
         if (homePlace == null || awayPlace == null) {
