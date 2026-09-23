@@ -135,10 +135,11 @@ public class MatchService {
     public record LeagueTable(Map<Long, Short> pointsByTeamId, Map<Long, Short> placeByTeamId, boolean ranked) {
 
         /**
-         * Projects the standings rows onto the two lookups the scoring needs. {@code toMap}
-         * is fail-fast here (NPE on a null id, ISE on a duplicate) rather than last-write-
-         * wins; both need a team without a primary key to reach this, which persistence
-         * rules out.
+         * Projects the standings rows onto the two lookups the scoring needs, in a single
+         * pass. Unlike the {@code Collectors.toMap} it replaced, this is last-write-wins and
+         * tolerates a null id rather than throwing — both need a {@code Team} without a
+         * primary key or two rows for one team, neither of which {@code findAll()} on a
+         * persisted table can produce.
          */
         public static LeagueTable from(StandingsDto standings) {
             var pointsByTeamId = new HashMap<Long, Short>();
