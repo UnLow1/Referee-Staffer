@@ -106,7 +106,7 @@ export class MatchDetailComponent implements OnInit {
     if (!h || !a) return [];
     return [
       {label: 'Position', home: hp != null ? `#${hp}` : '—', away: ap != null ? `#${ap}` : '—', bar: false},
-      {label: 'Points', home: h.points ?? 0, away: a.points ?? 0, bar: true},
+      {label: 'Points', home: h.points, away: a.points, bar: true},
       {label: 'Wins', home: h.wins, away: a.wins, bar: true},
       {label: 'Draws', home: h.draws, away: a.draws, bar: true},
       {label: 'Losses', home: h.losses, away: a.losses, bar: true},

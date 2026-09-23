@@ -15,6 +15,14 @@ import java.util.stream.IntStream;
 @Service
 public class TeamService {
 
+    /**
+     * League points per result. They live here because this service owns the only
+     * table computation in the app — {@code MatchService} consumes the resulting rows
+     * rather than re-deriving points of its own (RS-99).
+     */
+    static final short POINTS_FOR_WIN_MATCH = 3;
+    static final short POINTS_FOR_DRAW_MATCH = 1;
+
     /** Shared zeroed stats for teams without a finished match — never mutated. */
     private static final TeamStats NO_MATCHES = new TeamStats();
 
@@ -28,9 +36,12 @@ public class TeamService {
 
     /**
      * Builds the full league table from finished matches. Every team is included —
-     * teams without a finished match get zeroed stats and sort to the bottom. Points
-     * use the same weights as {@link MatchService#calculatePointsForTeams} (shared
-     * constants); ties break by goal difference, then goals scored, then name.
+     * teams without a finished match get zeroed stats and sort to the bottom. Ties
+     * break by goal difference, then goals scored, then name.
+     *
+     * <p>Since RS-99 this is the single table computation in the app: it serves
+     * {@code GET /api/teams/standings} and, through {@link MatchService.LeagueTable},
+     * also the staffer and the difficulty breakdown.
      */
     public StandingsDto getStandings() {
         var finishedMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
@@ -100,7 +111,7 @@ public class TeamService {
         }
 
         int points() {
-            return wins * MatchService.POINTS_FOR_WIN_MATCH + draws * MatchService.POINTS_FOR_DRAW_MATCH;
+            return wins * POINTS_FOR_WIN_MATCH + draws * POINTS_FOR_DRAW_MATCH;
         }
 
         int goalDifference() {

@@ -13,6 +13,8 @@ import com.jamex.refereestaffer.repository.TeamRepository
 import spock.lang.Specification
 import spock.lang.Subject
 
+import java.time.LocalDateTime
+
 class MatchServiceSpec extends Specification {
 
     @Subject
@@ -27,8 +29,13 @@ class MatchServiceSpec extends Specification {
     def setup() {
         // The converter is a pure mapper since RS-71, so the real one is used instead of a mock —
         // these features then cover the whole resolve-references + convert path end to end.
+        // TeamService is real for the same reason: since RS-99 it owns the only league-table
+        // computation, so a mock here would let the table's ranking rules (which decide the
+        // zone bonuses asserted below) drift away from what production scores against. The
+        // mocks stay at the repository boundary.
         matchService = new MatchService(matchRepository, gradeRepository, configurationRepository,
-                teamRepository, refereeRepository, new MatchConverter())
+                teamRepository, refereeRepository, new MatchConverter(),
+                new TeamService(teamRepository, matchRepository))
     }
 
     def "should save match with references resolved by bulk queries"() {
@@ -198,103 +205,37 @@ class MatchServiceSpec extends Specification {
         1 * matchRepository.delete(match)
     }
 
-    def "should calculate points for teams"() {
-        given:
-        def team1 = [id: 1L] as Team
-        def team2 = [id: 2L] as Team
-        def team3 = [id: 3L] as Team
-        def match1 = [homeScore: 2, awayScore: 0, home: team1, away: team2] as Match
-        def match2 = [homeScore: 1, awayScore: 1, home: team3, away: team2] as Match
-        def match3 = [homeScore: 2, awayScore: 3, home: team1, away: team3] as Match
-        def matches = [match1, match2, match3]
-
-        when:
-        def table = matchService.calculatePointsForTeams(matches)
-
-        then: "the returned table is keyed by team id"
-        table.pointsOf(team1) == MatchService.POINTS_FOR_WIN_MATCH
-        table.pointsOf(team2) == MatchService.POINTS_FOR_DRAW_MATCH
-        table.pointsOf(team3) == (short) (MatchService.POINTS_FOR_DRAW_MATCH + MatchService.POINTS_FOR_WIN_MATCH)
-        table.placeOf(team1) == (short) 2
-        table.placeOf(team2) == (short) 3
-        table.placeOf(team3) == (short) 1
-
-        and: "the transient entity fields still mirror it — removing them is RS-99"
-        team1.points == MatchService.POINTS_FOR_WIN_MATCH
-        team2.points == MatchService.POINTS_FOR_DRAW_MATCH
-        team3.points == (short) (MatchService.POINTS_FOR_DRAW_MATCH + MatchService.POINTS_FOR_WIN_MATCH)
-        team1.place == (short) 2
-        team2.place == (short) 3
-        team3.place == (short) 1
-    }
-
-    def "should rank teams on equal points in the order they were first encountered"() {
-        given: "team2 and team3 both finish on 3 points"
-        def team1 = [id: 1L] as Team
-        def team2 = [id: 2L] as Team
-        def team3 = [id: 3L] as Team
-        def matches = [
-                [homeScore: 0, awayScore: 1, home: team1, away: team2] as Match,
-                [homeScore: 1, awayScore: 0, home: team3, away: team1] as Match
-        ]
-
-        when:
-        def table = matchService.calculatePointsForTeams(matches)
-
-        then: "the tie keeps encounter order — team2 appears before team3 in the match list"
-        table.pointsOf(team2) == table.pointsOf(team3)
-        table.placeOf(team2) == (short) 1
-        table.placeOf(team3) == (short) 2
-        table.placeOf(team1) == (short) 3
-    }
-
-    def "should not apply edge-match bonus when at least one team is unranked"() {
-        given: "only the winner and loser have played — the other two are absent from the table"
+    def "should not apply edge-match bonus when a team is missing from the table"() {
+        given: "the away team is absent from the standings — deleted between the two queries"
         short queue = 2
-        def winner = [id: 1L, city: "city1"] as Team
-        def loser = [id: 2L, city: "city2"] as Team
-        def unranked = [id: 3L, city: "city3"] as Team
-        def alsoUnranked = [id: 4L, city: "city4"] as Team
-        def finishedMatches = [[homeScore: 2, awayScore: 0, home: winner, away: loser] as Match]
-        // All four cities differ, so no permutation accidentally becomes a derby and reaches
-        // for a same-city incrementer that is deliberately absent from the config below.
-        def matchToAssign = Match.builder()
-                .home(homeIsRanked ? winner : unranked)
-                .away(awayIsRanked ? loser : alsoUnranked)
-                .build()
-        def matchHardnessLvlMultiplier = 1.0d
-        def matchHardnessIncrementer = 100.0d
+        def home = team(1L, "Alfa", "city1")
+        def away = team(2L, "Beta", "city2")
+        def matchToAssign = Match.builder().home(home).away(away).build()
 
         when:
         def result = matchService.getMatchesToAssignInQueue(queue)
 
         then:
-        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> finishedMatches
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
+        1 * teamRepository.findAll() >> [home]
         1 * matchRepository.findAllByQueue(queue) >> [matchToAssign]
-        // Deliberately no edge/top/bottom keys in the map — the unranked guard must return
-        // before those values are ever read (a lookup would NPE and fail the test).
+        // Deliberately no edge/top/bottom keys in the map — the missing-team guard must
+        // return before those values are ever read (a lookup would NPE and fail the test).
         1 * configurationRepository.findAllAsMap() >> [
-                (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) : matchHardnessLvlMultiplier,
-                (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): matchHardnessIncrementer
+                (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) : 1.0d,
+                (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): 100.0d
         ]
-        1 * teamRepository.count() >> 4
 
-        and: "only the winner carries points, so the gap is 3 when it is in the fixture"
-        result.get(0).hardnessLvl == (matchHardnessIncrementer - expectedPointsDiff) * matchHardnessLvlMultiplier
-
-        where:
-        homeIsRanked | awayIsRanked | expectedPointsDiff
-        false        | false        | 0
-        false        | true         | 0
-        true         | false        | MatchService.POINTS_FOR_WIN_MATCH
+        and: "only the base part is scored"
+        result.get(0).hardnessLvl == 100.0d
     }
 
     def "should get matches to assign for given queue and set hardness level from the computed table"() {
         given: "team1 beat team2 2:0, so the table reads 3 pts / place 1 against 0 pts / place 2"
         short queue = 2
-        def team1 = [id: 1L, city: "city1"] as Team
-        def team2 = [id: 2L, city: "city2"] as Team
-        def finishedMatches = [[homeScore: 2, awayScore: 0, home: team1, away: team2] as Match]
+        def team1 = team(1L, "Alfa", "city1")
+        def team2 = team(2L, "Beta", "city2")
+        def finishedMatches = [finished(team1, team2, 2, 0)]
         def matchToAssign = Match.builder().home(team1).away(team2).build()
         def matchHardnessLvlMultiplier = 2.5d
         def matchHardnessIncrementer = 100.0d
@@ -313,17 +254,146 @@ class MatchServiceSpec extends Specification {
                 (ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER): 11.0d,
                 (ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER): 7.0d
         ]
-        1 * teamRepository.count() >> 2
+        1 * teamRepository.findAll() >> [team1, team2]
 
         and: "hardness reflects the 3-point gap; the pair straddles the single-team edge zones"
-        result.get(0).hardnessLvl == (matchHardnessIncrementer - MatchService.POINTS_FOR_WIN_MATCH) * matchHardnessLvlMultiplier
+        result.get(0).hardnessLvl == (matchHardnessIncrementer - TeamService.POINTS_FOR_WIN_MATCH) * matchHardnessLvlMultiplier
+    }
+
+    def "should classify top-of-table matches by the tie-broken table order, not by encounter order"() {
+        given: "three teams on 3 points each — only goal difference separates them"
+        short queue = 4
+        def alfa = team(1L, "Alfa", "city1")
+        def beta = team(2L, "Beta", "city2")
+        def gamma = team(3L, "Gamma", "city3")
+        def delta = team(4L, "Delta", "city4")
+        def epsilon = team(5L, "Epsilon", "city5")
+        // Encounter order (gamma first, alfa last) is deliberately the reverse of the
+        // goal-difference order the table sorts by.
+        def finishedMatches = [finished(gamma, delta, 1, 0),   // gamma +1
+                               finished(beta, epsilon, 2, 0),  // beta  +2
+                               finished(alfa, delta, 3, 0)]    // alfa  +3
+        def alfaVsBeta = Match.builder().id(10l).home(alfa).away(beta).build()
+        def gammaVsBeta = Match.builder().id(11l).home(gamma).away(beta).build()
+
+        when:
+        def result = matchService.getMatchesToAssignInQueue(queue)
+
+        then:
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> finishedMatches
+        1 * teamRepository.findAll() >> [alfa, beta, gamma, delta, epsilon]
+        1 * matchRepository.findAllByQueue(queue) >> [gammaVsBeta, alfaVsBeta]
+        1 * configurationRepository.findAllAsMap() >> configWithEdgeTeams(2.0d)
+
+        and: "alfa (GD +3) and beta (GD +2) hold places 1-2, so only their match is a top match"
+        // The pre-RS-99 ranking sorted on points alone and kept encounter order for ties,
+        // which put gamma 1st and alfa 3rd — the top bonus would have landed on the other
+        // match. Both fixtures are goalless in points terms (3 vs 3), so base is identical
+        // and the 7.0 is the whole difference.
+        result*.id == [10l, 11l]
+        result[0].hardnessLvl == 107.0d
+        result[1].hardnessLvl == 100.0d
+    }
+
+    def "should rank a team without a finished match and let it reach a table zone"() {
+        given: "only alfa and beta have played; gamma and delta have not"
+        def matchId = 31l
+        def alfa = team(1L, "Alfa", "city1")
+        def beta = team(2L, "Beta", "city2")
+        def gamma = team(3L, "Gamma", "city3")
+        def delta = team(4L, "Delta", "city4")
+        def finishedMatches = [finished(alfa, beta, 2, 0)]
+        // Table: alfa 1st (3 pts), then the two goalless newcomers, which are level on
+        // points, goal difference and goals scored, so the name breaks the tie —
+        // "Delta" < "Gamma", hence delta 2nd and gamma 3rd — and beta last on GD -2.
+        def match = Match.builder().id(matchId).home(alfa).away(delta).build()
+
+        when:
+        def result = matchService.computeDifficultyBreakdown(matchId)
+
+        then:
+        1 * matchRepository.findById(matchId) >> Optional.of(match)
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> finishedMatches
+        1 * teamRepository.findAll() >> [alfa, beta, gamma, delta]
+        1 * configurationRepository.findAllAsMap() >> configWithEdgeTeams(2.0d)
+
+        and: "delta counts as a top-2 side even though it has never played"
+        // Before RS-99 delta was unranked, the edge check bailed out on the null place and
+        // the match scored a flat 97.0.
+        result.flags().isTop()
+        !result.flags().isBot()
+        result.parts().base() == 97.0d
+        result.parts().top() == 7.0d
+        result.total() == 104.0d
+    }
+
+    def "should not apply edge-match bonuses before the season has produced a result"() {
+        given: "four teams and no finished match at all"
+        short queue = 1
+        def alfa = team(1L, "Alfa", "city1")
+        def beta = team(2L, "Beta", "city2")
+        def gamma = team(3L, "Gamma", "city3")
+        def delta = team(4L, "Delta", "city4")
+        // Every team is level on 0 pts / 0 GD / 0 GF, so the table order is nothing but the
+        // alphabet: Alfa, Beta, Delta, Gamma. Classifying the first two as a top-of-table
+        // fixture and the last two as a relegation six-pointer would make the club name
+        // decide the staffing order, so the zones stay shut until something has been played.
+        def alphabeticallyFirst = Match.builder().id(41l).home(alfa).away(beta).build()
+        def alphabeticallyLast = Match.builder().id(42l).home(delta).away(gamma).build()
+
+        when:
+        def result = matchService.getMatchesToAssignInQueue(queue)
+
+        then:
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
+        1 * teamRepository.findAll() >> [alfa, beta, gamma, delta]
+        1 * matchRepository.findAllByQueue(queue) >> [alphabeticallyFirst, alphabeticallyLast]
+        1 * configurationRepository.findAllAsMap() >> configWithEdgeTeams(2.0d)
+
+        and: "both fixtures score the bare base part — no top, no bottom"
+        // With the zones open these would have been 107.0 (places 1-2) and 105.0 (places
+        // 3-4) instead, on an empty table.
+        result*.hardnessLvl == [100.0d, 100.0d]
+        result.every { it.hardnessLvl == 100.0d }
+    }
+
+    def "should apply the bottom-of-table bonus early in the season"() {
+        given: "eight teams and a single finished match"
+        def matchId = 21l
+        // Zero-padded so the name tie-break is plain lexicographic order with no surprises
+        // (unpadded, "Team10" would sort ahead of "Team2" as soon as the fixture grows).
+        def teams = (1..8).collect { team(it as long, "Team%02d".formatted(it), "city$it") }
+        def finishedMatches = [finished(teams[0], teams[1], 2, 0)]
+        // Places: Team01 1st (3 pts), then Team03..Team08 on 0 pts / GD 0 / GF 0 — a full
+        // tie the table breaks by name — as 2nd..7th, and Team02 last on GD -2. So
+        // Team07 = 6th, Team08 = 7th, both inside `place > 8 - 3`.
+        def match = Match.builder().id(matchId).home(teams[6]).away(teams[7]).build()
+
+        when:
+        def result = matchService.computeDifficultyBreakdown(matchId)
+
+        then:
+        1 * matchRepository.findById(matchId) >> Optional.of(match)
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> finishedMatches
+        1 * teamRepository.findAll() >> teams
+        1 * configurationRepository.findAllAsMap() >> configWithEdgeTeams(3.0d)
+
+        and: "both sit inside the bottom-3 zone of an eight-team table"
+        // This is the silent bug RS-99 fixes: the zone was measured against all eight teams
+        // while only the two with a finished match were ranked, so `place > 8 - 3` was
+        // unreachable and the bonus never fired this early. Total used to be 100.0.
+        result.flags().isBot()
+        !result.flags().isTop()
+        result.parts().base() == 100.0d
+        result.parts().bottom() == 5.0d
+        result.total() == 105.0d
     }
 
     def "should score the breakdown from the table across derby and edge-zone permutations"() {
         given:
         def matchId = 7l
-        def homeTeam = [id: 1L, city: "city1"] as Team
-        def awayTeam = [id: 2L, city: awayTeamCity] as Team
+        def homeTeam = team(1L, "Alfa", "city1")
+        def awayTeam = team(2L, "Beta", awayTeamCity)
         def match = Match.builder().id(matchId).home(homeTeam).away(awayTeam).build()
         def table = leagueTable([(1L): 10, (2L): 30], [(1L): 2, (2L): awayTeamPlace])
         def matchHardnessLvlMultiplier = 2.5d
@@ -341,7 +411,7 @@ class MatchServiceSpec extends Specification {
         ]
 
         when:
-        def result = matchService.computeBreakdown(match, table, config, 3)
+        def result = matchService.computeBreakdown(match, table, config)
 
         then:
         result.matchId() == matchId
@@ -363,6 +433,7 @@ class MatchServiceSpec extends Specification {
         result.flags().pointsDiff() == 20
 
         where:
+        // The table lists two teams, so `size()` is 2 and the bottom zone is `place > 2 - edge`.
         awayTeamPlace | awayTeamCity | edgeTeams | isDerby | isTopMatch | isBottomMatch
         1             | "city2"      | 0         | false   | false      | false
         1             | "city1"      | 0         | true    | false      | false
@@ -375,8 +446,8 @@ class MatchServiceSpec extends Specification {
     def "should include previously assigned matches but keep central and finished assignments"() {
         given:
         short queue = 2
-        def homeTeam = [points: 0, place: 0, city: "city1"] as Team
-        def awayTeam = [points: 0, place: 0, city: "city2"] as Team
+        def homeTeam = team(1L, "Alfa", "city1")
+        def awayTeam = team(2L, "Beta", "city2")
         def unassigned = Match.builder().home(homeTeam).away(awayTeam).build()
         def assignedUnfinished = Match.builder()
                 .home(homeTeam).away(awayTeam)
@@ -405,12 +476,14 @@ class MatchServiceSpec extends Specification {
         !result.contains(centralAssigned)
         !result.contains(finishedAssigned)
         1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
+        1 * teamRepository.findAll() >> [homeTeam, awayTeam]
         1 * matchRepository.findAllByQueue(queue) >> [unassigned, assignedUnfinished, centralAssigned, finishedAssigned, finishedUnassigned]
+        // Deliberately no edge/top/bottom keys in the map — nothing has been played, so the
+        // unranked-table guard must return before those values are ever read.
         1 * configurationRepository.findAllAsMap() >> [
                 (ConfigName.DIFFICULTY_LEVEL_MULTIPLIER) : 1.0d,
                 (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): 100.0d
         ]
-        1 * teamRepository.count() >> 3
     }
 
     def "should throw MatchNotFoundException when computing breakdown for missing match"() {
@@ -427,18 +500,19 @@ class MatchServiceSpec extends Specification {
     }
 
     def "should score the breakdown from the table even when the match carries teams from another persistence context"() {
-        given: "the match and the finished matches return distinct Team instances for the same ids"
+        given: "the match and the standings return distinct Team instances for the same ids"
         def matchId = 7l
-        // What findById returns: never went through a ranking pass, so its transient fields
-        // are still 0 / null. Reading points and place off these instances is exactly the
-        // RS-75 regression — with open-in-view: false this is what production hands us.
-        def staleHome = [id: 1L, city: "city1"] as Team
-        def staleAway = [id: 2L, city: "city2"] as Team
+        // With open-in-view: false the two repository calls run in separate persistence
+        // contexts, so these are different objects than the ones the table was built from
+        // and Team has no equals/hashCode — the scoring must go through the id-keyed
+        // lookups (RS-75).
+        def staleHome = team(1L, "Alfa", "city1")
+        def staleAway = team(2L, "Beta", "city2")
         def match = Match.builder().id(matchId).home(staleHome).away(staleAway).build()
 
-        def rankedHome = [id: 1L, city: "city1"] as Team
-        def rankedAway = [id: 2L, city: "city2"] as Team
-        def finishedMatches = [[homeScore: 2, awayScore: 0, home: rankedHome, away: rankedAway] as Match]
+        def rankedHome = team(1L, "Alfa", "city1")
+        def rankedAway = team(2L, "Beta", "city2")
+        def finishedMatches = [finished(rankedHome, rankedAway, 2, 0)]
         def matchHardnessLvlMultiplier = 2.0d
         def matchHardnessIncrementer = 100.0d
 
@@ -453,25 +527,21 @@ class MatchServiceSpec extends Specification {
                 (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): matchHardnessIncrementer,
                 (ConfigName.NUMBER_OF_EDGE_TEAMS)        : 1.0d
         ]
-        1 * teamRepository.count() >> 2
-
-        and: "the match's own instances stayed untouched — proving the numbers came from the table"
-        staleHome.points == (short) 0
-        staleHome.place == null
+        1 * teamRepository.findAll() >> [rankedHome, rankedAway]
 
         and: "the 3-point gap is still reflected in the score"
-        result.flags().pointsDiff() == MatchService.POINTS_FOR_WIN_MATCH
-        result.parts().base() == (matchHardnessIncrementer - MatchService.POINTS_FOR_WIN_MATCH) * matchHardnessLvlMultiplier
+        result.flags().pointsDiff() == TeamService.POINTS_FOR_WIN_MATCH
+        result.parts().base() == (matchHardnessIncrementer - TeamService.POINTS_FOR_WIN_MATCH) * matchHardnessLvlMultiplier
     }
 
-    def "should not include top or bottom parts in breakdown when a team is unranked"() {
+    def "should not include top or bottom parts in breakdown when a team is missing from the table"() {
         given:
         def matchId = 8l
-        def homeTeam = [id: 1L, city: "city1"] as Team
-        def awayTeam = [id: 2L, city: "city2"] as Team
+        def homeTeam = team(1L, "Alfa", "city1")
+        def awayTeam = team(2L, "Beta", "city2")
         def match = Match.builder().id(matchId).home(homeTeam).away(awayTeam).build()
-        // A team missing from the table has not played a finished match yet, so it has no
-        // place and cannot be classified into a table zone.
+        // A team the table does not list has no place, so it cannot be classified into a
+        // table zone — the whole edge check bails out.
         def table = leagueTable(pointsByTeamId, placeByTeamId)
         def matchHardnessLvlMultiplier = 1.0d
         def matchHardnessIncrementer = 100.0d
@@ -483,7 +553,7 @@ class MatchServiceSpec extends Specification {
         ]
 
         when:
-        def result = matchService.computeBreakdown(match, table, config, 3)
+        def result = matchService.computeBreakdown(match, table, config)
 
         then:
         result.parts().top() == 0.0d
@@ -502,9 +572,9 @@ class MatchServiceSpec extends Specification {
     def "should refresh standings from finished matches before computing breakdown"() {
         given:
         def matchId = 5l
-        def team1 = [id: 1L, city: "city1"] as Team
-        def team2 = [id: 2L, city: "city2"] as Team
-        def finishedMatches = [[homeScore: 2, awayScore: 0, home: team1, away: team2] as Match]
+        def team1 = team(1L, "Alfa", "city1")
+        def team2 = team(2L, "Beta", "city2")
+        def finishedMatches = [finished(team1, team2, 2, 0)]
         def match = Match.builder().id(matchId).home(team1).away(team2).build()
         def matchHardnessLvlMultiplier = 2.0d
         def matchHardnessIncrementer = 100.0d
@@ -520,28 +590,43 @@ class MatchServiceSpec extends Specification {
                 (ConfigName.DIFFICULTY_LEVEL_INCREMENTER): matchHardnessIncrementer,
                 (ConfigName.NUMBER_OF_EDGE_TEAMS)        : 1.0d
         ]
-        1 * teamRepository.count() >> 2
+        1 * teamRepository.findAll() >> [team1, team2]
 
-        and: "points and places were computed inside the call from the finished matches"
-        team1.points == MatchService.POINTS_FOR_WIN_MATCH
-        team2.points == (short) 0
-        team1.place == (short) 1
-        team2.place == (short) 2
-
-        and: "the breakdown is based on the refreshed standings"
-        result.flags().pointsDiff() == MatchService.POINTS_FOR_WIN_MATCH
-        result.parts().base() == (matchHardnessIncrementer - MatchService.POINTS_FOR_WIN_MATCH) * matchHardnessLvlMultiplier
+        and: "the breakdown is based on the table recomputed inside the call"
+        result.flags().pointsDiff() == TeamService.POINTS_FOR_WIN_MATCH
+        result.parts().base() == (matchHardnessIncrementer - TeamService.POINTS_FOR_WIN_MATCH) * matchHardnessLvlMultiplier
         result.total() == result.parts().base()
     }
 
     /**
      * Builds a {@link MatchService.LeagueTable} from plain int maps. The values must reach
      * the record as Shorts — the record's accessors return a primitive short, so an Integer
-     * slipping in would blow up on unboxing rather than fail an assertion.
+     * slipping in would blow up on unboxing rather than fail an assertion. The table counts
+     * as ranked, i.e. backed by a played match — the not-ranked case is driven end to end
+     * through getStandings() instead, since that is where the flag comes from.
      */
     private static MatchService.LeagueTable leagueTable(Map<Long, Integer> points, Map<Long, Integer> places) {
         new MatchService.LeagueTable(
                 points.collectEntries { id, value -> [(id): value as Short] },
-                places.collectEntries { id, value -> [(id): value as Short] })
+                places.collectEntries { id, value -> [(id): value as Short] },
+                true)
+    }
+
+    private static Team team(long id, String name, String city) {
+        Team.builder().id(id).name(name).city(city).build()
+    }
+
+    private static Match finished(Team home, Team away, int homeScore, int awayScore) {
+        new Match(1 as short, home, away, LocalDateTime.now(), null, homeScore as Short, awayScore as Short)
+    }
+
+    /** The weights seeded by data.sql, with the edge-zone size left to the caller. */
+    private static Map<ConfigName, Double> configWithEdgeTeams(double edgeTeams) {
+        [(ConfigName.DIFFICULTY_LEVEL_MULTIPLIER)                 : 1.0d,
+         (ConfigName.DIFFICULTY_LEVEL_INCREMENTER)                : 100.0d,
+         (ConfigName.NUMBER_OF_EDGE_TEAMS)                        : edgeTeams,
+         (ConfigName.DIFFICULTY_LEVEL_SAME_CITY_INCREMENTER)      : 10.0d,
+         (ConfigName.DIFFICULTY_LEVEL_MATCH_ON_TOP_INCREMENTER)   : 7.0d,
+         (ConfigName.DIFFICULTY_LEVEL_MATCH_ON_BOTTOM_INCREMENTER): 5.0d]
     }
 }

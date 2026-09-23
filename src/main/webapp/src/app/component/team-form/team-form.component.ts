@@ -7,8 +7,9 @@ import {IconComponent} from '../common/icon/icon.component';
 
 /**
  * Team add/edit form — drawer opened from the team list. Only `name` and `city` are
- * user-edited; `points` / `short` stay backend-owned and ride along via the spread
- * on submit.
+ * user-edited; `short` stays backend-owned and rides along via the spread on submit.
+ * Season numbers are not on Team at all since RS-99 — they live on the standings rows —
+ * so anything extra the spread carries from a Standing is simply ignored on the wire.
  *
  * Rendered behind an @if by the host, so ngOnInit sees the final input.
  */

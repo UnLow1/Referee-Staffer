@@ -36,9 +36,15 @@ $D_{i}^{q}$ - difficulty of match $i$ in queue $q$ <br>
 $P_{i}^{q-1}$ - points difference between teams in match $i$ after queue $q-1$ <br>
 $$C_{i} = \begin{cases} 1 & \text{teams in match } i \text{ are from the same city} \\ 0 & \text{in other case} \end{cases}$$
 
-$$T_{i}^{q-1} = \begin{cases} 1 & \text{teams in match } i \text{ are in the top 3 in standings after queue } q-1 \\ 0 & \text{in other case} \end{cases}$$
+$$T_{i}^{q-1} = \begin{cases} 1 & \text{both teams in match } i \text{ are in the top } n \text{ of the standings after queue } q-1 \\ 0 & \text{in other case} \end{cases}$$
 
-$$L_{i}^{q-1} = \begin{cases} 1 & \text{teams in match } i \text{ are in the last 3 in standings after queue } q-1 \\ 0 & \text{in other case} \end{cases}$$
+$$L_{i}^{q-1} = \begin{cases} 1 & \text{both teams in match } i \text{ are in the bottom } n \text{ of the standings after queue } q-1 \\ 0 & \text{in other case} \end{cases}$$
+
+$n$ - size of each edge zone, configurable as `NUMBER_OF_EDGE_TEAMS` (3 by default)
+
+The standings those zones are read from rank **every** team, including ones with no
+finished match yet — they sort to the bottom of the table with zeroed stats. Ties break
+by goal difference, then goals scored, then name.
 
 ### Referee's effective value
 
