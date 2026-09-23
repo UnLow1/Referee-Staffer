@@ -29,7 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Keep in sync with java.version in pom.xml and with maven.yml.
+      # Keep in sync with java.version in pom.xml and with the same step in
+      # maven.yml and codeql-analysis.yml. This job runs a full mvn package with
+      # no -DskipFrontend, so a stale JDK here fails the whole build.
       - name: Set up JDK 27
         uses: actions/setup-java@v6
         with:
