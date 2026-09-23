@@ -21,9 +21,9 @@ describe('MatchListComponent', () => {
   let router: MockedObject<Router>;
 
   const teams: Team[] = [
-    {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Gdansk', points: 30},
-    {id: 3, name: 'Gamma', city: 'Poznan', points: 20}
+    {id: 1, name: 'Alfa', city: 'Krakow'},
+    {id: 2, name: 'Beta', city: 'Gdansk'},
+    {id: 3, name: 'Gamma', city: 'Poznan'}
   ];
   const referees: Referee[] = [
     {id: 100, firstName: 'Jan', lastName: 'Kowalski', email: 'jan@example.com', experience: 10}

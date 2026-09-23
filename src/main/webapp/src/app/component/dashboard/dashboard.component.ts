@@ -4,6 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
+import {Standing} from '../../model/standing';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
 import {TeamService} from '../../service/team.service';
@@ -44,7 +45,7 @@ export class DashboardComponent implements OnInit {
 
   readonly matches = signal<Match[]>([]);
   readonly referees = signal<Referee[]>([]);
-  readonly standings = signal<Team[]>([]);
+  readonly standings = signal<Standing[]>([]);
 
   readonly upcomingQueue = computed(() => {
     const unplayed = this.matches().filter(m => m.homeScore == null || m.awayScore == null);
@@ -93,7 +94,7 @@ export class DashboardComponent implements OnInit {
   readonly standingsTotal = computed(() => this.standings().length);
 
   readonly maxStandingsPoints = computed(() => {
-    const points = this.standings().map(t => t.points ?? 0);
+    const points = this.standings().map(t => t.points);
     return Math.max(...points, 1);
   });
 
@@ -136,8 +137,8 @@ export class DashboardComponent implements OnInit {
     return value !== null ? value.toFixed(1) : '—';
   }
 
-  pointsBarPct(team: Team): number {
-    return Math.round(((team.points ?? 0) / this.maxStandingsPoints()) * 100);
+  pointsBarPct(team: Standing): number {
+    return Math.round((team.points / this.maxStandingsPoints()) * 100);
   }
 
   zoneFor(index: number): 'top' | 'relegation' | null {

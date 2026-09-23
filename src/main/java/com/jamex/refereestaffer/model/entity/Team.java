@@ -5,8 +5,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Transient;
 
+/**
+ * A league team. Purely persistent since RS-99 — season numbers (points, table place,
+ * W/D/L, goals) are not fields here but rows of the computed league table
+ * ({@code TeamService.getStandings()}), so there is nothing to keep in sync and no
+ * transient state whose value depends on which persistence context loaded the entity.
+ */
 @Entity
 public class Team {
 
@@ -29,31 +34,14 @@ public class Team {
     @Column(name = "short_code", length = 8)
     private String shortCode;
 
-    @Transient
-    private short points;
-
-    /**
-     * Standings position computed by {@code MatchService.calculatePointsForTeams} — only
-     * teams that appear in a finished match get ranked. {@code null} means unranked (no
-     * finished matches yet); never 0.
-     */
-    @Transient
-    private Short place;
-
     public Team() {
     }
 
-    public Team(Long id, String name, String city, short points, Short place) {
-        this(id, name, city, null, points, place);
-    }
-
-    public Team(Long id, String name, String city, String shortCode, short points, Short place) {
+    public Team(Long id, String name, String city, String shortCode) {
         this.id = id;
         this.name = name;
         this.city = city;
         this.shortCode = shortCode;
-        this.points = points;
-        this.place = place;
     }
 
     public Team(String name) {
@@ -105,29 +93,9 @@ public class Team {
         this.shortCode = shortCode;
     }
 
-    public short getPoints() {
-        return points;
-    }
-
-    public Short getPlace() {
-        return place;
-    }
-
-    public void setPlace(Short place) {
-        this.place = place;
-    }
-
-    public void addPoints(short points) {
-        // Explicit cast to silence CodeQL "implicit narrowing in compound assignment".
-        // `short + short` evaluates as int in Java; without the cast `this.points += points`
-        // would silently truncate. Football match points cap at ~114/season, well under
-        // Short.MAX_VALUE (32767), so the cast is purely defensive.
-        this.points = (short) (this.points + points);
-    }
-
     @Override
     public String toString() {
-        return "Team(name=" + name + ", city=" + city + ", points=" + points + ", place=" + place + ")";
+        return "Team(name=" + name + ", city=" + city + ")";
     }
 
     public static Builder builder() {
@@ -139,8 +107,6 @@ public class Team {
         private String name;
         private String city;
         private String shortCode;
-        private short points;
-        private Short place;
 
         public Builder id(Long id) {
             this.id = id;
@@ -162,18 +128,8 @@ public class Team {
             return this;
         }
 
-        public Builder points(short points) {
-            this.points = points;
-            return this;
-        }
-
-        public Builder place(Short place) {
-            this.place = place;
-            return this;
-        }
-
         public Team build() {
-            return new Team(id, name, city, shortCode, points, place);
+            return new Team(id, name, city, shortCode);
         }
     }
 }

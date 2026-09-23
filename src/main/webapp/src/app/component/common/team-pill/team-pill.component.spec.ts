@@ -5,7 +5,7 @@ import {Team} from '../../../model/team';
 describe('TeamPillComponent', () => {
   // short deliberately differs from the name-derived prefix ("LEG") so the tests can
   // tell the backend code apart from the fallback.
-  const team: Team = {id: 1, name: 'Legia Warszawa', city: 'Warszawa', points: 30, short: 'LGW'};
+  const team: Team = {id: 1, name: 'Legia Warszawa', city: 'Warszawa', short: 'LGW'};
 
   let fixture: ComponentFixture<TeamPillComponent>;
 
