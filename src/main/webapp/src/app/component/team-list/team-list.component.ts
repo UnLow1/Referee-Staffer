@@ -45,7 +45,7 @@ export class TeamListComponent implements OnInit {
   });
 
   readonly maxPoints = computed(() => {
-    const points = this.teams().map(t => t.points ?? 0);
+    const points = this.teams().map(t => t.points);
     return Math.max(...points, 1);
   });
 
@@ -86,7 +86,7 @@ export class TeamListComponent implements OnInit {
   }
 
   barPct(team: Standing): number {
-    return Math.round(((team.points ?? 0) / this.maxPoints()) * 100);
+    return Math.round((team.points / this.maxPoints()) * 100);
   }
 
   addTeam(): void {
