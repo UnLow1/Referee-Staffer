@@ -29,6 +29,22 @@ public class Team {
     @Column(name = "short_code", length = 8)
     private String shortCode;
 
+    /**
+     * Where the team plays its home games — the object's name as it appears on published
+     * assignment sheets (e.g. "Stadion Miejski im. W. Kawuli"). Nullable: the CSV importer
+     * creates teams from match rows only, so venues are filled in from the team drawer.
+     */
+    @Column(name = "venue_name", length = 120)
+    private String venueName;
+
+    /**
+     * Street address of {@link #venueName} (e.g. "Krakow, sw. Andrzeja 1"). Nullable for the
+     * same reason. Kept separate from the name so the sheet can render "name (address)"
+     * and the two parts stay independently editable.
+     */
+    @Column(name = "venue_address", length = 255)
+    private String venueAddress;
+
     @Transient
     private short points;
 
@@ -48,10 +64,17 @@ public class Team {
     }
 
     public Team(Long id, String name, String city, String shortCode, short points, Short place) {
+        this(id, name, city, shortCode, null, null, points, place);
+    }
+
+    public Team(Long id, String name, String city, String shortCode, String venueName, String venueAddress,
+                short points, Short place) {
         this.id = id;
         this.name = name;
         this.city = city;
         this.shortCode = shortCode;
+        this.venueName = normalizeVenue(venueName);
+        this.venueAddress = normalizeVenue(venueAddress);
         this.points = points;
         this.place = place;
     }
@@ -105,6 +128,35 @@ public class Team {
         this.shortCode = shortCode;
     }
 
+    public String getVenueName() {
+        return venueName;
+    }
+
+    public void setVenueName(String venueName) {
+        this.venueName = normalizeVenue(venueName);
+    }
+
+    public String getVenueAddress() {
+        return venueAddress;
+    }
+
+    public void setVenueAddress(String venueAddress) {
+        this.venueAddress = normalizeVenue(venueAddress);
+    }
+
+    /**
+     * Venue fields are optional free text coming straight from a form input, so an emptied
+     * field arrives as "" rather than null. Storing null for those keeps "not filled in"
+     * a single state for every reader (the PDF renderer, the drawer, JSON).
+     */
+    private static String normalizeVenue(String value) {
+        if (value == null) {
+            return null;
+        }
+        var trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     public short getPoints() {
         return points;
     }
@@ -139,6 +191,8 @@ public class Team {
         private String name;
         private String city;
         private String shortCode;
+        private String venueName;
+        private String venueAddress;
         private short points;
         private Short place;
 
@@ -162,6 +216,16 @@ public class Team {
             return this;
         }
 
+        public Builder venueName(String venueName) {
+            this.venueName = venueName;
+            return this;
+        }
+
+        public Builder venueAddress(String venueAddress) {
+            this.venueAddress = venueAddress;
+            return this;
+        }
+
         public Builder points(short points) {
             this.points = points;
             return this;
@@ -173,7 +237,7 @@ public class Team {
         }
 
         public Team build() {
-            return new Team(id, name, city, shortCode, points, place);
+            return new Team(id, name, city, shortCode, venueName, venueAddress, points, place);
         }
     }
 }

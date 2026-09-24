@@ -37,6 +37,8 @@ public class AssignmentPdfService {
     private static final Logger log = LoggerFactory.getLogger(AssignmentPdfService.class);
 
     static final String UNASSIGNED = "unassigned";
+    /** Printed when the home team has no venue stored — the importer never fills one in. */
+    static final String UNKNOWN_VENUE = "-";
 
     /** Matches the date format of the CSV importer, so sheets read like the source data. */
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
@@ -74,7 +76,9 @@ public class AssignmentPdfService {
             var mutedCell = new Font(baseFont, 10, Font.ITALIC, MUTED_TEXT);
 
             var out = new ByteArrayOutputStream();
-            var document = new Document(PageSize.A4, 36, 36, 42, 36);
+            // Landscape: the venue column carries a full object name plus street address,
+            // which squeezes the six columns unreadably on portrait A4.
+            var document = new Document(PageSize.A4.rotate(), 36, 36, 42, 36);
             PdfWriter.getInstance(document, out);
             document.open();
 
@@ -84,10 +88,10 @@ public class AssignmentPdfService {
             generatedAt.setSpacingAfter(14);
             document.add(generatedAt);
 
-            var table = new PdfPTable(new float[]{3f, 3f, 1.8f, 1.1f, 3f});
+            var table = new PdfPTable(new float[]{2.6f, 2.6f, 4.4f, 1.6f, 1f, 2.6f});
             table.setWidthPercentage(100);
             table.setHeaderRows(1);
-            for (var header : List.of("Home", "Away", "Date", "Time", "Referee")) {
+            for (var header : List.of("Home", "Away", "Venue", "Date", "Time", "Referee")) {
                 var headerCell = new PdfPCell(new Phrase(header, tableHeader));
                 headerCell.setBackgroundColor(HEADER_BACKGROUND);
                 headerCell.setPadding(6);
@@ -97,6 +101,11 @@ public class AssignmentPdfService {
             for (var match : matches) {
                 table.addCell(bodyCell(teamName(match.getHome()), cell));
                 table.addCell(bodyCell(teamName(match.getAway()), cell));
+                // The venue follows the home team - there is no per-match override yet.
+                var venue = venue(match.getHome());
+                table.addCell(venue == null
+                        ? bodyCell(UNKNOWN_VENUE, mutedCell)
+                        : bodyCell(venue, cell));
                 table.addCell(bodyCell(match.getDate().format(DATE_FORMAT), cell));
                 table.addCell(bodyCell(match.getDate().format(TIME_FORMAT), cell));
                 var referee = match.getReferee();
@@ -124,5 +133,27 @@ public class AssignmentPdfService {
 
     private String teamName(Team team) {
         return team == null ? "-" : team.getName();
+    }
+
+    /**
+     * Renders the home team's ground the way published assignment sheets print it:
+     * {@code "Stadion Miejski (Krakow, sw. Andrzeja 1)"}. Either half may be missing, so
+     * a team with only one of them still gets a usable cell; {@code null} means neither
+     * is stored and the caller prints {@link #UNKNOWN_VENUE} instead.
+     */
+    private String venue(Team home) {
+        if (home == null) {
+            return null;
+        }
+        var name = blankToNull(home.getVenueName());
+        var address = blankToNull(home.getVenueAddress());
+        if (name != null && address != null) {
+            return name + " (" + address + ")";
+        }
+        return name != null ? name : address;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 }

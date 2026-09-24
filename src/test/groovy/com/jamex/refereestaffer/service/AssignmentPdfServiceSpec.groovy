@@ -23,8 +23,10 @@ class AssignmentPdfServiceSpec extends Specification {
         given:
         def queue = 3 as short
         def matches = [
-                match(1l, "Wisła", "Cracovia", LocalDateTime.of(2026, 3, 1, 12, 30), referee("Sędzia", "Główny")),
-                match(2l, "Lech", "Warta", LocalDateTime.of(2026, 3, 2, 17, 0), null)
+                match(1l, home("Wisła", "Stadion Miejski", "Krakow, Reymonta 22"), "Cracovia",
+                        LocalDateTime.of(2026, 3, 1, 12, 30), referee("Sędzia", "Główny")),
+                match(2l, home("Lech", null, null), "Warta",
+                        LocalDateTime.of(2026, 3, 2, 17, 0), null)
         ]
 
         when:
@@ -43,7 +45,8 @@ class AssignmentPdfServiceSpec extends Specification {
         // order, so assert the header cells line up left to right.
         def header = text.readLines().find { it.contains("Referee") && it.contains("Home") }
         header.indexOf("Home") < header.indexOf("Away")
-        header.indexOf("Away") < header.indexOf("Date")
+        header.indexOf("Away") < header.indexOf("Venue")
+        header.indexOf("Venue") < header.indexOf("Date")
         header.indexOf("Date") < header.indexOf("Time")
         header.indexOf("Time") < header.indexOf("Referee")
         // Kick-off is split across the Date and Time columns, so the two halves land
@@ -56,6 +59,60 @@ class AssignmentPdfServiceSpec extends Specification {
         text.contains("Lech")
         text.contains("Warta")
         text.contains(AssignmentPdfService.UNASSIGNED)
+    }
+
+    def "should print the home team venue as name plus address"() {
+        given:
+        def queue = 3 as short
+        def matches = [match(1l, home("Wisła", "Stadion Miejski", "Krakow, Reymonta 22"), "Cracovia",
+                LocalDateTime.of(2026, 3, 1, 12, 30), null)]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        extractText(pdf).contains("Stadion Miejski (Krakow, Reymonta 22)")
+    }
+
+    def "should print only the half of the venue that is stored"() {
+        given: "one team with just the object name, one with just the address"
+        def queue = 3 as short
+        def matches = [
+                match(1l, home("Wisła", "Stadion Miejski", null), "Cracovia",
+                        LocalDateTime.of(2026, 3, 1, 12, 30), null),
+                match(2l, home("Lech", null, "Poznan, Bulgarska 17"), "Warta",
+                        LocalDateTime.of(2026, 3, 2, 17, 0), null)
+        ]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        def text = extractText(pdf)
+        and: "no dangling parentheses for the missing half"
+        text.contains("Stadion Miejski")
+        !text.contains("Stadion Miejski (")
+        text.contains("Poznan, Bulgarska 17")
+        !text.contains("(Poznan, Bulgarska 17)")
+    }
+
+    def "should fall back to a placeholder when the home team has no venue"() {
+        given: "a team as the CSV importer creates it — name only"
+        def queue = 3 as short
+        def matches = [match(1l, home("Lech", null, "   "), "Warta",
+                LocalDateTime.of(2026, 3, 2, 17, 0), null)]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        and: "the placeholder sits in the venue column, between the away team and the date"
+        def row = extractText(pdf).readLines().find { it.contains("Lech") }
+        row.indexOf("Warta") < row.indexOf(AssignmentPdfService.UNKNOWN_VENUE)
+        row.indexOf(AssignmentPdfService.UNKNOWN_VENUE) < row.indexOf("02.03.2026")
     }
 
     def "should throw when the queue has no matches"() {
@@ -71,14 +128,22 @@ class AssignmentPdfServiceSpec extends Specification {
         ex.message == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
     }
 
-    private static Match match(Long id, String homeName, String awayName, LocalDateTime date, Referee referee) {
+    private static Match match(Long id, Team homeTeam, String awayName, LocalDateTime date, Referee referee) {
         Match.builder()
                 .id(id)
                 .queue(3 as Short)
-                .home(Team.builder().name(homeName).build())
+                .home(homeTeam)
                 .away(Team.builder().name(awayName).build())
                 .date(date)
                 .referee(referee)
+                .build()
+    }
+
+    private static Team home(String name, String venueName, String venueAddress) {
+        Team.builder()
+                .name(name)
+                .venueName(venueName)
+                .venueAddress(venueAddress)
                 .build()
     }
 

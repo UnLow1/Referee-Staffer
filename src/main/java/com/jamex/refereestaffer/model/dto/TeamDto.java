@@ -26,6 +26,16 @@ public record TeamDto(
         @JsonProperty("short")
         String shortCode,
 
+        /**
+         * Home venue name, nullable — teams created by the CSV importer have none until
+         * someone fills it in. Unlike {@code shortCode} this is client-editable: it round
+         * trips through POST/PUT so the team drawer can maintain it.
+         */
+        String venueName,
+
+        /** Street address of the venue, nullable and client-editable for the same reason. */
+        String venueAddress,
+
         Short points
 ) {
 
@@ -38,6 +48,8 @@ public record TeamDto(
         private String name;
         private String city;
         private String shortCode;
+        private String venueName;
+        private String venueAddress;
         private Short points;
 
         public Builder id(Long id) {
@@ -60,13 +72,23 @@ public record TeamDto(
             return this;
         }
 
+        public Builder venueName(String venueName) {
+            this.venueName = venueName;
+            return this;
+        }
+
+        public Builder venueAddress(String venueAddress) {
+            this.venueAddress = venueAddress;
+            return this;
+        }
+
         public Builder points(Short points) {
             this.points = points;
             return this;
         }
 
         public TeamDto build() {
-            return new TeamDto(id, name, city, shortCode, points);
+            return new TeamDto(id, name, city, shortCode, venueName, venueAddress, points);
         }
     }
 }
