@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jamex.refereestaffer.model.validation.OnUpdate;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record TeamDto(
 
@@ -29,15 +30,22 @@ public record TeamDto(
         /**
          * Home venue name, nullable — teams created by the CSV importer have none until
          * someone fills it in. Unlike {@code shortCode} this is client-editable: it round
-         * trips through POST/PUT so the team drawer can maintain it.
+         * trips through POST/PUT so the team drawer can maintain it. Bounded to the column
+         * length so an over-long value fails validation with a 400 instead of reaching
+         * Hibernate and surfacing as a 500.
          */
+        @Size(max = VENUE_MAX_LENGTH)
         String venueName,
 
         /** Street address of the venue, nullable and client-editable for the same reason. */
+        @Size(max = VENUE_MAX_LENGTH)
         String venueAddress,
 
         Short points
 ) {
+
+    /** Matches the (default) column length of Team.venueName / Team.venueAddress. */
+    public static final int VENUE_MAX_LENGTH = 255;
 
     public static Builder builder() {
         return new Builder();

@@ -211,6 +211,63 @@ class TeamControllerSpec extends Specification {
         json.detail == "city: must not be blank; name: must not be blank"
     }
 
+    def "should reject a venue longer than the column"() {
+        given:
+        def tooLong = "x" * 256
+
+        when:
+        def response = mockMvc.perform(post("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"name": "Legia", "city": "Warszawa", "venueName": "' + tooLong + '"}'))
+                .andReturn().response
+
+        then: "400 from validation rather than a 500 out of Hibernate"
+        0 * teamConverter._
+        0 * teamRepository._
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail.contains("venueName")
+    }
+
+    def "should accept a venue exactly at the column length"() {
+        given:
+        def atLimit = "x" * 255
+        def team = [] as Team
+
+        when:
+        def response = mockMvc.perform(post("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"name": "Legia", "city": "Warszawa", "venueAddress": "' + atLimit + '"}'))
+                .andReturn().response
+
+        then:
+        1 * teamConverter.convertFromDto({ TeamDto dto -> dto.venueAddress == atLimit }) >> team
+        1 * teamRepository.save(team)
+        response.status == 200
+    }
+
+    def "should clear the venue when the payload omits it"() {
+        given: "PUT is a full replace, as it already is for name and city"
+        def existing = Team.builder()
+                .id(65l)
+                .name("Legia")
+                .city("Warszawa")
+                .venueName("Stadion Wojska Polskiego")
+                .venueAddress("Warszawa, Lazienkowska 3")
+                .build()
+
+        when:
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "Legia", "city": "Warszawa"}'))
+                .andReturn().response
+
+        then:
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved -> saved.venueName == null && saved.venueAddress == null })
+        response.status == 200
+    }
+
     def "should reject team update without id"() {
         when:
         def response = mockMvc.perform(put("/api/teams")

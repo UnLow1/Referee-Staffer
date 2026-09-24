@@ -153,6 +153,11 @@ public class AssignmentPdfService {
         return name != null ? name : address;
     }
 
+    /**
+     * Team normalizes blanks away on write, but rows written before that existed — or by
+     * raw SQL / data.sql — reach Hibernate's field injection untouched, so the renderer
+     * cannot assume normalized input.
+     */
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
     }

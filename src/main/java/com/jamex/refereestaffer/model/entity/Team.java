@@ -33,8 +33,11 @@ public class Team {
      * Where the team plays its home games — the object's name as it appears on published
      * assignment sheets (e.g. "Stadion Miejski im. W. Kawuli"). Nullable: the CSV importer
      * creates teams from match rows only, so venues are filled in from the team drawer.
+     * Default column length (255) like {@code name} and {@code city} — under
+     * {@code ddl-auto: update} a narrower limit could not be widened later on an existing
+     * database, and published venue names run long ("Stadion Miejski im. H. Reymana ...").
      */
-    @Column(name = "venue_name", length = 120)
+    @Column(name = "venue_name")
     private String venueName;
 
     /**
@@ -42,7 +45,7 @@ public class Team {
      * same reason. Kept separate from the name so the sheet can render "name (address)"
      * and the two parts stay independently editable.
      */
-    @Column(name = "venue_address", length = 255)
+    @Column(name = "venue_address")
     private String venueAddress;
 
     @Transient
