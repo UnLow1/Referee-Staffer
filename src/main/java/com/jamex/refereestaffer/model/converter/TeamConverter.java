@@ -10,7 +10,7 @@ public class TeamConverter implements BaseConverter<Team, TeamDto> {
     @Override
     public TeamDto convertFromEntity(Team entity) {
         return new TeamDto(entity.getId(), entity.getName(), entity.getCity(),
-                entity.getShortCode(), entity.getPoints());
+                entity.getShortCode(), entity.getVenueName(), entity.getVenueAddress(), entity.getPoints());
     }
 
     @Override
@@ -18,6 +18,7 @@ public class TeamConverter implements BaseConverter<Team, TeamDto> {
         // shortCode is deliberately not taken from the DTO: `short` in JSON is a computed
         // read-model field (GET fills it with the name-derived fallback), so echoing it
         // back on writes would persist the fallback as a stored override.
-        return new Team(dto.id(), dto.name(), dto.city(), null, (short) 0, null);
+        return new Team(dto.id(), dto.name(), dto.city(), null,
+                dto.venueName(), dto.venueAddress(), (short) 0, null);
     }
 }

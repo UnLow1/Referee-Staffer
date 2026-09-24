@@ -98,11 +98,16 @@ class TeamControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(post("/api/teams")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"name": "Legia", "city": "Warszawa"}'))
+                .content('{"name": "Legia", "city": "Warszawa", "venueName": "Stadion Wojska Polskiego", ' +
+                        '"venueAddress": "Warszawa, Lazienkowska 3"}'))
                 .andReturn().response
 
         then:
-        1 * teamConverter.convertFromDto({ TeamDto dto -> dto.name == "Legia" && dto.city == "Warszawa" }) >> team
+        1 * teamConverter.convertFromDto({ TeamDto dto ->
+            dto.name == "Legia" && dto.city == "Warszawa" &&
+                    dto.venueName == "Stadion Wojska Polskiego" &&
+                    dto.venueAddress == "Warszawa, Lazienkowska 3"
+        }) >> team
         1 * teamRepository.save(team)
         response.status == 200
     }
@@ -128,6 +133,53 @@ class TeamControllerSpec extends Specification {
             saved.name == "Wisla" && saved.city == "Krakow" && saved.shortCode == "LGW"
         })
         0 * teamConverter.convertFromDto(_)
+        response.status == 200
+    }
+
+    def "should update the venue of an existing team"() {
+        given:
+        def existing = Team.builder()
+                .id(65l)
+                .name("Legia")
+                .city("Warszawa")
+                .venueName("Stara nazwa")
+                .venueAddress("Stary adres")
+                .build()
+
+        when:
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "Legia", "city": "Warszawa", ' +
+                        '"venueName": "Stadion Wojska Polskiego", "venueAddress": "Warszawa, Lazienkowska 3"}'))
+                .andReturn().response
+
+        then:
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved ->
+            saved.venueName == "Stadion Wojska Polskiego" && saved.venueAddress == "Warszawa, Lazienkowska 3"
+        })
+        response.status == 200
+    }
+
+    def "should clear the venue when the drawer submits emptied fields"() {
+        given:
+        def existing = Team.builder()
+                .id(65l)
+                .name("Legia")
+                .city("Warszawa")
+                .venueName("Stadion Wojska Polskiego")
+                .venueAddress("Warszawa, Lazienkowska 3")
+                .build()
+
+        when: "the form sends empty strings, which is what a cleared text input produces"
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "Legia", "city": "Warszawa", "venueName": "", "venueAddress": "  "}'))
+                .andReturn().response
+
+        then: "they are stored as null, so every reader sees one \"not filled in\" state"
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved -> saved.venueName == null && saved.venueAddress == null })
         response.status == 200
     }
 
@@ -194,7 +246,8 @@ class TeamControllerSpec extends Specification {
 
     def "should return standings with computed stats and the wire-format short field"() {
         given:
-        def row = new StandingsDto.Row(65l, "Legia", "Warszawa", "LEG", 30 as short, 1 as short,
+        def row = new StandingsDto.Row(65l, "Legia", "Warszawa", "LEG", "Stadion Wojska Polskiego",
+                "Warszawa, Lazienkowska 3", 30 as short, 1 as short,
                 12 as short, 9 as short, 3 as short, 0 as short, 25 as short, 8 as short)
         def standings = new StandingsDto(12 as Short, [row])
 
@@ -212,6 +265,8 @@ class TeamControllerSpec extends Specification {
         firstRow.id == 65
         firstRow.name == "Legia"
         firstRow.short == "LEG"
+        firstRow.venueName == "Stadion Wojska Polskiego"
+        firstRow.venueAddress == "Warszawa, Lazienkowska 3"
         firstRow.points == 30
         firstRow.place == 1
         firstRow.played == 12

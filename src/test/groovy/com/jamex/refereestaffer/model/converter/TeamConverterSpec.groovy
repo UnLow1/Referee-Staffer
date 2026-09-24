@@ -30,6 +30,48 @@ class TeamConverterSpec extends Specification {
         result.shortCode == "KOR"
     }
 
+    def "should convert the venue in both directions"() {
+        given:
+        def team = Team.builder()
+                .id(65l)
+                .name("Korona")
+                .city("Kielce")
+                .venueName("Suzuki Arena")
+                .venueAddress("Kielce, Scegiennego 35")
+                .build()
+
+        when:
+        def dto = teamConverter.convertFromEntity(team)
+
+        then:
+        dto.venueName == "Suzuki Arena"
+        dto.venueAddress == "Kielce, Scegiennego 35"
+
+        when: "the same payload comes back from the client"
+        def entity = teamConverter.convertFromDto(dto)
+
+        then: "unlike the short code, the venue is taken from the DTO"
+        entity.venueName == "Suzuki Arena"
+        entity.venueAddress == "Kielce, Scegiennego 35"
+    }
+
+    def "should convert a team without a venue to nulls rather than blanks"() {
+        given: "a team the CSV importer created, plus a DTO with emptied inputs"
+        def imported = Team.builder().name("Korona").build()
+        def emptiedDto = TeamDto.builder()
+                .name("Korona")
+                .city("Kielce")
+                .venueName("")
+                .venueAddress("   ")
+                .build()
+
+        expect:
+        teamConverter.convertFromEntity(imported).venueName == null
+        teamConverter.convertFromEntity(imported).venueAddress == null
+        teamConverter.convertFromDto(emptiedDto).venueName == null
+        teamConverter.convertFromDto(emptiedDto).venueAddress == null
+    }
+
     def "should convert from Team entity to dto with the stored short code override"() {
         given:
         def team = Team.builder()

@@ -6,9 +6,9 @@ import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
 import {IconComponent} from '../common/icon/icon.component';
 
 /**
- * Team add/edit form — drawer opened from the team list. Only `name` and `city` are
- * user-edited; `points` / `short` stay backend-owned and ride along via the spread
- * on submit.
+ * Team add/edit form — drawer opened from the team list. `name`, `city` and the two
+ * venue fields are user-edited; `points` / `short` stay backend-owned and ride along via
+ * the spread on submit.
  *
  * Rendered behind an @if by the host, so ngOnInit sees the final input.
  */
@@ -26,7 +26,8 @@ export class TeamFormComponent implements OnInit {
   @Output() saved = new EventEmitter<Team>();
   @Output() closed = new EventEmitter<void>();
 
-  model: Pick<Team, 'name' | 'city'> = {name: '', city: ''};
+  model: Pick<Team, 'name' | 'city' | 'venueName' | 'venueAddress'> =
+    {name: '', city: '', venueName: '', venueAddress: ''};
 
   get editMode(): boolean {
     return this.team != null;
@@ -38,7 +39,14 @@ export class TeamFormComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.team) {
-      this.model = {name: this.team.name, city: this.team.city};
+      // ?? '' rather than the raw value: the backend stores an unset venue as null, and
+      // ngModel on a null renders the literal "null" in the input.
+      this.model = {
+        name: this.team.name,
+        city: this.team.city,
+        venueName: this.team.venueName ?? '',
+        venueAddress: this.team.venueAddress ?? ''
+      };
     }
   }
 

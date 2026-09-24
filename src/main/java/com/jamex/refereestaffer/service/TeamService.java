@@ -70,7 +70,7 @@ public class TeamService {
     private static StandingsDto.Row toRow(Team team, short place, Map<Long, TeamStats> statsByTeamId) {
         var stats = statsOf(team, statsByTeamId);
         return new StandingsDto.Row(team.getId(), team.getName(), team.getCity(), team.getShortCode(),
-                (short) stats.points(), place, (short) stats.played, (short) stats.wins, (short) stats.draws,
+                team.getVenueName(), team.getVenueAddress(), (short) stats.points(), place, (short) stats.played, (short) stats.wins, (short) stats.draws,
                 (short) stats.losses, (short) stats.goalsFor, (short) stats.goalsAgainst);
     }
 

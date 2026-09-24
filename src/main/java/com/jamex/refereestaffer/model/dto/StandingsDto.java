@@ -18,7 +18,8 @@ public record StandingsDto(
 ) {
     /**
      * One table row. Carries the same team fields as {@link TeamDto} (so team pills
-     * render from a row directly) plus the season stats. `place` is 1-based table
+     * render from a row directly, and the team drawer opened from a row round trips the
+     * venue instead of blanking it) plus the season stats. `place` is 1-based table
      * position — teams without a finished match sort to the bottom with zeroed stats.
      */
     public record Row(
@@ -26,6 +27,8 @@ public record StandingsDto(
             String name,
             String city,
             @JsonProperty("short") String shortCode,
+            String venueName,
+            String venueAddress,
             short points,
             short place,
             short played,
