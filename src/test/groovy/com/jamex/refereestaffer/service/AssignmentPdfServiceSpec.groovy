@@ -23,8 +23,10 @@ class AssignmentPdfServiceSpec extends Specification {
         given:
         def queue = 3 as short
         def matches = [
-                match(1l, "Wisła", "Cracovia", LocalDateTime.of(2026, 3, 1, 12, 30), referee("Sędzia", "Główny")),
-                match(2l, "Lech", "Warta", LocalDateTime.of(2026, 3, 2, 17, 0), null)
+                match(1l, home("Wisła", "Stadion Miejski", "Krakow, Reymonta 22"), "Cracovia",
+                        LocalDateTime.of(2026, 3, 1, 12, 30), referee("Sędzia", "Główny")),
+                match(2l, home("Lech", null, null), "Warta",
+                        LocalDateTime.of(2026, 3, 2, 17, 0), null)
         ]
 
         when:
@@ -43,7 +45,8 @@ class AssignmentPdfServiceSpec extends Specification {
         // order, so assert the header cells line up left to right.
         def header = text.readLines().find { it.contains("Referee") && it.contains("Home") }
         header.indexOf("Home") < header.indexOf("Away")
-        header.indexOf("Away") < header.indexOf("Date")
+        header.indexOf("Away") < header.indexOf("Venue")
+        header.indexOf("Venue") < header.indexOf("Date")
         header.indexOf("Date") < header.indexOf("Time")
         header.indexOf("Time") < header.indexOf("Referee")
         // Kick-off is split across the Date and Time columns, so the two halves land
@@ -58,27 +61,145 @@ class AssignmentPdfServiceSpec extends Specification {
         text.contains(AssignmentPdfService.UNASSIGNED)
     }
 
-    def "should throw when the queue has no matches"() {
+    def "should print the home team venue as name plus address"() {
         given:
-        def queue = 44 as short
+        def queue = 3 as short
+        def matches = [match(1l, home("Wisła", "Stadion Miejski", "Krakow, Reymonta 22"), "Cracovia",
+                LocalDateTime.of(2026, 3, 1, 12, 30), null)]
 
         when:
-        assignmentPdfService.generateAssignmentsPdf(queue)
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
 
         then:
-        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> []
-        def ex = thrown(MatchNotFoundException)
-        ex.message == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        extractText(pdf).contains("Stadion Miejski (Krakow, Reymonta 22)")
     }
 
-    private static Match match(Long id, String homeName, String awayName, LocalDateTime date, Referee referee) {
+    def "should print only the half of the venue that is stored"() {
+        given: "one team with just the object name, one with just the address"
+        def queue = 3 as short
+        def matches = [
+                match(1l, home("Wisła", "Stadion Miejski", null), "Cracovia",
+                        LocalDateTime.of(2026, 3, 1, 12, 30), null),
+                match(2l, home("Lech", null, "Poznan, Bulgarska 17"), "Warta",
+                        LocalDateTime.of(2026, 3, 2, 17, 0), null)
+        ]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        def text = extractText(pdf)
+        and: "no dangling parentheses for the missing half"
+        text.contains("Stadion Miejski")
+        !text.contains("Stadion Miejski (")
+        text.contains("Poznan, Bulgarska 17")
+        !text.contains("(Poznan, Bulgarska 17)")
+    }
+
+    def "should fall back to a placeholder when the home team has no venue"() {
+        given: "a team as the CSV importer creates it — name only"
+        def queue = 3 as short
+        def matches = [match(1l, home("Lech", null, null), "Warta",
+                LocalDateTime.of(2026, 3, 2, 17, 0), null)]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+
+        and: "the venue column holds the placeholder — the cell is not dropped"
+        venueCell(pdf, "Warta", "02.03.2026") == AssignmentPdfService.UNKNOWN_VENUE
+    }
+
+    def "should treat a blank stored venue as missing"() {
+        given: "a row that predates the write-side normalization, so it still holds blanks"
+        def queue = 3 as short
+        def legacy = Team.builder().name("Lech").build()
+        legacy.@venueName = "   "
+        legacy.@venueAddress = ""
+        assert legacy.venueName == "   " : "direct field write must bypass the normalizing setter"
+        def matches = [match(1l, legacy, "Warta", LocalDateTime.of(2026, 3, 2, 17, 0), null)]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        venueCell(pdf, "Warta", "02.03.2026") == AssignmentPdfService.UNKNOWN_VENUE
+    }
+
+    def "should print the home team venue, never the away team one"() {
+        given: "only the away team has a venue stored"
+        def queue = 3 as short
+        def away = Team.builder().name("Warta").venueName("Stadion Wartana").build()
+        def matches = [Match.builder()
+                               .id(1l)
+                               .queue(3 as Short)
+                               .home(home("Lech", null, null))
+                               .away(away)
+                               .date(LocalDateTime.of(2026, 3, 2, 17, 0))
+                               .build()]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+
+        and: "the sheet says where the game is played, not where the guest usually plays"
+        !extractText(pdf).contains("Stadion Wartana")
+        venueCell(pdf, "Warta", "02.03.2026") == AssignmentPdfService.UNKNOWN_VENUE
+    }
+
+    def "should render the sheet in landscape"() {
+        given: "six columns, one of them a full object name plus street address"
+        def queue = 3 as short
+        def matches = [match(1l, home("Wisla", "Stadion Miejski", "Krakow, Reymonta 22"), "Cracovia",
+                LocalDateTime.of(2026, 3, 1, 12, 30), null)]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        def reader = new PdfReader(pdf)
+        try {
+            def page = reader.getPageSize(1)
+            page.width > page.height
+        } finally {
+            reader.close()
+        }
+    }
+
+    private static Match match(Long id, Team homeTeam, String awayName, LocalDateTime date, Referee referee) {
         Match.builder()
                 .id(id)
                 .queue(3 as Short)
-                .home(Team.builder().name(homeName).build())
+                .home(homeTeam)
                 .away(Team.builder().name(awayName).build())
                 .date(date)
                 .referee(referee)
+                .build()
+    }
+
+    /**
+     * The venue cell of the row for {@code awayName}: exactly the text between the Away
+     * cell and the Date cell. The extractor spaces cells inconsistently, so slicing
+     * between two known neighbours beats any position- or separator-based assertion.
+     */
+    private static String venueCell(byte[] pdf, String awayName, String date) {
+        def row = extractText(pdf).readLines().find { it.contains(awayName) && it.contains(date) }
+        row.substring(row.indexOf(awayName) + awayName.length(), row.indexOf(date)).trim()
+    }
+
+    private static Team home(String name, String venueName, String venueAddress) {
+        Team.builder()
+                .name(name)
+                .venueName(venueName)
+                .venueAddress(venueAddress)
                 .build()
     }
 

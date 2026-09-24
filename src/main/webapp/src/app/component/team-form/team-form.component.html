@@ -26,5 +26,19 @@
         <span class="hint">Used to detect same-city derbies in match difficulty.</span>
       }
     </div>
+
+    <div class="field-block">
+      <label class="lbl" for="venueName">Venue</label>
+      <input class="input" type="text" id="venueName" name="venueName"
+             placeholder="Stadion Wojska Polskiego" maxlength="255" [(ngModel)]="model.venueName">
+      <span class="hint">Home ground printed on the assignment sheet. Optional.</span>
+    </div>
+
+    <div class="field-block">
+      <label class="lbl" for="venueAddress">Venue address</label>
+      <input class="input" type="text" id="venueAddress" name="venueAddress"
+             placeholder="Warszawa, Łazienkowska 3" maxlength="255" [(ngModel)]="model.venueAddress">
+      <span class="hint">Printed in brackets after the venue, so referees know where to drive.</span>
+    </div>
   </form>
 </app-form-drawer>

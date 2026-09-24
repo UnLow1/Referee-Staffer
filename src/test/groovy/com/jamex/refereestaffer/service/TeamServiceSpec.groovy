@@ -110,6 +110,32 @@ class TeamServiceSpec extends Specification {
         result.rows().every { it.points() == 0 as Short && it.played() == 0 as Short }
     }
 
+    def "should carry the venue on every standings row"() {
+        given: "the team drawer edits a row straight off the standings response"
+        def wisla = Team.builder().id(1l).name("Wisla")
+                .venueName("Stadion Miejski").venueAddress("Krakow, Reymonta 22").build()
+        def legia = Team.builder().id(2l).name("Legia").build()
+
+        when:
+        def result = teamService.getStandings()
+
+        then:
+        1 * matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull() >> []
+        1 * teamRepository.findAll() >> [wisla, legia]
+
+        and: "a stored venue round trips so editing a row cannot blank it"
+        with(result.rows().find { it.name() == "Wisla" }) {
+            venueName() == "Stadion Miejski"
+            venueAddress() == "Krakow, Reymonta 22"
+        }
+
+        and: "a team without one reports nulls, not blanks"
+        with(result.rows().find { it.name() == "Legia" }) {
+            venueName() == null
+            venueAddress() == null
+        }
+    }
+
     def "should return an empty table when there are no teams"() {
         when:
         def result = teamService.getStandings()
