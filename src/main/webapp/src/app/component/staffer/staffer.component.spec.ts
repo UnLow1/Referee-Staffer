@@ -162,6 +162,7 @@ describe('StafferComponent', () => {
       expect(component.referees()).toEqual([]);
       expect(component.lockCount()).toBe(0);
       expect(component.savedAt()).toBeNull();
+      expect(component.drawerMatchId()).toBeNull();
       expect(component.drawerMatch()).toBeNull();
       expect(component.drawerBreakdown()).toBeNull();
     });
@@ -180,10 +181,14 @@ describe('StafferComponent', () => {
     });
 
     it('keeps the cast when a step is a no-op — queue 1 cannot go lower', () => {
+      component.toggleLock(component.matches()![0]);
+
       component.decQueue();
 
       expect(component.queue()).toBe(1);
       expect(component.matches()).toEqual(matches);
+      expect(component.referees()).toEqual(referees);
+      expect(component.lockCount()).toBe(1);
       expect(component.savedAt()).not.toBeNull();
     });
 
@@ -256,6 +261,47 @@ describe('StafferComponent', () => {
 
       expect(component.matches()).toBeNull();
       expect(component.loading()).toBe(false);
+    });
+
+    it('re-enables the Generate button when the queue changes mid-request', () => {
+      stafferService.staffReferees.mockReturnValue(new Subject<Match[]>());
+
+      component.generate();
+      expect(component.loading()).toBe(true);
+
+      component.incQueue();
+      expect(component.loading()).toBe(false);
+    });
+
+    it('does not resurrect the cast when the user steps back to the queue it was generated for', () => {
+      const staffSubject = new Subject<Match[]>();
+      stafferService.staffReferees.mockReturnValue(staffSubject);
+
+      component.generate();
+      component.incQueue();
+      component.decQueue();
+      staffSubject.next(matches);
+      staffSubject.complete();
+
+      expect(component.queue()).toBe(1);
+      expect(component.matches()).toBeNull();
+    });
+
+    it('supersedes an earlier request so it cannot land last and win', () => {
+      const first = new Subject<Match[]>();
+      const second = new Subject<Match[]>();
+      stafferService.staffReferees.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+      component.generate();
+      component.generate();
+
+      first.next([matches[0]]);
+      first.complete();
+      expect(component.matches()).toBeNull();
+
+      second.next(matches);
+      second.complete();
+      expect(component.matches()).toEqual(matches);
     });
 
     it('sends the locked pairs so a regenerate preserves them server-side', () => {
@@ -530,6 +576,19 @@ describe('StafferComponent', () => {
       expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(2);
       expect(saveAs).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-2.pdf');
       expect(component.exporting()).toBe(false);
+    });
+
+    it('stamps the file with the queue the sheet was requested for, not the one on screen', () => {
+      generateAndSave();
+      const pdfSubject = new Subject<Blob>();
+      matchService.downloadAssignmentsPdf.mockReturnValue(pdfSubject);
+
+      component.exportPdf();
+      component.incQueue();
+      pdfSubject.next(new Blob(['%PDF-'], {type: 'application/pdf'}));
+
+      expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(1);
+      expect(saveAs).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-1.pdf');
     });
 
     it('keeps exporting true until the download completes', () => {

@@ -1,5 +1,5 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
-import {forkJoin} from 'rxjs';
+import {forkJoin, Subscription} from 'rxjs';
 import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -89,6 +89,9 @@ export class StafferComponent {
   readonly loading = signal(false);
   readonly exporting = signal(false);
 
+  /** The staffing request currently in flight, kept so a queue change can cancel it. */
+  private staffing: Subscription | null = null;
+
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
   }
@@ -137,22 +140,22 @@ export class StafferComponent {
 
   generate(): void {
     const requestedQueue = this.queue();
+    // Only one cast can be on screen, so only one request may be outstanding: a second
+    // Generate supersedes the first, and a queue change cancels it outright (setQueue).
+    // Cancelling rather than filtering the response on arrival is what keeps an older
+    // request from landing last and repopulating a screen that was already reset.
+    this.cancelStaffing();
     this.loading.set(true);
     this.savedAt.set(null);
     const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
-    forkJoin({
+    this.staffing = forkJoin({
       matches: this.stafferService.staffReferees(requestedQueue, locks),
       standings: this.teamService.getStandings(),
       referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue)
     }).subscribe({
       next: ({matches, standings, referees}) => {
+        this.staffing = null;
         this.loading.set(false);
-        // Guard against a race: the user may have stepped to another queue while the
-        // request was in flight. Its rows would land under the new queue's heading,
-        // undoing the reset setQueue() just did.
-        if (this.queue() !== requestedQueue) {
-          return;
-        }
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
         // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
@@ -167,7 +170,10 @@ export class StafferComponent {
         this.referees.set(referees);
         this.matches.set([...matches]);
       },
-      error: () => this.loading.set(false)
+      error: () => {
+        this.staffing = null;
+        this.loading.set(false);
+      }
     });
   }
 
@@ -180,10 +186,13 @@ export class StafferComponent {
     if (!this.canExport()) {
       return;
     }
+    // Read the queue once: stepping away while the download is in flight would otherwise
+    // stamp the sheet of the queue it was requested for with the new queue's number.
+    const requestedQueue = this.queue();
     this.exporting.set(true);
-    this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
+    this.matchService.downloadAssignmentsPdf(requestedQueue).subscribe({
       next: blob => {
-        saveAs(blob, `referee-assignments-queue-${this.queue()}.pdf`);
+        saveAs(blob, `referee-assignments-queue-${requestedQueue}.pdf`);
         this.exporting.set(false);
       },
       error: () => this.exporting.set(false)
@@ -264,11 +273,23 @@ export class StafferComponent {
    * PDF enabled for a queue that was never staffed.
    */
   private resetCast(): void {
+    this.cancelStaffing();
     this.clearLocks();
     this.matches.set(null);
     this.referees.set([]);
     this.savedAt.set(null);
     this.closeDrawer();
+  }
+
+  /**
+   * Drops the staffing request in flight, if any, and re-enables the Generate button.
+   * Without it a queue change left the user waiting on a request whose response is no
+   * longer wanted, with nothing to show for it once it landed.
+   */
+  private cancelStaffing(): void {
+    this.staffing?.unsubscribe();
+    this.staffing = null;
+    this.loading.set(false);
   }
 
   // ——— Read helpers used by the template ———
