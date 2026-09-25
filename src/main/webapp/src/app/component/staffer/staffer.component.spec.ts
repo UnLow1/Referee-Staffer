@@ -146,6 +146,61 @@ describe('StafferComponent', () => {
     });
   });
 
+  describe('queue change resets the cast', () => {
+    beforeEach(() => {
+      component.generate();
+      component.save();
+      component.openDrawer(component.matches()![0]);
+    });
+
+    it('drops every piece of state that belongs to the queue left behind', () => {
+      component.toggleLock(component.matches()![2]);
+
+      component.incQueue();
+
+      expect(component.matches()).toBeNull();
+      expect(component.referees()).toEqual([]);
+      expect(component.lockCount()).toBe(0);
+      expect(component.savedAt()).toBeNull();
+      expect(component.drawerMatch()).toBeNull();
+      expect(component.drawerBreakdown()).toBeNull();
+    });
+
+    it('blocks the PDF export until the new queue has been staffed and saved', () => {
+      expect(component.canExport()).toBe(true);
+
+      component.incQueue();
+      expect(component.canExport()).toBe(false);
+
+      component.generate();
+      expect(component.canExport()).toBe(false);
+
+      component.save();
+      expect(component.canExport()).toBe(true);
+    });
+
+    it('keeps the cast when a step is a no-op — queue 1 cannot go lower', () => {
+      component.decQueue();
+
+      expect(component.queue()).toBe(1);
+      expect(component.matches()).toEqual(matches);
+      expect(component.savedAt()).not.toBeNull();
+    });
+
+    it('falls back to the empty state so no stale row shows under the new queue heading', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelectorAll('tr.cast-row').length).toBe(3);
+
+      component.incQueue();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.empty-state')).not.toBeNull();
+      expect(el.querySelector('.cast-panel')).toBeNull();
+      expect(el.querySelector('.panel--kpi-strip')).toBeNull();
+    });
+  });
+
   describe('generate', () => {
     it('staffs the selected queue and populates matches, referees and standings lookups', () => {
       component.incQueue();
@@ -188,6 +243,19 @@ describe('StafferComponent', () => {
 
       component.generate();
       expect(component.savedAt()).toBeNull();
+    });
+
+    it('discards a staffing response for a queue the user has already stepped away from', () => {
+      const staffSubject = new Subject<Match[]>();
+      stafferService.staffReferees.mockReturnValue(staffSubject);
+
+      component.generate();
+      component.incQueue();
+      staffSubject.next(matches);
+      staffSubject.complete();
+
+      expect(component.matches()).toBeNull();
+      expect(component.loading()).toBe(false);
     });
 
     it('sends the locked pairs so a regenerate preserves them server-side', () => {
@@ -253,6 +321,7 @@ describe('StafferComponent', () => {
       component.incQueue();
       expect(component.lockCount()).toBe(0);
 
+      component.generate();
       component.toggleLock(component.matches()![0]);
       component.decQueue();
       expect(component.lockCount()).toBe(0);

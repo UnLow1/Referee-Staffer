@@ -34,7 +34,9 @@ interface Candidate {
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
  * swap individual rows, then save. Locked pairs are sent with the staffing request,
- * so a regenerate preserves them server-side and reshuffles only the rest.
+ * so a regenerate preserves them server-side and reshuffles only the rest. Nothing on
+ * screen survives a queue change — the cast, the locks and the saved marker are all
+ * scoped to the queue they were generated for.
  */
 @Component({
   selector: 'app-staffer',
@@ -58,7 +60,13 @@ export class StafferComponent {
   /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
   readonly edgeTeams = this.configurationService.edgeTeams;
 
-  readonly queue = signal(1);
+  private readonly selectedQueue = signal(1);
+  /**
+   * Read-only on purpose: every queue change has to run through setQueue(), which resets
+   * the cast on screen. Keeping the writable signal private is what makes that reset
+   * unforgettable — a new way of changing the queue cannot skip it.
+   */
+  readonly queue = this.selectedQueue.asReadonly();
   readonly matches = signal<Match[] | null>(null);
   readonly referees = signal<Referee[]>([]);
   /** Map<teamId, Team> — populated from /api/teams/standings rows. */
@@ -71,7 +79,7 @@ export class StafferComponent {
    * Map<matchId, refereeId> of locked assignments. Sent with the staffing request:
    * the backend pins each pair and re-staffs only the remaining matches, so locks
    * survive a regenerate. Cleared on queue change — they reference matches of the
-   * previously generated queue.
+   * previously generated queue (see setQueue).
    */
   readonly locks = signal<Map<number, number>>(new Map());
   readonly drawerMatchId = signal<number | null>(null);
@@ -116,13 +124,11 @@ export class StafferComponent {
   // ——— Public actions ———
 
   incQueue(): void {
-    this.queue.update(q => q + 1);
-    this.clearLocks();
+    this.setQueue(this.queue() + 1);
   }
 
   decQueue(): void {
-    this.queue.update(q => Math.max(1, q - 1));
-    this.clearLocks();
+    this.setQueue(this.queue() - 1);
   }
 
   clearLocks(): void {
@@ -130,15 +136,23 @@ export class StafferComponent {
   }
 
   generate(): void {
+    const requestedQueue = this.queue();
     this.loading.set(true);
     this.savedAt.set(null);
     const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
     forkJoin({
-      matches: this.stafferService.staffReferees(this.queue(), locks),
+      matches: this.stafferService.staffReferees(requestedQueue, locks),
       standings: this.teamService.getStandings(),
-      referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
+      referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue)
     }).subscribe({
       next: ({matches, standings, referees}) => {
+        this.loading.set(false);
+        // Guard against a race: the user may have stepped to another queue while the
+        // request was in flight. Its rows would land under the new queue's heading,
+        // undoing the reset setQueue() just did.
+        if (this.queue() !== requestedQueue) {
+          return;
+        }
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
         // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
@@ -152,7 +166,6 @@ export class StafferComponent {
         this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
         this.matches.set([...matches]);
-        this.loading.set(false);
       },
       error: () => this.loading.set(false)
     });
@@ -224,6 +237,38 @@ export class StafferComponent {
     const ms = this.matches();
     if (!ms) return;
     this.matchService.updateList(ms).subscribe(() => this.savedAt.set(new Date()));
+  }
+
+  // ——— Queue selection ———
+
+  /**
+   * The single way the queue changes. Clamps to the first queue and, whenever the value
+   * really moves, drops everything on screen that belongs to the queue left behind.
+   * Deliberately synchronous rather than an effect() on the queue signal: an effect is
+   * scheduled, so a generate() issued in the same tick would have its fresh cast wiped
+   * by a reset arriving afterwards.
+   */
+  private setQueue(next: number): void {
+    const target = Math.max(1, next);
+    if (target === this.selectedQueue()) {
+      return;
+    }
+    this.selectedQueue.set(target);
+    this.resetCast();
+  }
+
+  /**
+   * Clears the generated cast. Every piece of it is queue-scoped: the rows and the
+   * referee pool were fetched for the old queue, the locks key on its match ids, and
+   * savedAt refers to assignments stored for it — left in place it would keep Export
+   * PDF enabled for a queue that was never staffed.
+   */
+  private resetCast(): void {
+    this.clearLocks();
+    this.matches.set(null);
+    this.referees.set([]);
+    this.savedAt.set(null);
+    this.closeDrawer();
   }
 
   // ——— Read helpers used by the template ———
