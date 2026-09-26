@@ -3,7 +3,9 @@ package com.jamex.refereestaffer.service
 import com.jamex.refereestaffer.model.converter.MatchConverter
 import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.*
+import com.jamex.refereestaffer.model.exception.GradeNotFoundException
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException
 import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.GradeRepository
@@ -86,16 +88,16 @@ class MatchServiceSpec extends Specification {
         result.gradeId == null
     }
 
-    def "should resolve unknown referee and grade ids to null when saving match"() {
+    def "should throw RefereeNotFoundException when referee id does not resolve"() {
         given:
         def homeTeam = [getId: { 1l }] as Team
         def awayTeam = [getId: { 2l }] as Team
+        def unknownRefereeId = 7l
         def matchDto = MatchDto.builder()
                 .queue(3 as short)
                 .homeTeamId(1l)
                 .awayTeamId(2l)
-                .refereeId(7l)
-                .gradeId(9l)
+                .refereeId(unknownRefereeId)
                 .build()
 
         when:
@@ -103,9 +105,58 @@ class MatchServiceSpec extends Specification {
 
         then:
         1 * teamRepository.findAllById([1l, 2l]) >> [homeTeam, awayTeam]
-        1 * refereeRepository.findAllById([7l]) >> []
-        1 * gradeRepository.findAllById([9l]) >> []
-        1 * matchRepository.save({ Match match -> match.referee == null && match.grade == null }) >> { Match match -> match }
+        1 * refereeRepository.findAllById([unknownRefereeId]) >> []
+        0 * matchRepository.save(_)
+        def exception = thrown(RefereeNotFoundException)
+        exception.message == String.format(RefereeNotFoundException.NOT_FOUND_WITH_ID, unknownRefereeId)
+    }
+
+    def "should throw GradeNotFoundException when grade id does not resolve"() {
+        given:
+        def homeTeam = [getId: { 1l }] as Team
+        def awayTeam = [getId: { 2l }] as Team
+        def referee = [getId: { 7l }] as Referee
+        def unknownGradeId = 9l
+        def matchDto = MatchDto.builder()
+                .queue(3 as short)
+                .homeTeamId(1l)
+                .awayTeamId(2l)
+                .refereeId(7l)
+                .gradeId(unknownGradeId)
+                .build()
+
+        when:
+        matchService.saveMatch(matchDto)
+
+        then:
+        1 * teamRepository.findAllById([1l, 2l]) >> [homeTeam, awayTeam]
+        1 * refereeRepository.findAllById([7l]) >> [referee]
+        1 * gradeRepository.findAllById([unknownGradeId]) >> []
+        0 * matchRepository.save(_)
+        def exception = thrown(GradeNotFoundException)
+        exception.message == String.format(GradeNotFoundException.NOT_FOUND, unknownGradeId)
+    }
+
+    def "should throw RefereeNotFoundException when one dto of a bulk update references an unknown referee"() {
+        given:
+        def team1 = [getId: { 1l }] as Team
+        def team2 = [getId: { 2l }] as Team
+        def knownReferee = [getId: { 7l }] as Referee
+        def unknownRefereeId = 8l
+        def matchesDtos = [
+                MatchDto.builder().id(31l).queue(3 as short).homeTeamId(1l).awayTeamId(2l).refereeId(7l).build(),
+                MatchDto.builder().id(32l).queue(3 as short).homeTeamId(2l).awayTeamId(1l).refereeId(unknownRefereeId).build()
+        ]
+
+        when:
+        matchService.updateMatches(matchesDtos)
+
+        then:
+        1 * teamRepository.findAllById([1l, 2l]) >> [team1, team2]
+        1 * refereeRepository.findAllById([7l, unknownRefereeId]) >> [knownReferee]
+        0 * matchRepository.saveAll(_)
+        def exception = thrown(RefereeNotFoundException)
+        exception.message == String.format(RefereeNotFoundException.NOT_FOUND_WITH_ID, unknownRefereeId)
     }
 
     def "should throw TeamNotFoundException when home or away team has not been found"() {
