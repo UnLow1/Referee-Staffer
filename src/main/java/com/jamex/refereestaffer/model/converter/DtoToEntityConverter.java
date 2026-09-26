@@ -1,15 +1,15 @@
 package com.jamex.refereestaffer.model.converter;
 
 /**
- * Dto → entity half of a converter, for dtos that carry no references to other entities
- * and can therefore be mapped from the dto alone.
+ * Dto → entity half of a converter, for dtos that need no resolved entities and can therefore
+ * be mapped from the dto alone. A converter whose dto → entity direction does need them takes
+ * them as parameters instead and implements only {@link EntityToDtoConverter} — see
+ * {@code MatchConverter} for that case.
  *
- * <p>Deliberately separate from {@link EntityToDtoConverter}: a dto whose id fields point at
- * other entities (match, grade, referee, team) cannot be mapped without those entities, and
- * resolving them is the service layer's job — so {@code MatchConverter}, {@code GradeConverter}
- * and {@code VacationConverter} expose a {@code convertFromDto} taking the resolved entities
- * and implement only the entity → dto half. Before the split, opting out of one direction
- * meant opting out of the whole interface and re-implementing the bulk entity → dto mapping.
+ * @param <E> the entity type, first for symmetry with {@link EntityToDtoConverter} so a class
+ *            implementing both repeats the same pair; note this puts it opposite to the
+ *            reading order of the interface name
+ * @param <D> the dto type
  */
 public interface DtoToEntityConverter<E, D> {
 

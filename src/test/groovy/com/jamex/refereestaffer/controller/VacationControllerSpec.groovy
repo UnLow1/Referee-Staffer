@@ -110,6 +110,8 @@ class VacationControllerSpec extends Specification {
         1 * vacationService.saveVacation({ VacationDto dto ->
             dto.refereeId == 3l && dto.startDate == LocalDate.of(2026, 7, 1) && dto.endDate == LocalDate.of(2026, 7, 14)
         }) >> savedDto
+        // the write path goes through the service only — no converter or repository hop left here
+        0 * vacationConverter._
         0 * vacationRepository._
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)
@@ -130,6 +132,7 @@ class VacationControllerSpec extends Specification {
         1 * vacationService.saveVacation({ VacationDto dto ->
             dto.id == 9l && dto.refereeId == 3l && dto.startDate == LocalDate.of(2026, 7, 2)
         }) >> updatedDto
+        0 * vacationConverter._
         0 * vacationRepository._
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)

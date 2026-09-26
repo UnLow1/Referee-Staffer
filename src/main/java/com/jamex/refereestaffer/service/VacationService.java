@@ -26,8 +26,11 @@ public class VacationService {
     /**
      * Resolves the referee the dto points at (404 when there is no such referee) and persists
      * the vacation. Serves both POST and PUT: the two differ only in whether the dto carries an
-     * id, which {@code save} upserts on — the same behavior the controller had inline before the
-     * id resolution moved out of {@link VacationConverter}.
+     * id. A PUT whose id is not in the database neither updates that id nor 404s — {@code save}
+     * merges a detached instance, and Hibernate treats one whose row is missing as transient, so
+     * it inserts a new row under a freshly generated id. That is what the controller did inline
+     * before the id resolution moved out of {@link VacationConverter}; turning PUT into a real
+     * existence check would be a behavior change and is deliberately not part of RS-108.
      */
     public VacationDto saveVacation(VacationDto vacationDto) {
         var referee = refereeRepository.findById(vacationDto.refereeId())
