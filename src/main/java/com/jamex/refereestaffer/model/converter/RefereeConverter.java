@@ -5,7 +5,7 @@ import com.jamex.refereestaffer.model.entity.Referee;
 import org.springframework.stereotype.Component;
 
 @Component
-public class RefereeConverter implements BaseConverter<Referee, RefereeDto> {
+public class RefereeConverter implements EntityToDtoConverter<Referee, RefereeDto>, DtoToEntityConverter<Referee, RefereeDto> {
 
     @Override
     public RefereeDto convertFromEntity(Referee entity) {

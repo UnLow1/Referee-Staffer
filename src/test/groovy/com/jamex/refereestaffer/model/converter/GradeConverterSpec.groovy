@@ -3,21 +3,13 @@ package com.jamex.refereestaffer.model.converter
 import com.jamex.refereestaffer.model.dto.GradeDto
 import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.entity.Match
-import com.jamex.refereestaffer.model.exception.GradeNotFoundException
-import com.jamex.refereestaffer.repository.GradeRepository
 import spock.lang.Specification
 import spock.lang.Subject
 
 class GradeConverterSpec extends Specification {
 
     @Subject
-    GradeConverter gradeConverter
-
-    GradeRepository gradeRepository = Mock()
-
-    def setup() {
-        gradeConverter = new GradeConverter(gradeRepository)
-    }
+    GradeConverter gradeConverter = new GradeConverter()
 
     def "should convert from Grade entity to dto"() {
         given:
@@ -45,44 +37,40 @@ class GradeConverterSpec extends Specification {
         result.secondValue == entity.secondValue
     }
 
-    def "should throw GradeNotFoundException when Grade has not been found"() {
+    def "should convert a collection of entities to dtos"() {
         given:
-        def gradeDto = GradeDto.builder()
-                .id(213l)
-                .build()
+        def first = [getId: { 1l }, getValue: { 8.0 as double }] as Grade
+        def second = [getId: { 2l }, getValue: { 7.5 as double }] as Grade
 
         when:
-        gradeConverter.convertFromDto(gradeDto)
+        def result = gradeConverter.convertFromEntities([first, second])
 
         then:
-        1 * gradeRepository.findById(gradeDto.id) >> Optional.empty()
-        def exception = thrown(GradeNotFoundException)
-        exception.message == String.format(GradeNotFoundException.NOT_FOUND, gradeDto.id)
+        result*.id == [1l, 2l]
+        result*.value == [8.0, 7.5]
     }
 
-    def "should convert from dto to Grade entity"() {
+    def "should convert from dto to Grade entity using the match handed in by the service"() {
         given:
         def match = [] as Match
-        def grade = [getMatch: { match } ] as Grade
         def gradeDto = GradeDto.builder()
                 .id(23l)
                 .value(8.1 as double)
                 .build()
 
         when:
-        def result = gradeConverter.convertFromDto(gradeDto)
+        def result = gradeConverter.convertFromDto(gradeDto, match)
 
         then:
-        1 * gradeRepository.findById(gradeDto.id) >> Optional.of(grade)
         result.id == gradeDto.id
         result.value == gradeDto.value
-        result.match == grade.match
+        result.secondValue == null
+        result.match.is(match)
     }
 
     def "should convert split grade from dto to entity"() {
         given:
         def match = [] as Match
-        def grade = [getMatch: { match } ] as Grade
         def gradeDto = GradeDto.builder()
                 .id(23l)
                 .value(7.9 as double)
@@ -90,26 +78,24 @@ class GradeConverterSpec extends Specification {
                 .build()
 
         when:
-        def result = gradeConverter.convertFromDto(gradeDto)
+        def result = gradeConverter.convertFromDto(gradeDto, match)
 
         then:
-        1 * gradeRepository.findById(gradeDto.id) >> Optional.of(grade)
         result.value == gradeDto.value
         result.secondValue == gradeDto.secondValue
         result.effectiveValue == (gradeDto.value + gradeDto.secondValue) / 2
     }
 
-    def "should convert from dto to Grade entity when id is null"() {
+    def "should convert from dto to Grade entity when there is no match"() {
         given:
         def gradeDto = GradeDto.builder()
                 .value(8.1 as double)
                 .build()
 
         when:
-        def result = gradeConverter.convertFromDto(gradeDto)
+        def result = gradeConverter.convertFromDto(gradeDto, null)
 
         then:
-        0 * gradeRepository.findById(gradeDto.id)
         result.value == gradeDto.value
         result.id == null
         result.match == null
