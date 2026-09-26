@@ -101,13 +101,20 @@ public class MatchService {
 
     /** Nullable reference: {@code null} id stays null, a present-but-unknown id is a 404. */
     private static <E> E resolveOptional(Map<Long, E> entitiesById, Long id,
-                                        Function<Long, RuntimeException> notFound) {
+                                         Function<Long, RuntimeException> notFound) {
         return id == null ? null : requireResolved(entitiesById, id, notFound);
     }
 
+    /**
+     * Mandatory reference: the id must resolve, {@code null} included. A null id cannot reach
+     * here through the API (both team ids are {@code @NotNull} on create and on update), but
+     * the null check is explicit rather than delegated to the map: {@code findByIds} returns
+     * {@code Map.of()} when no id was resolvable, and {@code Map.of().get(null)} throws NPE
+     * (a 500) instead of producing the 404 a {@code HashMap} would.
+     */
     private static <E> E requireResolved(Map<Long, E> entitiesById, Long id,
                                          Function<Long, RuntimeException> notFound) {
-        var entity = entitiesById.get(id);
+        var entity = id == null ? null : entitiesById.get(id);
         if (entity == null)
             throw notFound.apply(id);
         return entity;

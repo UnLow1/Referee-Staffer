@@ -4,7 +4,9 @@ import com.jamex.refereestaffer.model.converter.MatchConverter
 import com.jamex.refereestaffer.model.dto.DifficultyBreakdownDto
 import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.Match
+import com.jamex.refereestaffer.model.exception.GradeNotFoundException
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.service.AssignmentPdfService
 import com.jamex.refereestaffer.service.MatchService
@@ -181,6 +183,40 @@ class MatchControllerSpec extends Specification {
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)
         json.id == 11
+    }
+
+    def "should respond 404 with problem detail when match write references an unknown referee"() {
+        given:
+        def unknownRefereeId = 7l
+
+        when:
+        def response = mockMvc.perform(post("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"queue": 2, "homeTeamId": 1, "awayTeamId": 2, "refereeId": $unknownRefereeId}"""))
+                .andReturn().response
+
+        then:
+        1 * matchService.saveMatch(_) >> { throw new RefereeNotFoundException(unknownRefereeId) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(RefereeNotFoundException.NOT_FOUND_WITH_ID, unknownRefereeId)
+    }
+
+    def "should respond 404 with problem detail when match write references an unknown grade"() {
+        given:
+        def unknownGradeId = 9l
+
+        when:
+        def response = mockMvc.perform(post("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"queue": 2, "homeTeamId": 1, "awayTeamId": 2, "gradeId": $unknownGradeId}"""))
+                .andReturn().response
+
+        then:
+        1 * matchService.saveMatch(_) >> { throw new GradeNotFoundException(unknownGradeId) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(GradeNotFoundException.NOT_FOUND, unknownGradeId)
     }
 
     def "should update match through the service"() {
