@@ -5,6 +5,7 @@ import com.jamex.refereestaffer.model.dto.VacationDto;
 import com.jamex.refereestaffer.model.exception.VacationNotFoundException;
 import com.jamex.refereestaffer.model.validation.OnUpdate;
 import com.jamex.refereestaffer.repository.VacationRepository;
+import com.jamex.refereestaffer.service.VacationService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +29,13 @@ public class VacationController {
 
     private final VacationRepository vacationRepository;
     private final VacationConverter vacationConverter;
+    private final VacationService vacationService;
 
-    public VacationController(VacationRepository vacationRepository, VacationConverter vacationConverter) {
+    public VacationController(VacationRepository vacationRepository, VacationConverter vacationConverter,
+                              VacationService vacationService) {
         this.vacationRepository = vacationRepository;
         this.vacationConverter = vacationConverter;
+        this.vacationService = vacationService;
     }
 
     @GetMapping
@@ -52,17 +56,13 @@ public class VacationController {
     @PostMapping
     public VacationDto createVacation(@Valid @RequestBody VacationDto vacationDto) {
         log.info("Adding new vacation");
-        var vacation = vacationConverter.convertFromDto(vacationDto);
-        var savedVacation = vacationRepository.save(vacation);
-        return vacationConverter.convertFromEntity(savedVacation);
+        return vacationService.saveVacation(vacationDto);
     }
 
     @PutMapping
     public VacationDto updateVacation(@Validated(OnUpdate.class) @RequestBody VacationDto vacationDto) {
         log.info("Updating vacation with id {}", vacationDto.id());
-        var vacation = vacationConverter.convertFromDto(vacationDto);
-        var updatedVacation = vacationRepository.save(vacation);
-        return vacationConverter.convertFromEntity(updatedVacation);
+        return vacationService.saveVacation(vacationDto);
     }
 
     @DeleteMapping()
