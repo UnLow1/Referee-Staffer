@@ -74,6 +74,8 @@ class GradeServiceSpec extends Specification {
         1 * gradeRepository.save(convertedGrade)
     }
 
+    // Used to 404: findById(...).map(Grade::getMatch) collapsed a null match to an empty
+    // Optional, so orElseThrow reported a grade that does exist as not found.
     def "should update grade that is not attached to any match"() {
         given:
         def gradeDto = GradeDto.builder().id(23l).value(8.1 as double).build()
