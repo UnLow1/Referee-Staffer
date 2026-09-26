@@ -8,7 +8,9 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.exception.GradeNotFoundException;
 import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.GradeRepository;
@@ -70,9 +72,15 @@ public class MatchService {
     /**
      * Resolves the id references of each dto (teams, referee, grade) with one bulk
      * query per repository and hands the ready entities to the converter — the
-     * converter itself does no repository access. A missing team is an error
-     * (404 via {@link TeamNotFoundException}); a missing referee or grade id maps
-     * to null, which is what the pre-refactor per-id lookups did too.
+     * converter itself does no repository access. Every id that is present must
+     * resolve, otherwise the request is rejected with a 404 ({@link TeamNotFoundException},
+     * {@link RefereeNotFoundException}, {@link GradeNotFoundException}).
+     *
+     * <p>Referee and grade ids are optional — {@code null} means "no referee" / "not graded
+     * yet", both legal states — but a non-null id pointing at a row that does not exist used
+     * to be swallowed and stored as {@code null}, so the client got a 200 and a dto without
+     * the value it had just sent (RS-107). Team ids are mandatory (bean validation) and were
+     * always strict.
      */
     private List<Match> resolveAndConvert(List<MatchDto> matchesDtos) {
         var teams = findByIds(teamRepository::findAllById, matchesDtos.stream()
@@ -84,15 +92,25 @@ public class MatchService {
 
         return matchesDtos.stream()
                 .map(dto -> matchConverter.convertFromDto(dto,
-                        requireTeam(teams, dto.homeTeamId()),
-                        requireTeam(teams, dto.awayTeamId()),
-                        resolveOptional(referees, dto.refereeId()),
-                        resolveOptional(grades, dto.gradeId())))
+                        requireResolved(teams, dto.homeTeamId(), TeamNotFoundException::new),
+                        requireResolved(teams, dto.awayTeamId(), TeamNotFoundException::new),
+                        resolveOptional(referees, dto.refereeId(), RefereeNotFoundException::new),
+                        resolveOptional(grades, dto.gradeId(), GradeNotFoundException::new)))
                 .toList();
     }
 
-    private static <E> E resolveOptional(Map<Long, E> entitiesById, Long id) {
-        return id == null ? null : entitiesById.get(id);
+    /** Nullable reference: {@code null} id stays null, a present-but-unknown id is a 404. */
+    private static <E> E resolveOptional(Map<Long, E> entitiesById, Long id,
+                                        Function<Long, RuntimeException> notFound) {
+        return id == null ? null : requireResolved(entitiesById, id, notFound);
+    }
+
+    private static <E> E requireResolved(Map<Long, E> entitiesById, Long id,
+                                         Function<Long, RuntimeException> notFound) {
+        var entity = entitiesById.get(id);
+        if (entity == null)
+            throw notFound.apply(id);
+        return entity;
     }
 
     private <E> Map<Long, E> findByIds(Function<List<Long>, List<E>> bulkFinder, Stream<Long> ids, Function<E, Long> idGetter) {
@@ -101,13 +119,6 @@ public class MatchService {
             return Map.of();
         return bulkFinder.apply(distinctIds).stream()
                 .collect(Collectors.toMap(idGetter, Function.identity()));
-    }
-
-    private Team requireTeam(Map<Long, Team> teams, Long teamId) {
-        var team = teams.get(teamId);
-        if (team == null)
-            throw new TeamNotFoundException(teamId);
-        return team;
     }
 
     /**
