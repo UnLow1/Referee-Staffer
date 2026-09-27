@@ -23,8 +23,5 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(Collection<Referee> referees,
                                                                          LocalDateTime from, LocalDateTime to);
 
-    default List<Match> findAllByRefereeInAndDateOnDay(Collection<Referee> referees, LocalDateTime dateTime) {
-        var dayStart = dateTime.toLocalDate().atStartOfDay();
-        return findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(referees, dayStart, dayStart.plusDays(1));
-    }
+    List<Match> findAllByRefereeInAndQueueIn(Collection<Referee> referees, Collection<Short> queues);
 }

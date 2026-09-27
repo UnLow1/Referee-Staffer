@@ -1,5 +1,6 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
-import {forkJoin} from 'rxjs';
+import {forkJoin, of} from 'rxjs';
+import {catchError} from 'rxjs/operators';
 import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -11,6 +12,7 @@ import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {CandidateViolations, StaffingRule, StaffingViolation} from '../../model/staffingViolation';
 import {IconComponent} from '../common/icon/icon.component';
 import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
@@ -29,7 +31,19 @@ interface Candidate {
   referee: Referee;
   isAssigned: boolean;
   isUsedElsewhere: boolean;
+  /**
+   * Staffing rules this pairing would break. Warning only — a candidate with violations stays
+   * clickable, unlike `isUsedElsewhere`, which is physically impossible (RS-111).
+   */
+  violations: StaffingViolation[];
 }
+
+/** Short chip labels for the candidate list; the full sentence goes into the tooltip. */
+const RULE_LABELS: Record<StaffingRule, string> = {
+  VACATION: 'vacation',
+  SAME_DAY_MATCH: 'same day',
+  DOUBLE_MATCH_IN_QUEUE: 'same queue'
+};
 
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
@@ -77,6 +91,11 @@ export class StafferComponent {
   readonly drawerMatchId = signal<number | null>(null);
   /** Lazy-loaded breakdown for the currently-open drawer. Null while pending or absent. */
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
+  /**
+   * Rule violations for every conflicting (match, referee) pair in the generated queue,
+   * straight from the backend. Loaded once per generate, so opening the drawer costs no request.
+   */
+  readonly violations = signal<CandidateViolations[]>([]);
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
   readonly exporting = signal(false);
@@ -98,6 +117,13 @@ export class StafferComponent {
   );
 
   readonly lockCount = computed(() => this.locks().size);
+
+  /** `matchId:refereeId` -> violations, so a candidate row is a map lookup, not a scan. */
+  private readonly violationsByPair = computed(() => {
+    const map = new Map<string, StaffingViolation[]>();
+    this.violations().forEach(v => map.set(`${v.matchId}:${v.refereeId}`, v.violations));
+    return map;
+  });
 
   /**
    * The sheet is rendered from what the backend has stored, so it may only be exported
@@ -136,9 +162,13 @@ export class StafferComponent {
     forkJoin({
       matches: this.stafferService.staffReferees(this.queue(), locks),
       standings: this.teamService.getStandings(),
-      referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
+      referees: this.refereeService.findRefereesAvailableForQueue(this.queue()),
+      // Warnings are advisory: if the rule matrix cannot be loaded, the cast must still show.
+      // The interceptor has already toasted the failure by the time this runs.
+      violations: this.stafferService.findCandidateViolations(this.queue())
+        .pipe(catchError(() => of<CandidateViolations[]>([])))
     }).subscribe({
-      next: ({matches, standings, referees}) => {
+      next: ({matches, standings, referees, violations}) => {
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
         // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
@@ -151,6 +181,7 @@ export class StafferComponent {
         this.placeById.set(placeMap);
         this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
+        this.violations.set(violations);
         this.matches.set([...matches]);
         this.loading.set(false);
       },
@@ -289,8 +320,18 @@ export class StafferComponent {
       .map<Candidate>(r => ({
         referee: r,
         isAssigned: r.id === match.refereeId,
-        isUsedElsewhere: used.has(r.id)
+        isUsedElsewhere: used.has(r.id),
+        violations: this.violationsFor(match.id, r.id)
       }));
+  }
+
+  /** Rules the pairing breaks, as computed by the backend. Empty when the pairing is clean. */
+  violationsFor(matchId: number, refereeId: number): StaffingViolation[] {
+    return this.violationsByPair().get(`${matchId}:${refereeId}`) ?? [];
+  }
+
+  ruleLabel(rule: StaffingRule): string {
+    return RULE_LABELS[rule];
   }
 
   formatTime(d: Date): string {

@@ -6,6 +6,7 @@ import {StafferService} from './staffer.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
 import {Match} from '../model/match';
+import {CandidateViolations} from '../model/staffingViolation';
 
 describe('StafferService', () => {
   const stafferUrl = '/api/staffer';
@@ -61,6 +62,22 @@ describe('StafferService', () => {
     const req = httpTesting.expectOne(`${stafferUrl}/5`);
     expect(req.request.body).toEqual(locks);
     req.flush([match]);
+  });
+
+  it('findCandidateViolations GETs the violations matrix for the queue', () => {
+    const matrix: CandidateViolations[] = [{
+      matchId: 11,
+      refereeId: 7,
+      violations: [{rule: 'SAME_DAY_MATCH', message: 'Jan Kowalski already has a match on 2026-05-10 at 11:00 (queue 4)'}],
+    }];
+    let result: CandidateViolations[] | undefined;
+    service.findCandidateViolations(5).subscribe(violations => result = violations);
+
+    const req = httpTesting.expectOne(`${stafferUrl}/5/violations`);
+    expect(req.request.method).toBe('GET');
+    req.flush(matrix);
+
+    expect(result).toEqual(matrix);
   });
 
   it('surfaces a staffing conflict (ProblemDetail) as an error toast and rethrows', () => {
