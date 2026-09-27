@@ -173,7 +173,7 @@ class StafferServiceSpec extends Specification {
     def "should throw StafferException when all available referees are on vacation for match date"() {
         given:
         short queue = 5
-        def referee = Referee.builder().id(1l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def referee = Referee.builder().id(1L).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
         def matchDate = matchDateTime.toLocalDate()
         def match = Match.builder()
@@ -206,8 +206,8 @@ class StafferServiceSpec extends Specification {
         short queue = 3
         def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
         // ref1 would win on potential, but already officiates a match rescheduled onto this day
-        def ref1 = Referee.builder().id(1l).averageGrade(9.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        def ref2 = Referee.builder().id(2l).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref1 = Referee.builder().id(1L).averageGrade(9.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref2 = Referee.builder().id(2L).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def referees = [ref1, ref2]
         def match = Match.builder()
                 .home(Team.builder().name("home").build())
@@ -228,13 +228,7 @@ class StafferServiceSpec extends Specification {
         1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
         1 * refereeService.calculateStats(referees)
         1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
-        1 * configurationRepository.findAllAsMap() >> [
-                (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : 1.0d,
-                (ConfigName.EXPERIENCE_MULTIPLIER)     : 0.0d,
-                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER): 0.0d,
-                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): 0.0d,
-                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): 0.0d
-        ]
+        1 * configurationRepository.findAllAsMap() >> gradeOnlyConfig()
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
         1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> [conflictingMatch]
         1 * matchConverter.convertFromEntities([match])
@@ -244,7 +238,7 @@ class StafferServiceSpec extends Specification {
         given:
         short queue = 3
         def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
-        def referee = Referee.builder().id(1l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def referee = Referee.builder().id(1L).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def match = Match.builder()
                 .home(Team.builder().name("home").build())
                 .away(Team.builder().name("away").build())
@@ -277,14 +271,14 @@ class StafferServiceSpec extends Specification {
         def matchDate = matchDateTime.toLocalDate()
         // refOnVacation wins on potential, so the vacation filter is the only thing that can
         // keep it out of the cast.
-        def refOnVacation = Referee.builder().id(1l).averageGrade(9.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        def freeReferee = Referee.builder().id(2l).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def refOnVacation = Referee.builder().id(1L).averageGrade(9.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def freeReferee = Referee.builder().id(2L).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def referees = [refOnVacation, freeReferee]
         // Same referee, different instance — what a reloaded entity, a defensive copy or a
         // converted DTO would hand the staffer. Referee has no equals/hashCode, so an
         // entity-based filter would compare references here and miss the vacation (RS-110).
         def vacation = Vacation.builder()
-                .referee(Referee.builder().id(1l).build())
+                .referee(Referee.builder().id(1L).build())
                 .startDate(matchDate)
                 .endDate(matchDate)
                 .build()
@@ -314,8 +308,8 @@ class StafferServiceSpec extends Specification {
         def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
         // refWithConflict wins on potential, so the same-day filter is the only thing that can
         // keep it out of the cast.
-        def refWithConflict = Referee.builder().id(1l).averageGrade(9.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        def freeReferee = Referee.builder().id(2l).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def refWithConflict = Referee.builder().id(1L).averageGrade(9.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def freeReferee = Referee.builder().id(2L).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def referees = [refWithConflict, freeReferee]
         def match = Match.builder()
                 .home(Team.builder().name("home").build())
@@ -325,7 +319,7 @@ class StafferServiceSpec extends Specification {
         // Same referee, different instance — see the vacation spec above (RS-110).
         def conflictingMatch = Match.builder()
                 .queue((short) 2)
-                .referee(Referee.builder().id(1l).build())
+                .referee(Referee.builder().id(1L).build())
                 .date(LocalDateTime.of(2026, 5, 4, 11, 0))
                 .build()
 
