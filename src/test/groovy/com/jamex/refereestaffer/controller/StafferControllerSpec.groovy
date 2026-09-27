@@ -1,7 +1,10 @@
 package com.jamex.refereestaffer.controller
 
+import com.jamex.refereestaffer.model.dto.CandidateViolationsDto
 import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.exception.StafferException
+import com.jamex.refereestaffer.model.staffing.StaffingRule
+import com.jamex.refereestaffer.model.staffing.StaffingViolation
 import com.jamex.refereestaffer.model.request.StaffingLockRequest
 import com.jamex.refereestaffer.service.StafferService
 import groovy.json.JsonSlurper
@@ -71,6 +74,36 @@ class StafferControllerSpec extends Specification {
         then:
         0 * stafferService.staffReferees(_, _)
         response.status == 405
+    }
+
+    def "should serve the staffing rule violations for a queue"() {
+        given:
+        def violations = [new CandidateViolationsDto(11l, 1l,
+                [new StaffingViolation(StaffingRule.SAME_DAY_MATCH, "Anna Nowak already has a match on 2026-05-04 at 11:00 (queue 9)"),
+                 new StaffingViolation(StaffingRule.VACATION, "Anna Nowak is on vacation from 2026-05-04 to 2026-05-06")])]
+
+        when:
+        def response = mockMvc.perform(get("/api/staffer/12/violations")).andReturn().response
+
+        then:
+        1 * stafferService.findCandidateViolationsForQueue(12 as short) >> violations
+        response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json*.matchId == [11]
+        json*.refereeId == [1]
+        // The rule code is the wire contract the frontend switches on for its chip label.
+        json[0].violations*.rule == ["SAME_DAY_MATCH", "VACATION"]
+        json[0].violations[0].message == "Anna Nowak already has a match on 2026-05-04 at 11:00 (queue 9)"
+    }
+
+    def "should serve an empty violations list for a clean queue"() {
+        when:
+        def response = mockMvc.perform(get("/api/staffer/3/violations")).andReturn().response
+
+        then:
+        1 * stafferService.findCandidateViolationsForQueue(3 as short) >> []
+        response.status == 200
+        response.contentAsString == "[]"
     }
 
     def "should respond 409 with problem detail when there are not enough referees"() {

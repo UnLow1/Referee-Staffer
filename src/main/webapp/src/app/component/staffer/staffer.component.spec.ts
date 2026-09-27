@@ -13,6 +13,7 @@ import {Match} from '../../model/match';
 import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {CandidateViolations} from '../../model/staffingViolation';
 import {createMock} from '../../testing/mock';
 import {saveAs} from 'file-saver';
 
@@ -90,6 +91,24 @@ describe('StafferComponent', () => {
     makeReferee(103, {potential: 95, experience: 15})
   ];
 
+  // Backend rule matrix: referee 103 is a hard "no" for match 12 (double warning), 101 is on
+  // vacation for match 13. Every other pairing is clean and therefore absent from the payload.
+  const violations: CandidateViolations[] = [
+    {
+      matchId: 12,
+      refereeId: 103,
+      violations: [
+        {rule: 'SAME_DAY_MATCH', message: 'First103 Last103 already has a match on 2026-03-01 at 11:00 (queue 4)'},
+        {rule: 'VACATION', message: 'First103 Last103 is on vacation from 2026-03-01 to 2026-03-05'}
+      ]
+    },
+    {
+      matchId: 13,
+      refereeId: 101,
+      violations: [{rule: 'VACATION', message: 'First101 Last101 is on vacation from 2026-03-01 to 2026-03-05'}]
+    }
+  ];
+
   function makeBreakdown(matchId: number): DifficultyBreakdown {
     return {
       matchId,
@@ -100,7 +119,7 @@ describe('StafferComponent', () => {
   }
 
   beforeEach(async () => {
-    stafferService = createMock<StafferService>(['staffReferees']);
+    stafferService = createMock<StafferService>(['staffReferees', 'findCandidateViolations']);
     teamService = createMock<TeamService>(['getStandings']);
     refereeService = createMock<RefereeService>(['findRefereesAvailableForQueue']);
     matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
@@ -108,6 +127,7 @@ describe('StafferComponent', () => {
     edgeTeams = signal(3);
 
     stafferService.staffReferees.mockReturnValue(of(matches));
+    stafferService.findCandidateViolations.mockReturnValue(of(violations));
     teamService.getStandings.mockReturnValue(of(standings));
     refereeService.findRefereesAvailableForQueue.mockReturnValue(of(referees));
     matchService.getDifficultyBreakdown.mockImplementation(id => of(makeBreakdown(id)));
@@ -153,7 +173,9 @@ describe('StafferComponent', () => {
 
       expect(stafferService.staffReferees).toHaveBeenCalledWith(2, []);
       expect(refereeService.findRefereesAvailableForQueue).toHaveBeenCalledWith(2);
+      expect(stafferService.findCandidateViolations).toHaveBeenCalledWith(2);
       expect(component.matches()).toEqual(matches);
+      expect(component.violations()).toEqual(violations);
       expect(component.referees()).toEqual(referees);
       expect(component.totalTeams()).toBe(8);
       expect(component.getTeam(1)?.name).toBe('Alfa');
@@ -347,6 +369,108 @@ describe('StafferComponent', () => {
       expect(byId.get(101)!.isUsedElsewhere).toBe(true);
       expect(byId.get(102)!.isUsedElsewhere).toBe(false);
       expect(byId.get(103)!.isUsedElsewhere).toBe(false);
+    });
+
+    it('attaches the backend rule violations to the matching pair only', () => {
+      const target = component.matches()!.find(m => m.id === 12)!;
+
+      const byId = new Map(component.candidatesFor(target).map(c => [c.referee.id, c]));
+
+      expect(byId.get(103)!.violations.map(v => v.rule)).toEqual(['SAME_DAY_MATCH', 'VACATION']);
+      // The same referee is clean for the other matches, and 101's vacation belongs to match 13.
+      expect(byId.get(101)!.violations).toEqual([]);
+      expect(byId.get(100)!.violations).toEqual([]);
+      expect(byId.get(102)!.violations).toEqual([]);
+    });
+
+    it('keeps a violating candidate selectable — warnings never block the assignment', () => {
+      const target = component.matches()!.find(m => m.id === 12)!;
+      const violating = component.candidatesFor(target).find(c => c.referee.id === 103)!;
+
+      expect(violating.violations.length).toBeGreaterThan(0);
+      // Only isUsedElsewhere disables the row in the template; a rule warning must not.
+      expect(violating.isUsedElsewhere).toBe(false);
+
+      component.swap(target, 103);
+
+      expect(component.matches()!.find(m => m.id === 12)!.refereeId).toBe(103);
+      expect(component.locks().get(12)).toBe(103);
+    });
+  });
+
+  // The rendered drawer, not just the component state: "warn, never block" is a property of
+  // the template's [disabled] binding, so only a DOM assertion can guard it against a future
+  // well-meaning `|| c.violations.length > 0`.
+  describe('candidate rendering', () => {
+    function candidateRowFor(lastName: string): HTMLButtonElement {
+      const root = fixture.nativeElement as HTMLElement;
+      const rows: HTMLButtonElement[] = Array.from(root.querySelectorAll('.candidate'));
+      const row = rows.find(r => r.textContent?.includes(lastName));
+      expect(row).toBeDefined();
+      return row as HTMLButtonElement;
+    }
+
+    function warnChipsIn(row: HTMLElement): Element[] {
+      return Array.from(row.querySelectorAll('app-chip')).filter(c => c.hasAttribute('title'));
+    }
+
+    beforeEach(() => {
+      component.generate();
+      // Match 12 is the one referee 103 (violations) and 101 (used elsewhere) both appear for.
+      component.openDrawer(component.matches()!.find(m => m.id === 12)!);
+      fixture.detectChanges();
+    });
+
+    it('renders one warn chip per violation, with the backend message as its tooltip', () => {
+      const chips = warnChipsIn(candidateRowFor('Last103'));
+
+      expect(chips.map(c => c.textContent?.trim())).toEqual(['same day', 'vacation']);
+      expect(chips[0].getAttribute('title')).toBe(violations[0].violations[0].message);
+      expect(chips[1].getAttribute('title')).toBe(violations[0].violations[1].message);
+    });
+
+    it('leaves the violating candidate button enabled', () => {
+      expect(candidateRowFor('Last103').disabled).toBe(false);
+    });
+
+    it('still disables a candidate already used by another match in the queue', () => {
+      // The contrast that carries the rule: only physically impossible picks are blocked.
+      const row = candidateRowFor('Last101');
+      expect(row.disabled).toBe(true);
+      expect(warnChipsIn(row)).toEqual([]);
+    });
+
+    it('renders no warn chip for a clean candidate', () => {
+      // 102 is the only referee that is neither used by another match in the queue nor in the
+      // violations matrix.
+      expect(warnChipsIn(candidateRowFor('Last102'))).toEqual([]);
+      expect(candidateRowFor('Last102').disabled).toBe(false);
+    });
+  });
+
+  describe('violations', () => {
+    it('resolves the rules for a pair and an empty list for a clean one', () => {
+      component.generate();
+
+      expect(component.violationsFor(13, 101).map(v => v.rule)).toEqual(['VACATION']);
+      expect(component.violationsFor(13, 103)).toEqual([]);
+      expect(component.violationsFor(999, 101)).toEqual([]);
+    });
+
+    it('still renders the cast when the violations request fails', () => {
+      stafferService.findCandidateViolations.mockReturnValue(throwError(() => new Error('boom')));
+
+      component.generate();
+
+      expect(component.matches()).toEqual(matches);
+      expect(component.violations()).toEqual([]);
+      expect(component.loading()).toBe(false);
+    });
+
+    it('maps every rule code to a short chip label', () => {
+      expect(component.ruleLabel('VACATION')).toBe('vacation');
+      expect(component.ruleLabel('SAME_DAY_MATCH')).toBe('same day');
+      expect(component.ruleLabel('DOUBLE_MATCH_IN_QUEUE')).toBe('same queue');
     });
   });
 

@@ -259,6 +259,11 @@
             </span>
             @if (c.isAssigned) { <app-chip variant="accent">assigned</app-chip> }
             @if (c.isUsedElsewhere) { <app-chip>in use</app-chip> }
+            <!-- Rule warnings, from the backend matrix. Deliberately NOT disabling the row:
+                 a rule may always be broken knowingly, the user just has to see it first. -->
+            @for (v of c.violations; track v.rule) {
+              <app-chip variant="warn" [dot]="true" [title]="v.message">{{ ruleLabel(v.rule) }}</app-chip>
+            }
           </button>
         }
       </div>

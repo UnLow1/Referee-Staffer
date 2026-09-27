@@ -3,10 +3,13 @@ package com.jamex.refereestaffer.integration
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.entity.Referee
 import com.jamex.refereestaffer.model.entity.Team
+import com.jamex.refereestaffer.model.entity.Vacation
 import com.jamex.refereestaffer.model.request.StaffingLockRequest
+import com.jamex.refereestaffer.model.staffing.StaffingRule
 import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.repository.TeamRepository
+import com.jamex.refereestaffer.repository.VacationRepository
 import com.jamex.refereestaffer.service.StafferService
 import org.spockframework.runtime.model.parallel.ExecutionMode
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,12 +41,14 @@ class StafferIntegrationSpec extends Specification {
     @Autowired MatchRepository matchRepository
     @Autowired RefereeRepository refereeRepository
     @Autowired TeamRepository teamRepository
+    @Autowired VacationRepository vacationRepository
 
     def setup() {
         // Spring caches the application context across test classes, and H2 in-memory state
         // carries with it. Wipe domain data on each test so we start clean. Configuration
         // rows seeded by data.sql are intentionally untouched — staffReferees needs them.
         matchRepository.deleteAll()
+        vacationRepository.deleteAll()
         refereeRepository.deleteAll()
         teamRepository.deleteAll()
     }
@@ -165,5 +170,74 @@ class StafferIntegrationSpec extends Specification {
         def persisted = matchRepository.findById(matchToStaff.id).orElseThrow()
         persisted.referee != null
         persisted.referee.id == referee.id
+    }
+
+    def "should skip a referee on vacation and pin the overlap query's argument order"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        // Higher experience means the vacationing referee would win on potential without the
+        // vacation check (data.sql: EXPERIENCE_MULTIPLIER = 0.01, grades are equal).
+        def onVacation = refereeRepository.save(new Referee("On", "Vacation", "away@ref.com", 99))
+        def available = refereeRepository.save(new Referee("At", "Work", "work@ref.com", 1))
+        short queue = 2
+        def firstDay = LocalDateTime.of(2026, 9, 12, 15, 0)
+        def lastDay = firstDay.plusDays(2)
+        // Two match days, so the rule snapshot spans a range rather than a single day, and a
+        // vacation that overlaps only its start. That is the one shape that tells a correct
+        // overlap test (start <= rangeEnd AND end >= rangeStart) from the swapped one: with the
+        // arguments the wrong way round this vacation is not found and the first match would go
+        // to the vacationing referee.
+        vacationRepository.save(Vacation.builder()
+                .referee(onVacation)
+                .startDate(firstDay.toLocalDate().minusDays(3))
+                .endDate(firstDay.toLocalDate())
+                .build())
+        def matchOnVacationDay = matchRepository.save(new Match(queue, team1, team2, firstDay, null, null, null))
+        def matchAfterVacation = matchRepository.save(new Match(queue, team3, team4, lastDay, null, null, null))
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        matchRepository.findById(matchOnVacationDay.id).orElseThrow().referee.id == available.id
+        // The vacation has ended by then, so the same referee is fine for the later match.
+        matchRepository.findById(matchAfterVacation.id).orElseThrow().referee.id == onVacation.id
+    }
+
+    def "should report the queue's rule violations against real data"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        def onVacation = refereeRepository.save(new Referee("On", "Vacation", "away@ref.com", 5))
+        def busy = refereeRepository.save(new Referee("Busy", "Referee", "busy@ref.com", 5))
+        def clean = refereeRepository.save(new Referee("Clean", "Referee", "clean@ref.com", 5))
+        short queue = 4
+        def matchDay = LocalDateTime.of(2026, 9, 12, 15, 0)
+        vacationRepository.save(Vacation.builder()
+                .referee(onVacation)
+                .startDate(matchDay.toLocalDate())
+                .endDate(matchDay.toLocalDate().plusDays(2))
+                .build())
+        // Another queue's match rescheduled onto the same day.
+        matchRepository.save(new Match((short) 1, team3, team4, matchDay.minusHours(3), busy, null, null))
+        def matchToStaff = matchRepository.save(new Match(queue, team1, team2, matchDay, null, null, null))
+
+        when:
+        def violations = stafferService.findCandidateViolationsForQueue(queue)
+
+        then:
+        // Every pair goes through the real SQL: the clean referee produces no row at all.
+        violations*.refereeId().toSet() == [onVacation.id, busy.id].toSet()
+        violations.every { it.matchId() == matchToStaff.id }
+        violations.find { it.refereeId() == onVacation.id }.violations()*.rule() == [StaffingRule.VACATION]
+        def sameDay = violations.find { it.refereeId() == busy.id }.violations()
+        sameDay*.rule() == [StaffingRule.SAME_DAY_MATCH]
+        sameDay[0].message().contains("Busy Referee")
+        sameDay[0].message().contains("12:00")
     }
 }
