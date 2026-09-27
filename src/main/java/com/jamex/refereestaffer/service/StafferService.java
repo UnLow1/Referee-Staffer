@@ -163,16 +163,23 @@ public class StafferService {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
             var vacations = vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(match.getDate());
 
-            var refereesWithVacations = vacations.stream()
+            // Every candidate filter below keys on the referee id. Matching on the entity itself
+            // would fall back to identity comparison (Referee deliberately does not override
+            // equals/hashCode — see RS-110), which only happens to work while all instances come
+            // from the same persistence context; a copied list, a reloaded entity or a DTO in the
+            // flow would silently let a referee on vacation or with a same-day match through.
+            var refereeIdsOnVacation = vacations.stream()
                     .map(Vacation::getReferee)
-                    .toList();
+                    .map(StafferService::refereeId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
-            var refereesWithMatchOnSameDay = findRefereesWithMatchOnDay(referees, match.getDate());
+            var refereeIdsWithMatchOnSameDay = findRefereeIdsWithMatchOnDay(referees, match.getDate());
 
             var availableReferees = referees.stream()
                     .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
-                    .filter(ref -> !refereesWithVacations.contains(ref))
-                    .filter(ref -> !refereesWithMatchOnSameDay.contains(ref))
+                    .filter(ref -> !refereeIdsOnVacation.contains(ref.getId()))
+                    .filter(ref -> !refereeIdsWithMatchOnSameDay.contains(ref.getId()))
                     .toList();
 
             for (var referee : availableReferees) {
@@ -195,18 +202,30 @@ public class StafferService {
     }
 
     /**
-     * Referees that already officiate another match on the same calendar day. The queue-level
-     * uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a match from a
-     * different queue can be rescheduled onto this day, and one referee must never have two
-     * matches on one day (RS-57).
+     * Ids of referees that already officiate another match on the same calendar day. The
+     * queue-level uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a
+     * match from a different queue can be rescheduled onto this day, and one referee must never
+     * have two matches on one day (RS-57).
      */
-    private Set<Referee> findRefereesWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
+    private Set<Long> findRefereeIdsWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
         if (referees.isEmpty()) {
             return Set.of();
         }
         return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
                 .map(Match::getReferee)
+                .map(StafferService::refereeId)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * Null-tolerant {@code Referee::getId}. Both exclusion sets are built from rows loaded by id,
+     * so a null referee or a null id cannot occur in practice — leaving such an entry out of the
+     * set (rather than exploding, or poisoning it with a null that would match every transient
+     * referee) keeps the filters from excluding the wrong candidates if it ever does.
+     */
+    private static Long refereeId(Referee referee) {
+        return referee == null ? null : referee.getId();
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {
