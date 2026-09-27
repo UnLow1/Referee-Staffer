@@ -43,8 +43,10 @@ class StafferServiceSpec extends Specification {
                                        Map<Long, List<Match>> refereeMatches = [:],
                                        Map<Long, List<Vacation>> vacations = [:]) {
         new StaffingRules(matches.collect { it.date.toLocalDate() } as Set,
-                matches.collect { it.queue }.findAll() as Set,
-                referees.collect { it.id }.findAll() as Set,
+                // findAll { it != null } rather than bare findAll(): the latter filters by Groovy
+                // truth and would also drop a legitimate queue / id of 0.
+                matches.collect { it.queue }.findAll { it != null } as Set,
+                referees.collect { it.id }.findAll { it != null } as Set,
                 refereeMatches, vacations)
     }
 
@@ -372,14 +374,42 @@ class StafferServiceSpec extends Specification {
         def result = stafferService.findCandidateViolationsForQueue(queue)
 
         then:
-        1 * matchService.getMatchesToAssignInQueue(queue) >> matches
-        1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
+        // The cheap lookup, not getMatchesToAssignInQueue: nothing here reads hardnessLvl, and
+        // ranking would cost a league-table pass over every finished match.
+        1 * matchService.getAssignableMatchesInQueue(queue) >> matches
+        0 * matchService.getMatchesToAssignInQueue(_)
+        // Every staffable referee, not the queue's availability pool — the pool would make the
+        // answer depend on whether the staffing POST has committed yet.
+        1 * refereeService.getStaffableReferees() >> referees
+        0 * refereeService.getAvailableRefereesForQueue(_)
         1 * staffingRuleChecker.rulesFor(matches, referees) >> rules(matches, referees, [:], vacations)
         // Clean pairs are left out entirely — only (match1, ref1) conflicts.
         result.size() == 1
         result[0].matchId() == 11L
         result[0].refereeId() == 1L
         result[0].violations()*.rule() == [StaffingRule.VACATION]
+    }
+
+    def "should cover a referee who already holds a match in the queue"() {
+        given:
+        short queue = 7
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        // Busy is not in the queue's availability pool at all, yet the matrix must still judge
+        // them: the frontend's candidate list is built from a separately-fetched pool, and a
+        // warning that goes missing because of request ordering is worse than no warning.
+        def busy = Referee.builder().id(1L).firstName("Busy").lastName("Referee").build()
+        def match = Match.builder().id(11L).queue(queue).date(matchDateTime).build()
+        def heldMatch = Match.builder().id(12L).queue(queue).referee(busy).date(matchDateTime.plusDays(1)).build()
+
+        when:
+        def result = stafferService.findCandidateViolationsForQueue(queue)
+
+        then:
+        1 * matchService.getAssignableMatchesInQueue(queue) >> [match]
+        1 * refereeService.getStaffableReferees() >> [busy]
+        1 * staffingRuleChecker.rulesFor([match], [busy]) >> rules([match], [busy], [1L: [heldMatch]])
+        result.size() == 1
+        result[0].violations()*.rule() == [StaffingRule.DOUBLE_MATCH_IN_QUEUE]
     }
 
     def "should report no violations for a queue with nothing to staff"() {
@@ -390,8 +420,8 @@ class StafferServiceSpec extends Specification {
         def result = stafferService.findCandidateViolationsForQueue(queue)
 
         then:
-        1 * matchService.getMatchesToAssignInQueue(queue) >> []
-        1 * refereeService.getAvailableRefereesForQueue(queue) >> []
+        1 * matchService.getAssignableMatchesInQueue(queue) >> []
+        1 * refereeService.getStaffableReferees() >> []
         1 * staffingRuleChecker.rulesFor([], []) >> rules([], [])
         result.isEmpty()
     }

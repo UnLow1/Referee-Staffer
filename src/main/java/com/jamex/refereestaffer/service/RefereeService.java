@@ -40,11 +40,27 @@ public class RefereeService {
 
     public List<Referee> getAvailableRefereesForQueue(Short queue) {
         return refereeRepository.findAllWithNoMatchInQueue(queue).stream()
-                // Central "S C" assignments already have a referee set in the imported data
-                // and must not be reassigned by the staffer — see Referee#isCentralSentinel.
-                // TODO longer-term: model this as a Referee flag / separate column instead of a name sentinel.
-                .filter(referee -> !referee.isCentralSentinel())
+                .filter(RefereeService::isStaffable)
                 .toList();
+    }
+
+    /**
+     * Every referee the staffer may ever put on a match, regardless of what they are already
+     * doing. Unlike {@link #getAvailableRefereesForQueue} this does not depend on the queue's
+     * current assignments, which makes it the right pool for read-only checks that must not
+     * change their answer just because a cast was (re)generated a moment earlier.
+     */
+    public List<Referee> getStaffableReferees() {
+        return refereeRepository.findAll().stream()
+                .filter(RefereeService::isStaffable)
+                .toList();
+    }
+
+    // Central "S C" assignments already have a referee set in the imported data and must not be
+    // reassigned by the staffer — see Referee#isCentralSentinel.
+    // TODO longer-term: model this as a Referee flag / separate column instead of a name sentinel.
+    private static boolean isStaffable(Referee referee) {
+        return !referee.isCentralSentinel();
     }
 
     public void calculateStats(List<Referee> referees) {

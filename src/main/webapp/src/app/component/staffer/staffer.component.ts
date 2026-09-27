@@ -38,8 +38,11 @@ interface Candidate {
   violations: StaffingViolation[];
 }
 
-/** Short chip labels for the candidate list; the full sentence goes into the tooltip. */
-const RULE_LABELS: Record<StaffingRule, string> = {
+/**
+ * Short chip labels for the candidate list; the full sentence goes into the tooltip. Keep in
+ * step with the backend `StaffingRule` enum — an unmapped code falls back to the code itself.
+ */
+const RULE_LABELS: Partial<Record<StaffingRule, string>> = {
   VACATION: 'vacation',
   SAME_DAY_MATCH: 'same day',
   DOUBLE_MATCH_IN_QUEUE: 'same queue'
@@ -330,8 +333,13 @@ export class StafferComponent {
     return this.violationsByPair().get(`${matchId}:${refereeId}`) ?? [];
   }
 
+  /**
+   * Falls back to the raw code: the value comes off the wire, and the backend enum is expected
+   * to grow (RS-76). A code this build does not know about must still read as *something* —
+   * an empty warn chip would be worse than an unfamiliar label.
+   */
   ruleLabel(rule: StaffingRule): string {
-    return RULE_LABELS[rule];
+    return RULE_LABELS[rule] ?? rule;
   }
 
   formatTime(d: Date): string {

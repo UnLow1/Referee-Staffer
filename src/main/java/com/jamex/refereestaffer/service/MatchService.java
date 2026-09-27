@@ -218,9 +218,7 @@ public class MatchService {
         var allFinishedMatches = matchRepository.findAllByHomeScoreNotNullAndAwayScoreNotNull();
         var table = calculatePointsForTeams(allFinishedMatches);
 
-        var matchesToAssignInQueue = matchRepository.findAllByQueue(queue).stream()
-                .filter(this::isAssignable)
-                .toList();
+        var matchesToAssignInQueue = getAssignableMatchesInQueue(queue);
 
         // Config values and the team count are constant for the whole request — load them
         // once here instead of per match.
@@ -229,6 +227,18 @@ public class MatchService {
         matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(computeBreakdown(match, table, config, numberOfTeams).total()));
         return matchesToAssignInQueue.stream()
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
+                .toList();
+    }
+
+    /**
+     * The same set of matches {@link #getMatchesToAssignInQueue} staffs, but unscored and
+     * unsorted. For callers that only need to know <em>which</em> matches are assignable:
+     * ranking them costs a full league-table pass over every finished match in the database,
+     * which is wasted when nothing reads {@code hardnessLvl}.
+     */
+    List<Match> getAssignableMatchesInQueue(Short queue) {
+        return matchRepository.findAllByQueue(queue).stream()
+                .filter(this::isAssignable)
                 .toList();
     }
 

@@ -47,8 +47,7 @@ class StaffingRuleCheckerSpec extends Specification {
         then:
         rules.check(theMatch, ref) == []
         rules.isClear(theMatch, ref)
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan([ref], MATCH_DAY.atStartOfDay(), MATCH_DAY.plusDays(1).atStartOfDay()) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn([ref], [QUEUE] as Set) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues([ref], MATCH_DAY.atStartOfDay(), MATCH_DAY.plusDays(1).atStartOfDay(), [QUEUE] as Set) >> []
         1 * vacationRepository.findAllOverlapping(MATCH_DAY, MATCH_DAY) >> []
     }
 
@@ -67,8 +66,7 @@ class StaffingRuleCheckerSpec extends Specification {
         violations[0].message == String.format(StaffingRules.VACATION_MESSAGE, "Anna Nowak", start, end)
         !rules.isClear(theMatch, ref)
         1 * vacationRepository.findAllOverlapping(MATCH_DAY, MATCH_DAY) >> [vacation]
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> []
 
         where:
         // Boundaries are inclusive on both ends.
@@ -91,8 +89,7 @@ class StaffingRuleCheckerSpec extends Specification {
         then:
         rules.check(theMatch, ref) == []
         1 * vacationRepository.findAllOverlapping(MATCH_DAY, MATCH_DAY) >> [vacation]
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> []
 
         where:
         start                  | end
@@ -114,8 +111,7 @@ class StaffingRuleCheckerSpec extends Specification {
         rules.check(theMatch, ref) == []
         rules.check(theMatch, otherRef)*.rule == [StaffingRule.VACATION]
         1 * vacationRepository.findAllOverlapping(MATCH_DAY, MATCH_DAY) >> [vacation]
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> []
     }
 
     def "should report another match on the same day from a different queue"() {
@@ -133,8 +129,7 @@ class StaffingRuleCheckerSpec extends Specification {
         then:
         violations*.rule == [StaffingRule.SAME_DAY_MATCH]
         violations[0].message == String.format(StaffingRules.SAME_DAY_MATCH_MESSAGE, "Piotr Zielinski", MATCH_DAY, "11:30", 9 as short)
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan([ref], MATCH_DAY.atStartOfDay(), MATCH_DAY.plusDays(1).atStartOfDay()) >> [conflicting]
-        1 * matchRepository.findAllByRefereeInAndQueueIn([ref], [QUEUE] as Set) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues([ref], MATCH_DAY.atStartOfDay(), MATCH_DAY.plusDays(1).atStartOfDay(), [QUEUE] as Set) >> [conflicting]
         1 * vacationRepository.findAllOverlapping(_, _) >> []
     }
 
@@ -151,8 +146,7 @@ class StaffingRuleCheckerSpec extends Specification {
         then:
         rules.check(theMatch, ref) == []
         rules.check(theMatch) == []
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> [match(100L, ref)]
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> [match(100L, ref)]
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> [match(100L, ref)]
         1 * vacationRepository.findAllOverlapping(_, _) >> []
     }
 
@@ -169,8 +163,7 @@ class StaffingRuleCheckerSpec extends Specification {
         then:
         violations*.rule == [StaffingRule.DOUBLE_MATCH_IN_QUEUE]
         violations[0].message == String.format(StaffingRules.DOUBLE_MATCH_IN_QUEUE_MESSAGE, "Marek Wojcik", QUEUE)
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn([ref], [QUEUE] as Set) >> [sameQueueOtherDay]
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues([ref], MATCH_DAY.atStartOfDay(), MATCH_DAY.plusDays(1).atStartOfDay(), [QUEUE] as Set) >> [sameQueueOtherDay]
         1 * vacationRepository.findAllOverlapping(_, _) >> []
     }
 
@@ -188,8 +181,7 @@ class StaffingRuleCheckerSpec extends Specification {
 
         then:
         rules.check(theMatch, ref)*.rule == [StaffingRule.VACATION, StaffingRule.SAME_DAY_MATCH, StaffingRule.DOUBLE_MATCH_IN_QUEUE]
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> [conflicting]
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> [conflicting]
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> [conflicting]
         1 * vacationRepository.findAllOverlapping(_, _) >> [vacation]
     }
 
@@ -206,28 +198,27 @@ class StaffingRuleCheckerSpec extends Specification {
 
         then:
         // 40 pairs, still one query per rule source — the day range spans every match day.
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(referees, firstDay.atStartOfDay(), lastDay.plusDays(1).atStartOfDay()) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn(referees, [QUEUE] as Set) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(referees, firstDay.atStartOfDay(), lastDay.plusDays(1).atStartOfDay(), [QUEUE] as Set) >> []
         1 * vacationRepository.findAllOverlapping(firstDay, lastDay) >> []
         0 * _
     }
 
-    def "should deduplicate a match returned by both lookups"() {
-        given:
-        def ref = referee(1L)
-        def theMatch = match(100L)
-        // Both queries legitimately match the same row; a duplicated row must not turn into
-        // duplicated violations.
-        def conflicting = match(200L, ref, MATCH_DATE.minusHours(2), QUEUE)
-
+    def "should reject building a snapshot from incomplete input"() {
         when:
-        def rules = checker.rulesFor([theMatch], [ref])
+        checker.rulesFor(matches, referees)
 
         then:
-        rules.check(theMatch, ref)*.rule == [StaffingRule.SAME_DAY_MATCH, StaffingRule.DOUBLE_MATCH_IN_QUEUE]
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> [conflicting]
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> [conflicting]
-        1 * vacationRepository.findAllOverlapping(_, _) >> []
+        // rulesFor and check must agree on what a valid snapshot is: dropping the bad element
+        // here would only resurface later, as check() refusing a pair the caller thinks it asked for.
+        0 * _
+        def exception = thrown(IllegalArgumentException)
+        exception.message == expectedMessage
+
+        where:
+        matches                                            | referees                        | expectedMessage
+        [Match.builder().id(5L).date(MATCH_DATE).build()]   | [referee(1L)]                   | String.format(StaffingRuleChecker.MATCH_NOT_RULEABLE, 5L)
+        [Match.builder().id(5L).queue(QUEUE).build()]       | [referee(1L)]                   | String.format(StaffingRuleChecker.MATCH_NOT_RULEABLE, 5L)
+        [match(100L)]                                      | [Referee.builder().build()]     | StaffingRuleChecker.REFEREE_NOT_IDENTIFIED
     }
 
     def "should query nothing for an empty matrix"() {
@@ -257,8 +248,7 @@ class StaffingRuleCheckerSpec extends Specification {
         then:
         rules.check(theMatch) == []
         // No referee on the match means no pair to judge — not a violation, and no lookup.
-        1 * matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> []
-        1 * matchRepository.findAllByRefereeInAndQueueIn(_, _) >> []
+        1 * matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> []
         1 * vacationRepository.findAllOverlapping(_, _) >> []
     }
 
@@ -266,8 +256,7 @@ class StaffingRuleCheckerSpec extends Specification {
         given:
         def ref = referee(1L)
         def theMatch = match(100L)
-        matchRepository.findAllByRefereeInAndDateGreaterThanEqualAndDateLessThan(_, _, _) >> []
-        matchRepository.findAllByRefereeInAndQueueIn(_, _) >> []
+        matchRepository.findAllByRefereeInOnDaysOrInQueues(_, _, _, _) >> []
         vacationRepository.findAllOverlapping(_, _) >> []
         def rules = checker.rulesFor([theMatch], [ref])
 
@@ -279,11 +268,11 @@ class StaffingRuleCheckerSpec extends Specification {
         exception.message == expectedMessage
 
         where:
-        outsideMatch                                             | outsideReferee | expectedMessage
-        match(100L, null, MATCH_DATE.plusDays(4))                | referee(1L)    | String.format(StaffingRules.MATCH_DAY_NOT_IN_SNAPSHOT, MATCH_DAY.plusDays(4))
-        match(100L, null, MATCH_DATE, (short) 99)                | referee(1L)    | String.format(StaffingRules.MATCH_QUEUE_NOT_IN_SNAPSHOT, 99 as short)
-        Match.builder().id(100L).date(MATCH_DATE).build()         | referee(1L)    | String.format(StaffingRules.MATCH_QUEUE_NOT_IN_SNAPSHOT, null)
-        match(100L)                                              | referee(77L)   | String.format(StaffingRules.REFEREE_NOT_IN_SNAPSHOT, 77L)
-        match(100L)                                              | Referee.builder().build() | String.format(StaffingRules.REFEREE_NOT_IN_SNAPSHOT, null)
+        outsideMatch                                      | outsideReferee            | expectedMessage
+        match(100L, null, MATCH_DATE.plusDays(4))          | referee(1L)               | String.format(StaffingRules.MATCH_DAY_NOT_IN_SNAPSHOT, MATCH_DAY.plusDays(4))
+        match(100L, null, MATCH_DATE, (short) 99)          | referee(1L)               | String.format(StaffingRules.MATCH_QUEUE_NOT_IN_SNAPSHOT, 99 as short)
+        Match.builder().id(100L).date(MATCH_DATE).build()  | referee(1L)               | String.format(StaffingRules.MATCH_QUEUE_NOT_IN_SNAPSHOT, null)
+        match(100L)                                       | referee(77L)              | String.format(StaffingRules.REFEREE_NOT_IN_SNAPSHOT, 77L)
+        match(100L)                                       | Referee.builder().build() | String.format(StaffingRules.REFEREE_NOT_IN_SNAPSHOT, null)
     }
 }

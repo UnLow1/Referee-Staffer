@@ -102,7 +102,7 @@ public class StafferService {
     }
 
     /**
-     * The staffing-rule matrix for a queue: for every assignable match × every available
+     * The staffing-rule matrix for a queue: for every assignable match × every staffable
      * referee, the rules that pairing would break. Only conflicting pairs are returned — the
      * clean ones are the vast majority, and leaving them out keeps the response proportional
      * to the number of actual conflicts.
@@ -111,13 +111,21 @@ public class StafferService {
      * assign a referee by hand (RS-111). Returning the whole queue at once rather than a
      * per-match endpoint is what keeps the drawer instant — it opens with no request of its
      * own, and at ~8 matches × ~15 referees the matrix is negligible.
+     *
+     * <p>The referee side is deliberately {@link RefereeService#getStaffableReferees()} and not
+     * the queue's availability pool. The UI fetches this alongside the staffing POST, which
+     * rewrites exactly the assignments an availability pool is derived from, so a queue-scoped
+     * pool here would make the answer depend on which request commits first — and a warning
+     * that silently goes missing is worse than no warning at all. Covering every referee makes
+     * the response independent of that ordering (the assignable-match set is not affected: a
+     * match stays assignable whether or not it currently carries an auto-assigned referee). The
+     * cost is a few rows for referees the drawer happens not to offer, which it simply never
+     * looks up.
      */
     @Transactional(readOnly = true)
     public List<CandidateViolationsDto> findCandidateViolationsForQueue(short queue) {
-        // Same pair of pools the cast is generated from, so the matrix cannot warn about a
-        // referee the drawer does not offer, or stay silent about one it does.
-        var matches = matchService.getMatchesToAssignInQueue(queue);
-        var referees = refereeService.getAvailableRefereesForQueue(queue);
+        var matches = matchService.getAssignableMatchesInQueue(queue);
+        var referees = refereeService.getStaffableReferees();
         var rules = staffingRuleChecker.rulesFor(matches, referees);
 
         var violations = new ArrayList<CandidateViolationsDto>();

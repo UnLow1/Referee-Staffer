@@ -398,6 +398,56 @@ describe('StafferComponent', () => {
     });
   });
 
+  // The rendered drawer, not just the component state: "warn, never block" is a property of
+  // the template's [disabled] binding, so only a DOM assertion can guard it against a future
+  // well-meaning `|| c.violations.length > 0`.
+  describe('candidate rendering', () => {
+    function candidateRowFor(lastName: string): HTMLButtonElement {
+      const root = fixture.nativeElement as HTMLElement;
+      const rows: HTMLButtonElement[] = Array.from(root.querySelectorAll('.candidate'));
+      const row = rows.find(r => r.textContent?.includes(lastName));
+      expect(row).toBeDefined();
+      return row as HTMLButtonElement;
+    }
+
+    function warnChipsIn(row: HTMLElement): Element[] {
+      return Array.from(row.querySelectorAll('app-chip')).filter(c => c.hasAttribute('title'));
+    }
+
+    beforeEach(() => {
+      component.generate();
+      // Match 12 is the one referee 103 (violations) and 101 (used elsewhere) both appear for.
+      component.openDrawer(component.matches()!.find(m => m.id === 12)!);
+      fixture.detectChanges();
+    });
+
+    it('renders one warn chip per violation, with the backend message as its tooltip', () => {
+      const chips = warnChipsIn(candidateRowFor('Last103'));
+
+      expect(chips.map(c => c.textContent?.trim())).toEqual(['same day', 'vacation']);
+      expect(chips[0].getAttribute('title')).toBe(violations[0].violations[0].message);
+      expect(chips[1].getAttribute('title')).toBe(violations[0].violations[1].message);
+    });
+
+    it('leaves the violating candidate button enabled', () => {
+      expect(candidateRowFor('Last103').disabled).toBe(false);
+    });
+
+    it('still disables a candidate already used by another match in the queue', () => {
+      // The contrast that carries the rule: only physically impossible picks are blocked.
+      const row = candidateRowFor('Last101');
+      expect(row.disabled).toBe(true);
+      expect(warnChipsIn(row)).toEqual([]);
+    });
+
+    it('renders no warn chip for a clean candidate', () => {
+      // 102 is the only referee that is neither used by another match in the queue nor in the
+      // violations matrix.
+      expect(warnChipsIn(candidateRowFor('Last102'))).toEqual([]);
+      expect(candidateRowFor('Last102').disabled).toBe(false);
+    });
+  });
+
   describe('violations', () => {
     it('resolves the rules for a pair and an empty list for a clean one', () => {
       component.generate();
