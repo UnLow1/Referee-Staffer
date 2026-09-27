@@ -163,15 +163,18 @@ public class StafferService {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
             var vacations = vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(match.getDate());
 
-            // Every candidate filter below keys on the referee id. Matching on the entity itself
-            // would fall back to identity comparison (Referee deliberately does not override
-            // equals/hashCode — see RS-110), which only happens to work while all instances come
-            // from the same persistence context; a copied list, a reloaded entity or a DTO in the
-            // flow would silently let a referee on vacation or with a same-day match through.
+            // The three candidate filters below all key on the referee id. Matching on the entity
+            // itself would fall back to identity comparison (Referee deliberately does not
+            // override equals/hashCode — see RS-110), which only happens to work while all
+            // instances come from the same persistence context; a copied list, a reloaded entity
+            // or a DTO in the flow would silently let a referee on vacation or with a same-day
+            // match through. Ids come from persisted rows, so they are never null here; a null
+            // would end up in the set and over-exclude every id-less candidate, which fails
+            // loudly (StafferException) instead of quietly breaking the rule.
             var refereeIdsOnVacation = vacations.stream()
                     .map(Vacation::getReferee)
-                    .map(StafferService::refereeId)
                     .filter(Objects::nonNull)
+                    .map(Referee::getId)
                     .collect(Collectors.toSet());
 
             var refereeIdsWithMatchOnSameDay = findRefereeIdsWithMatchOnDay(referees, match.getDate());
@@ -213,19 +216,9 @@ public class StafferService {
         }
         return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
                 .map(Match::getReferee)
-                .map(StafferService::refereeId)
                 .filter(Objects::nonNull)
+                .map(Referee::getId)
                 .collect(Collectors.toSet());
-    }
-
-    /**
-     * Null-tolerant {@code Referee::getId}. Both exclusion sets are built from rows loaded by id,
-     * so a null referee or a null id cannot occur in practice — leaving such an entry out of the
-     * set (rather than exploding, or poisoning it with a null that would match every transient
-     * referee) keeps the filters from excluding the wrong candidates if it ever does.
-     */
-    private static Long refereeId(Referee referee) {
-        return referee == null ? null : referee.getId();
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {
