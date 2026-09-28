@@ -528,6 +528,12 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
   // instead of scrolling. 0 lets the wrapper shrink to whatever the panel head allows.
   min-width: 0;
   max-width: 100%;
+  // The bar is only ~30px tall, so a classic scrollbar (Linux / Windows; macOS overlays)
+  // would take half its height and cut across the rounded `.seg` border.
+  scrollbar-width: thin;
+  // Reaching either end should not hand the gesture to the page's back-navigation —
+  // with 31 queues there is a lot of horizontal scrolling here.
+  overscroll-behavior-x: contain;
 }
 // Shrink-to-fit inside a scroll container would squeeze the buttons (and wrap their
 // labels) instead of overflowing; pin the bar to its content width.

@@ -197,9 +197,11 @@ export class MatchListComponent implements OnInit {
   }
 
   /**
-   * Brings the selected queue's button into view inside the scrollable bar (RS-113).
-   * With a full 30-queue season the bar is far wider than the panel, so the default
-   * queue would otherwise sit off-screen on load.
+   * Keeps the selected queue's button reachable inside the scrollable bar (RS-113).
+   * The first load lands on the newest queue, whose button sits at the head of the bar
+   * and is visible anyway; this earns its keep when the selection is mid-season and the
+   * list re-renders around it — a save reloads through `load()`, and `selectQueue` can
+   * be reached from a partly-scrolled bar.
    *
    * Deferred to the next render because on first load the buttons do not exist yet:
    * the queue list is derived from matches that have only just arrived.
@@ -208,23 +210,9 @@ export class MatchListComponent implements OnInit {
     afterNextRender(() => {
       const bar = this.queueBar()?.nativeElement;
       if (bar) {
-        this.scrollQueueIntoView(bar, this.selectedQueue() ?? null);
+        scrollQueueIntoView(bar, this.selectedQueue() ?? null);
       }
     }, {injector: this.injector});
-  }
-
-  /**
-   * Centers `queue`'s button inside `bar` and returns the applied scroll offset, or
-   * null when the button is missing. The return value is what the spec asserts on:
-   * jsdom has no layout, so a written `scrollLeft` always reads back as 0.
-   */
-  scrollQueueIntoView(bar: HTMLElement, queue: number | null): number | null {
-    const selector = queue == null ? '[data-queue="all"]' : `[data-queue="${queue}"]`;
-    const button = bar.querySelector<HTMLElement>(selector);
-    if (!button) return null;
-    const scrollLeft = centerScrollLeft(button.offsetLeft, button.offsetWidth, bar.clientWidth, bar.scrollWidth);
-    bar.scrollLeft = scrollLeft;
-    return scrollLeft;
   }
 
   setSearch(value: string): void {
@@ -342,6 +330,34 @@ function matchesReferee(match: Match, filter: RefereeFilter): boolean {
   if (filter === 'all') return true;
   const assigned = match.refereeId != null;
   return filter === 'assigned' ? assigned : !assigned;
+}
+
+/**
+ * Centers `queue`'s button inside the scrollable queue bar — but only when it is not
+ * already fully visible. Re-centering on every click would yank the button the user
+ * just clicked out from under the cursor, and with 31 queues that is a jump of several
+ * hundred pixels, so a second click on the same spot would hit a different queue.
+ *
+ * Positions come from `getBoundingClientRect`, deliberately not from `offsetLeft`:
+ * `offsetLeft` is measured from the nearest positioned ancestor, and nothing in this
+ * tree is positioned, so it would report the button's position on the page and feed
+ * the bar's own X (sidebar + panel padding) into the math as a constant error.
+ */
+export function scrollQueueIntoView(bar: HTMLElement, queue: number | null): void {
+  const wanted = queue == null ? 'all' : String(queue);
+  const button = [...bar.querySelectorAll<HTMLElement>('[data-queue]')]
+    .find(b => b.getAttribute('data-queue') === wanted);
+  if (!button) return;
+
+  const barRect = bar.getBoundingClientRect();
+  const buttonRect = button.getBoundingClientRect();
+  // Rects are viewport-relative and move with the scroll, so add it back to get the
+  // button's offset within the bar's content.
+  const left = buttonRect.left - barRect.left + bar.scrollLeft;
+  const right = left + buttonRect.width;
+  if (left >= bar.scrollLeft && right <= bar.scrollLeft + bar.clientWidth) return;
+
+  bar.scrollLeft = centerScrollLeft(left, buttonRect.width, bar.clientWidth, bar.scrollWidth);
 }
 
 /**
