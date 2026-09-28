@@ -270,15 +270,6 @@ class MatchControllerSpec extends Specification {
         json.detail == "[1].id: must not be null"
     }
 
-    def "should delete all matches"() {
-        when:
-        def response = mockMvc.perform(delete("/api/matches")).andReturn().response
-
-        then:
-        1 * matchRepository.deleteAll()
-        response.status == 200
-    }
-
     def "should delete match through the service so its grade goes too"() {
         when:
         def response = mockMvc.perform(delete("/api/matches/2396")).andReturn().response

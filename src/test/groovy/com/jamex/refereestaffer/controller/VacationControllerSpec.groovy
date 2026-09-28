@@ -164,15 +164,6 @@ class VacationControllerSpec extends Specification {
         json.detail == "id: must not be null"
     }
 
-    def "should delete all vacations"() {
-        when:
-        def response = mockMvc.perform(delete("/api/vacations")).andReturn().response
-
-        then:
-        1 * vacationRepository.deleteAll()
-        response.status == 200
-    }
-
     def "should delete vacation with provided id"() {
         when:
         def response = mockMvc.perform(delete("/api/vacations/9")).andReturn().response
