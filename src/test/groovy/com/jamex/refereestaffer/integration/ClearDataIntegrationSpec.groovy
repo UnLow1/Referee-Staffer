@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Execution
 import spock.lang.Isolated
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -127,11 +128,30 @@ class ClearDataIntegrationSpec extends Specification {
         def response = mockMvc.perform(delete("/api/data").param("confirm", "delete-all-data"))
                 .andReturn().response
 
-        then:
+        then: "a batch delete over an empty table is a no-op, not a 500"
         response.status == 200
         def summary = jsonSlurper.parseText(response.contentAsString)
+        summary.grades == 0
+        summary.vacations == 0
         summary.matches == 0
+        summary.referees == 0
         summary.teams == 0
+    }
+
+    @Unroll
+    def "should no longer expose the collection-level delete on /api/#entity"() {
+        when:
+        def response = mockMvc.perform(delete("/api/" + entity)).andReturn().response
+
+        then: "405, not 404 — the paths still carry GET/POST/PUT mappings, only the bulk delete is gone"
+        response.status == 405
+
+        and: "the rows are still there, which is the point: the capability moved to DELETE /api/data"
+        matchRepository.count() == 2
+        teamRepository.count() == 4
+
+        where:
+        entity << ["grades", "matches", "referees", "teams", "vacations"]
     }
 
     def cleanup() {
@@ -168,9 +188,12 @@ class ClearDataIntegrationSpec extends Specification {
     }
 
     private void wipeDomainData() {
-        // Same FK order the endpoint under test uses; batch variants so the teardown
-        // cannot fail on the flush-time transient-reference check that deleteAll() trips
-        // on the bidirectional Grade <-> Match one-to-one.
+        // Deliberately duplicates DataService's delete order instead of autowiring it: the
+        // fixture has to hold when the subject is broken. Arranging through clearAllData()
+        // would turn a regression in it into a failure in setup()/cleanup() of every
+        // feature at once, which reads as a broken spec rather than a broken endpoint.
+        // Batch variants so the teardown cannot fail on the flush-time transient-reference
+        // check that deleteAll() trips on the bidirectional Grade <-> Match one-to-one.
         gradeRepository.deleteAllInBatch()
         vacationRepository.deleteAllInBatch()
         matchRepository.deleteAllInBatch()

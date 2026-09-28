@@ -38,22 +38,44 @@ class DataServiceSpec extends Specification {
         1 * teamRepository.deleteAllInBatch()
     }
 
-    def "should report the row counts taken before the wipe"() {
-        given:
-        gradeRepository.count() >> 4l
-        vacationRepository.count() >> 3l
-        matchRepository.count() >> 7l
-        refereeRepository.count() >> 5l
-        teamRepository.count() >> 18l
-
+    def "should count the rows before deleting them"() {
         when:
         def summary = dataService.clearAllData()
 
-        then:
+        then: "every count has to happen while the rows are still there, or the summary is all zeros"
+        1 * gradeRepository.count() >> 4l
+        1 * vacationRepository.count() >> 3l
+        1 * matchRepository.count() >> 7l
+        1 * refereeRepository.count() >> 5l
+        1 * teamRepository.count() >> 18l
+
+        then: "only then the deletes"
+        1 * gradeRepository.deleteAllInBatch()
+        1 * vacationRepository.deleteAllInBatch()
+        1 * matchRepository.deleteAllInBatch()
+        1 * refereeRepository.deleteAllInBatch()
+        1 * teamRepository.deleteAllInBatch()
+
+        and:
         summary.grades() == 4l
         summary.vacations() == 3l
         summary.matches() == 7l
         summary.referees() == 5l
         summary.teams() == 18l
+    }
+
+    def "should stop at the failing table instead of wiping the rest"() {
+        given:
+        matchRepository.deleteAllInBatch() >> { throw new RuntimeException("boom") }
+
+        when:
+        dataService.clearAllData()
+
+        then: "the exception propagates so the @Transactional boundary can roll the wipe back"
+        thrown(RuntimeException)
+
+        and: "nothing past the failure point is touched — no half-wiped database"
+        0 * refereeRepository.deleteAllInBatch()
+        0 * teamRepository.deleteAllInBatch()
     }
 }

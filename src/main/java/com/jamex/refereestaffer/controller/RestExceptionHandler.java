@@ -104,13 +104,14 @@ public class RestExceptionHandler {
     }
 
     /**
-     * Hand-written request checks that bean validation cannot express (e.g. the id
-     * presence check on bulk list bodies). The message already follows the same
-     * {@code field: message} format as the two handlers above.
+     * Hand-written request checks that bean validation cannot express — the id presence
+     * check on bulk list bodies, the confirmation token on the clear-all-data endpoint.
+     * Not necessarily a body failure, hence the wider wording below. The message already
+     * follows the same {@code field: message} format as the two handlers above.
      */
     @ExceptionHandler(RequestValidationException.class)
     public ProblemDetail handleRequestValidation(RequestValidationException ex) {
-        log.debug("Request body validation failed: {}", ex.getMessage());
+        log.debug("Request validation failed: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
