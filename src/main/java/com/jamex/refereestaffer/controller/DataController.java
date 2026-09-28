@@ -15,10 +15,16 @@ import org.springframework.web.bind.annotation.RestController;
  * is otherwise only reachable by restarting the app on an in-memory profile, which the
  * file-based {@code prod} profile does not give you.
  *
+ * <p>There is no UI for it — the "Clear data" button died with the old header in the
+ * 2026-06 redesign and has not been rebuilt. The intended way to call this is the
+ * Swagger UI (springdoc is on the classpath and enabled by default) or curl.
+ *
  * <p>Wiping everything is irreversible and a bare {@code DELETE /api/data} is far too
  * easy to fire by accident (a stray request from a tool, a mis-pasted curl), so the
- * confirmation token below is mandatory. It is a guard against mistakes, not against an
- * attacker — real protection needs authorization (RS-4).
+ * confirmation token below is mandatory. It makes the call deliberate rather than
+ * secret: the rejection message names the expected token on purpose, because the guard
+ * is ergonomic, not a secret, and a caller who cannot discover it would simply be stuck.
+ * Real protection needs authorization (RS-4).
  */
 @RestController
 @RequestMapping("/api/data")
@@ -26,7 +32,10 @@ public class DataController {
 
     private static final Logger log = LoggerFactory.getLogger(DataController.class);
 
-    static final String CONFIRMATION_TOKEN = "delete-all-data";
+    // Private on purpose: the specs assert the literal "delete-all-data" instead of
+    // referencing this constant, so that renaming the token — a breaking change for every
+    // existing caller — fails the build rather than silently following along.
+    private static final String CONFIRMATION_TOKEN = "delete-all-data";
 
     private final DataService dataService;
 
@@ -37,9 +46,14 @@ public class DataController {
     @DeleteMapping
     public ClearDataSummaryDto clearAllData(@RequestParam(required = false) String confirm) {
         if (!CONFIRMATION_TOKEN.equals(confirm)) {
+            // WARN, not DEBUG: an attempted wipe of the whole database is worth a line at
+            // the default log level. RestExceptionHandler logs the 400 itself at DEBUG,
+            // which would leave the one destructive endpoint in the app with a silent
+            // failure path and a chatty success path.
+            log.warn("Rejected clear-all-data request: confirm={}", confirm);
             throw new RequestValidationException("confirm: must be '" + CONFIRMATION_TOKEN + "' to wipe all data");
         }
-        log.info("Clearing all domain data");
+        // The success log lives in DataService, which can also report the row counts.
         return dataService.clearAllData();
     }
 }
