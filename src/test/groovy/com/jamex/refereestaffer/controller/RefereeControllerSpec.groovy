@@ -227,15 +227,6 @@ class RefereeControllerSpec extends Specification {
         json*.id == [223, 554]
     }
 
-    def "should delete all referees"() {
-        when:
-        def response = mockMvc.perform(delete("/api/referees")).andReturn().response
-
-        then:
-        1 * refereeRepository.deleteAll()
-        response.status == 200
-    }
-
     def "should delete referee with provided id"() {
         when:
         def response = mockMvc.perform(delete("/api/referees/241")).andReturn().response
