@@ -1,4 +1,7 @@
-import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
+import {
+  Component, ElementRef, Injector, OnInit, afterNextRender, computed, inject, signal, viewChild,
+  ChangeDetectionStrategy
+} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
@@ -46,6 +49,10 @@ export class MatchListComponent implements OnInit {
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
   private readonly gradeService = inject(GradeService);
+  private readonly injector = inject(Injector);
+
+  /** The horizontally scrollable queue bar — see scrollQueueIntoView. */
+  private readonly queueBar = viewChild<ElementRef<HTMLElement>>('queueBar');
 
   readonly matches = signal<Match[]>([]);
   readonly teamsById = signal<Map<number, Team>>(new Map());
@@ -178,6 +185,7 @@ export class MatchListComponent implements OnInit {
         if (queues.length > 0 && this.selectedQueue() === undefined) {
           this.selectedQueue.set(queues[0]);
         }
+        this.scrollSelectedQueueIntoView();
       });
     });
   }
@@ -185,6 +193,38 @@ export class MatchListComponent implements OnInit {
   selectQueue(q: number | null): void {
     this.selectedQueue.set(q);
     this.page.set(1);
+    this.scrollSelectedQueueIntoView();
+  }
+
+  /**
+   * Brings the selected queue's button into view inside the scrollable bar (RS-113).
+   * With a full 30-queue season the bar is far wider than the panel, so the default
+   * queue would otherwise sit off-screen on load.
+   *
+   * Deferred to the next render because on first load the buttons do not exist yet:
+   * the queue list is derived from matches that have only just arrived.
+   */
+  private scrollSelectedQueueIntoView(): void {
+    afterNextRender(() => {
+      const bar = this.queueBar()?.nativeElement;
+      if (bar) {
+        this.scrollQueueIntoView(bar, this.selectedQueue() ?? null);
+      }
+    }, {injector: this.injector});
+  }
+
+  /**
+   * Centers `queue`'s button inside `bar` and returns the applied scroll offset, or
+   * null when the button is missing. The return value is what the spec asserts on:
+   * jsdom has no layout, so a written `scrollLeft` always reads back as 0.
+   */
+  scrollQueueIntoView(bar: HTMLElement, queue: number | null): number | null {
+    const selector = queue == null ? '[data-queue="all"]' : `[data-queue="${queue}"]`;
+    const button = bar.querySelector<HTMLElement>(selector);
+    if (!button) return null;
+    const scrollLeft = centerScrollLeft(button.offsetLeft, button.offsetWidth, bar.clientWidth, bar.scrollWidth);
+    bar.scrollLeft = scrollLeft;
+    return scrollLeft;
   }
 
   setSearch(value: string): void {
@@ -302,6 +342,18 @@ function matchesReferee(match: Match, filter: RefereeFilter): boolean {
   if (filter === 'all') return true;
   const assigned = match.refereeId != null;
   return filter === 'assigned' ? assigned : !assigned;
+}
+
+/**
+ * Scroll offset that centers an item of `itemWidth` at `itemOffset` inside a viewport
+ * of `viewportWidth`, clamped to the scrollable range. A bar narrower than its viewport
+ * (`scrollWidth <= viewportWidth`) has nothing to scroll and yields 0.
+ */
+export function centerScrollLeft(
+  itemOffset: number, itemWidth: number, viewportWidth: number, scrollWidth: number
+): number {
+  const centered = itemOffset + itemWidth / 2 - viewportWidth / 2;
+  return Math.max(0, Math.min(centered, scrollWidth - viewportWidth));
 }
 
 function unique<T>(arr: T[]): T[] {

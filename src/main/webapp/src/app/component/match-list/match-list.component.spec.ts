@@ -2,7 +2,7 @@ import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
 import {of} from 'rxjs';
-import {MatchListComponent} from './match-list.component';
+import {MatchListComponent, centerScrollLeft} from './match-list.component';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
@@ -265,6 +265,87 @@ describe('MatchListComponent', () => {
 
       expect(component.currentPage()).toBe(2);
       expect(component.pagedMatches().length).toBe(5);
+    });
+  });
+
+  // ——— RS-113: a full season renders 30+ queue buttons, so the bar has to scroll ———
+  describe('queue bar', () => {
+    /**
+     * jsdom has no layout, so offsets have to be declared. Builds a bar of `count`
+     * queue buttons, each `buttonWidth` wide, inside a viewport of `viewportWidth`.
+     */
+    function makeBar(count: number, buttonWidth: number, viewportWidth: number): HTMLElement {
+      const bar = document.createElement('div');
+      bar.innerHTML = `<button data-queue="all"></button>` +
+        Array.from({length: count}, (_, i) => `<button data-queue="${i + 1}"></button>`).join('');
+      bar.querySelectorAll('button').forEach((button, i) => {
+        Object.defineProperty(button, 'offsetLeft', {value: i * buttonWidth});
+        Object.defineProperty(button, 'offsetWidth', {value: buttonWidth});
+      });
+      Object.defineProperty(bar, 'clientWidth', {value: viewportWidth});
+      Object.defineProperty(bar, 'scrollWidth', {value: (count + 1) * buttonWidth});
+      return bar;
+    }
+
+    it('wraps the queue bar in a scroll container and tags every button with its queue', async () => {
+      const fixture = await create();
+      const host: HTMLElement = fixture.nativeElement;
+
+      const scroller = host.querySelector('.seg-scroll');
+      expect(scroller).not.toBeNull();
+      expect(scroller!.querySelector('.seg')).not.toBeNull();
+      expect([...host.querySelectorAll('.seg-scroll [data-queue]')].map(b => b.getAttribute('data-queue')))
+        .toEqual(['all', '2', '1']);
+      // The counter must survive next to a bar wide enough to overflow the panel head.
+      expect(host.querySelector('.queue-count')?.textContent).toContain('2 matches');
+    });
+
+    it('centers the selected queue inside the scrollable bar', async () => {
+      const component = (await create()).componentInstance;
+      // Queue 25 sits at offset 2500 in a 3100px bar shown through a 300px viewport:
+      // centering it means 2500 + 50 - 150.
+      const bar = makeBar(30, 100, 300);
+
+      expect(component.scrollQueueIntoView(bar, 25)).toBe(2400);
+    });
+
+    it('clamps the scroll to the bar ends so the first and last queue stay flush', async () => {
+      const component = (await create()).componentInstance;
+      const bar = makeBar(30, 100, 300);
+
+      expect(component.scrollQueueIntoView(bar, null)).toBe(0);
+      expect(component.scrollQueueIntoView(bar, 1)).toBe(0);
+      // Last button ends at the bar's right edge → 3100 - 300.
+      expect(component.scrollQueueIntoView(bar, 30)).toBe(2800);
+    });
+
+    it('does nothing when the queue has no button', async () => {
+      const component = (await create()).componentInstance;
+      const bar = makeBar(3, 100, 300);
+
+      expect(component.scrollQueueIntoView(bar, 99)).toBeNull();
+    });
+
+    it('leaves a bar that already fits unscrolled', async () => {
+      const component = (await create()).componentInstance;
+      const bar = makeBar(2, 100, 800);
+
+      expect(component.scrollQueueIntoView(bar, 2)).toBe(0);
+    });
+  });
+
+  describe('centerScrollLeft', () => {
+    it('centers the item in the viewport', () => {
+      expect(centerScrollLeft(500, 100, 300, 2000)).toBe(400);
+    });
+
+    it('never scrolls past either end', () => {
+      expect(centerScrollLeft(0, 100, 300, 2000)).toBe(0);
+      expect(centerScrollLeft(1900, 100, 300, 2000)).toBe(1700);
+    });
+
+    it('returns 0 when the content is not wider than the viewport', () => {
+      expect(centerScrollLeft(100, 100, 800, 400)).toBe(0);
     });
   });
 

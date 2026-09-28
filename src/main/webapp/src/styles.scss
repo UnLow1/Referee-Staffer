@@ -518,6 +518,26 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
 }
 
+// Scrollable variant (RS-113). A season-long queue picker renders one button per queue,
+// so the bar outgrows any panel head; `.seg` itself stays nowrap — the wrapper scrolls,
+// mirroring how `.tbl-scroll` handles wide tables. Opt-in, so the 2–3 option `<app-seg>`
+// usages (Result / Referee / standings filter) keep rendering exactly as before.
+.seg-scroll {
+  overflow-x: auto;
+  // Flex items default to min-width: auto, which would let the bar push its parent wide
+  // instead of scrolling. 0 lets the wrapper shrink to whatever the panel head allows.
+  min-width: 0;
+  max-width: 100%;
+}
+// Shrink-to-fit inside a scroll container would squeeze the buttons (and wrap their
+// labels) instead of overflowing; pin the bar to its content width.
+.seg-scroll > .seg {
+  width: max-content;
+}
+.seg-scroll > .seg button {
+  white-space: nowrap;
+}
+
 // ——— Mobile nav backdrop (shell) ———
 // Rendered only while the off-canvas nav is open; on desktop the sidenav is a static
 // grid column, so the backdrop stays hidden regardless of the open flag.
