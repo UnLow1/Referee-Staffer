@@ -2,7 +2,7 @@ import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
 import {of} from 'rxjs';
-import {MatchListComponent} from './match-list.component';
+import {MatchListComponent, centerScrollLeft, scrollQueueIntoView} from './match-list.component';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
@@ -265,6 +265,159 @@ describe('MatchListComponent', () => {
 
       expect(component.currentPage()).toBe(2);
       expect(component.pagedMatches().length).toBe(5);
+    });
+  });
+
+  // ——— RS-113: a full season renders 30+ queue buttons, so the bar has to scroll ———
+  describe('queue bar', () => {
+    /**
+     * jsdom has no layout engine, so the geometry has to be declared. This models what a
+     * browser actually reports: rects are viewport coordinates, so every button carries
+     * the bar's own X on the page (`containerX` — sidebar + panel padding, ~277px on a
+     * desktop shell) and shifts as the bar scrolls. Getting that wrong is the whole point
+     * of the fixture: an implementation that treats the coordinates as bar-relative
+     * scrolls to the wrong place in a real browser.
+     *
+     * Returns the writes made to `scrollLeft`, since jsdom's own setter is a no-op.
+     */
+    function stubLayout(bar: HTMLElement, buttonWidth: number, viewportWidth: number, containerX = 277) {
+      const writes: number[] = [];
+      let scrollLeft = 0;
+      Object.defineProperty(bar, 'scrollLeft', {
+        configurable: true,
+        get: () => scrollLeft,
+        set: (value: number) => {
+          scrollLeft = value;
+          writes.push(value);
+        }
+      });
+      Object.defineProperty(bar, 'clientWidth', {configurable: true, value: viewportWidth});
+      const buttons = [...bar.querySelectorAll<HTMLElement>('[data-queue]')];
+      Object.defineProperty(bar, 'scrollWidth', {configurable: true, value: buttons.length * buttonWidth});
+      bar.getBoundingClientRect = () => ({left: containerX, width: viewportWidth} as DOMRect);
+      buttons.forEach((button, i) => {
+        button.getBoundingClientRect = () =>
+          ({left: containerX - scrollLeft + i * buttonWidth, width: buttonWidth} as DOMRect);
+      });
+      return {
+        writes,
+        /** Moves the bar without counting as a write, to set up a starting position. */
+        scrollTo: (value: number) => {
+          scrollLeft = value;
+        }
+      };
+    }
+
+    /** A detached bar of "All queues" + `count` queue buttons, laid out as above. */
+    function makeBar(count: number, buttonWidth: number, viewportWidth: number, containerX = 277) {
+      const bar = document.createElement('div');
+      bar.innerHTML = '<button data-queue="all"></button>' +
+        Array.from({length: count}, (_, i) => `<button data-queue="${i + 1}"></button>`).join('');
+      return {bar, ...stubLayout(bar, buttonWidth, viewportWidth, containerX)};
+    }
+
+    it('wraps the queue bar in a scroll container and tags every button with its queue', async () => {
+      const fixture = await create();
+      const host: HTMLElement = fixture.nativeElement;
+
+      const scroller = host.querySelector('.seg-scroll');
+      expect(scroller).not.toBeNull();
+      expect(scroller!.querySelector('.seg')).not.toBeNull();
+      expect([...host.querySelectorAll('.seg-scroll [data-queue]')].map(b => b.getAttribute('data-queue')))
+        .toEqual(['all', '2', '1']);
+      // The counter must survive next to a bar wide enough to overflow the panel head.
+      expect(host.querySelector('.queue-count')?.textContent).toContain('2 matches');
+    });
+
+    it('centers an off-screen queue, ignoring the bar\'s own position on the page', async () => {
+      await create();
+      // Queue 25 sits at offset 2500 in a 3100px bar shown through a 300px viewport:
+      // centering it means 2500 + 50 - 150, and the 277px page offset must not leak in.
+      const {bar, writes} = makeBar(30, 100, 300);
+
+      scrollQueueIntoView(bar, 25);
+
+      expect(writes).toEqual([2400]);
+    });
+
+    it('clamps the scroll to the bar ends so the first and last queue stay flush', async () => {
+      await create();
+      const {bar, writes, scrollTo} = makeBar(30, 100, 300);
+
+      // Last button ends at the bar's right edge → 3100 - 300.
+      scrollQueueIntoView(bar, 30);
+      expect(writes).toEqual([2800]);
+
+      scrollTo(2800);
+      scrollQueueIntoView(bar, 1);
+      expect(writes).toEqual([2800, 0]);
+    });
+
+    it('leaves a queue that is already fully visible alone', async () => {
+      await create();
+      const {bar, writes} = makeBar(30, 100, 300);
+
+      // Clicking a visible button must not yank it out from under the cursor.
+      scrollQueueIntoView(bar, null);
+      scrollQueueIntoView(bar, 1);
+      expect(writes).toEqual([]);
+
+      // Queue 3 spans 300..400 — one pixel past the viewport, so it does move.
+      scrollQueueIntoView(bar, 3);
+      expect(writes).toEqual([200]);
+    });
+
+    it('does nothing when the queue has no button', async () => {
+      await create();
+      const {bar, writes} = makeBar(3, 100, 300);
+
+      scrollQueueIntoView(bar, 99);
+
+      expect(writes).toEqual([]);
+    });
+
+    it('leaves a bar that already fits unscrolled', async () => {
+      await create();
+      const {bar, writes} = makeBar(2, 100, 800);
+
+      scrollQueueIntoView(bar, 2);
+
+      expect(writes).toEqual([]);
+    });
+
+    it('scrolls the rendered bar when the selected queue changes', async () => {
+      // 30 queues, so the bar really is wider than any panel head. The referee and grade
+      // ids keep the forkJoin in load() fully synchronous, so the bar is rendered by the
+      // time create() returns.
+      matchService.findAll.mockReturnValue(of(Array.from({length: 30}, (_, i) =>
+        makeMatch(2000 + i, {queue: i + 1, refereeId: 100, gradeId: 500}))));
+      const fixture = await create();
+      const bar = fixture.nativeElement.querySelector('.seg-scroll') as HTMLElement;
+      // Buttons render newest-first: index 0 is "All queues", index 1 is queue 30.
+      const {writes} = stubLayout(bar, 100, 300);
+
+      fixture.componentInstance.selectQueue(5);
+      // The scroll is deferred to the next render, so the hook has to be flushed.
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // Queue 5 is the 26th queue button → index 26 → offset 2600, centered at 2500.
+      expect(writes).toEqual([2500]);
+    });
+  });
+
+  describe('centerScrollLeft', () => {
+    it('centers the item in the viewport', () => {
+      expect(centerScrollLeft(500, 100, 300, 2000)).toBe(400);
+    });
+
+    it('never scrolls past either end', () => {
+      expect(centerScrollLeft(0, 100, 300, 2000)).toBe(0);
+      expect(centerScrollLeft(1900, 100, 300, 2000)).toBe(1700);
+    });
+
+    it('returns 0 when the content is not wider than the viewport', () => {
+      expect(centerScrollLeft(100, 100, 800, 400)).toBe(0);
     });
   });
 

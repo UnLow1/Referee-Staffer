@@ -56,6 +56,18 @@
   }
 }
 
+// ——— Queue picker head (RS-113) ———
+// The bar scrolls, the counter does not: `.panel__head` is a space-between flex row,
+// so without these the 30-odd queue buttons push the counter out of the panel.
+.queue-head {
+  gap: 12px;
+}
+
+.queue-count {
+  flex: none;
+  white-space: nowrap;
+}
+
 .match-row {
   cursor: pointer;
 }
