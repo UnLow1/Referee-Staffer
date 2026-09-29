@@ -189,9 +189,7 @@ export class RefereeProfileComponent implements OnInit {
   }
 
   /** The averaged grade in the KPI strip — three decimals, same as every other screen. */
-  formatGrade(value: number | null): string {
-    return formatAverageGrade(value);
-  }
+  readonly avgGradeLabel = formatAverageGrade;
 
   editReferee(): void {
     const r = this.referee();

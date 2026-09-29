@@ -7,9 +7,12 @@ export interface Referee {
   /**
    * Average observer grade across the referee's match history. Populated by the
    * read-only endpoints (`/api/referees`, `/api/referees/:id`) via
-   * RefereeService.enrichWithStats. Null when the referee has no graded matches yet.
+   * RefereeService.enrichWithStats. Explicitly `null` on the wire when the referee has no
+   * graded match yet — RefereeDto does not set `@JsonInclude(NON_NULL)`, so the key is
+   * present with a null value rather than absent. Typed to include null so every call site
+   * has to handle it under strictNullChecks (RS-114).
    */
-  averageGrade?: number;
+  averageGrade?: number | null;
   /** Highest queue this referee has ever been assigned to. Null when never assigned. */
   lastQueue?: number;
   /** Computed potential P = α·avg + β·experience. Null when not enriched. */

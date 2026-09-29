@@ -133,9 +133,7 @@ export class DashboardComponent implements OnInit {
       : (referee.experience ?? 0).toString();
   }
 
-  formatAvg(value: number | null): string {
-    return formatAverageGrade(value);
-  }
+  readonly avgGradeLabel = formatAverageGrade;
 
   pointsBarPct(team: Team): number {
     return Math.round(((team.points ?? 0) / this.maxStandingsPoints()) * 100);

@@ -49,5 +49,15 @@ export function formatObserverGrade(value: number): string {
  * and substitutes its default only inside the scoring formulas (RS-114).
  */
 export function formatAverageGrade(value: number | null | undefined): string {
-  return value != null ? value.toFixed(AVERAGE_GRADE_DECIMALS) : NO_VALUE;
+  return hasAverageGrade(value) ? value.toFixed(AVERAGE_GRADE_DECIMALS) : NO_VALUE;
+}
+
+/**
+ * Whether the value is an average at all. False for a referee with no graded match, whose
+ * average the backend leaves unset — those must be marked, not rendered as a number.
+ * `Number.isFinite` rather than a null check so a NaN escaping any local averaging also
+ * falls back to {@link NO_VALUE} instead of printing "NaN" into a numeric column.
+ */
+export function hasAverageGrade(value: number | null | undefined): value is number {
+  return Number.isFinite(value);
 }

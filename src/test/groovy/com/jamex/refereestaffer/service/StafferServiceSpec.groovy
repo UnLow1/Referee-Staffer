@@ -42,10 +42,11 @@ class StafferServiceSpec extends Specification {
         def team2 = Team.builder()
                 .name("test team 123213")
                 .build()
-        // After RefereeService.calculateStats, averageGrade is always non-null — the
-        // no-grades fallback (DEFAULT_GRADE = 8.3) is applied there. Setting it
-        // explicitly here mirrors the real invariant. Ids are needed because the
-        // staffer deduplicates already-assigned referees by id.
+        // Since RS-114 calculateStats leaves averageGrade null for a referee with no graded
+        // match; the fallback lives in countRefereePotentialLvl. The averages below are
+        // therefore *measured* values, which is what this spec wants — the null path has its
+        // own spec further down. Ids are needed because the staffer deduplicates
+        // already-assigned referees by id.
         def ref1 = Referee.builder()
                 .id(1L)
                 .averageGrade(8.1d)
@@ -54,7 +55,7 @@ class StafferServiceSpec extends Specification {
                 .build()
         def ref2 = Referee.builder()
                 .id(2L)
-                .averageGrade(RefereeService.DEFAULT_GRADE)
+                .averageGrade(8.3d)
                 .experience(100)
                 .teamsRefereed([:])
                 .numberOfMatchesInRound((short) 0)
@@ -150,8 +151,10 @@ class StafferServiceSpec extends Specification {
     def "should not assign referees to matches if referee has vacation"() {
         given:
         def ref1 = Referee.builder().id(1L).averageGrade(8.6d).build()
-        def ref2 = Referee.builder().id(2L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        def ref3 = Referee.builder().id(3L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        // Measured 8.3 averages, not the no-grades fallback — these two are the referees the
+        // staffer is expected to pick, so they must look like ordinary graded referees.
+        def ref2 = Referee.builder().id(2L).averageGrade(8.3d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref3 = Referee.builder().id(3L).averageGrade(8.3d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def ref4 = Referee.builder().id(4L).averageGrade(8.6d).build()
         def ref5 = Referee.builder().id(5L).averageGrade(8.6d).build()
         def ref6 = Referee.builder().id(6L).averageGrade(8.6d).build()

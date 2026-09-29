@@ -29,6 +29,16 @@ public class RefereeService {
     // equal 8.3 (RS-114). Package-private so tests can reference it without hardcoding 8.3.
     static final double DEFAULT_GRADE = 8.3;
 
+    /**
+     * The referee's average grade as the scoring formulas must see it: the measured average,
+     * or {@link #DEFAULT_GRADE} when there is none. Every path that feeds a grade into a
+     * formula goes through here — {@link Referee#getAverageGrade()} is nullable since RS-114
+     * and unboxing it directly would NPE at runtime without a compiler warning.
+     */
+    static double effectiveAverageGrade(Referee referee) {
+        return referee.getAverageGrade() != null ? referee.getAverageGrade() : DEFAULT_GRADE;
+    }
+
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
     private final ConfigurationRepository configurationRepository;
@@ -109,8 +119,8 @@ public class RefereeService {
         var avgMultiplier = configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER).getValue();
         var expMultiplier = configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER).getValue();
         for (var referee : referees) {
-            var avg = referee.getAverageGrade() != null ? referee.getAverageGrade() : DEFAULT_GRADE;
-            referee.setPotential(avgMultiplier * avg + expMultiplier * referee.getExperience());
+            referee.setPotential(avgMultiplier * effectiveAverageGrade(referee)
+                    + expMultiplier * referee.getExperience());
         }
     }
 
