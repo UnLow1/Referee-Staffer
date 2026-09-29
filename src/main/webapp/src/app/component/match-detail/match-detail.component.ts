@@ -4,6 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Standing} from '../../model/standing';
 import {Referee} from '../../model/referee';
+import {formatAverageGrade, hasAverageGrade} from '../../model/grade';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
@@ -179,6 +180,13 @@ export class MatchDetailComponent implements OnInit {
   asNumber(value: number | string): number {
     return typeof value === 'number' ? value : 0;
   }
+
+  // Three decimals, because this column exists to rank candidates against each other and a
+  // full season's averages fit inside a tenth (RS-114). Aliased, not wrapped — see
+  // RefereeListComponent for why.
+  readonly avgGradeLabel = formatAverageGrade;
+  readonly hasAverageGrade = hasAverageGrade;
+
 
   round(value: number | null | undefined): number {
     return Math.round(value ?? 0);

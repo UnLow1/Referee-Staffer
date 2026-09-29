@@ -20,12 +20,24 @@ import java.util.stream.Collectors;
 @Service
 public class RefereeService {
 
-    // Fallback used when a referee has no graded matches yet (rookies, future-only schedule,
-    // matches where Grade hasn't been entered post-game). Treating "no track record" as the
-    // league-average score lets the staffer still rank such a referee against others rather
-    // than letting NaN propagate through the potential calculation. Package-private so tests
-    // can reference it without hardcoding 8.3.
+    // Fallback applied by the *scoring* paths when a referee has no graded matches yet
+    // (rookies, future-only schedule, matches where Grade hasn't been entered post-game).
+    // Treating "no track record" as the league-average score lets the staffer still rank
+    // such a referee against others rather than letting NaN propagate through the potential
+    // calculation. It is deliberately NOT written to Referee#averageGrade: that field stays
+    // null so the UI can tell "no grades yet" apart from a measured average that happens to
+    // equal 8.3 (RS-114). Package-private so tests can reference it without hardcoding 8.3.
     static final double DEFAULT_GRADE = 8.3;
+
+    /**
+     * The referee's average grade as the scoring formulas must see it: the measured average,
+     * or {@link #DEFAULT_GRADE} when there is none. Every path that feeds a grade into a
+     * formula goes through here — {@link Referee#getAverageGrade()} is nullable since RS-114
+     * and unboxing it directly would NPE at runtime without a compiler warning.
+     */
+    static double effectiveAverageGrade(Referee referee) {
+        return referee.getAverageGrade() != null ? referee.getAverageGrade() : DEFAULT_GRADE;
+    }
 
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
@@ -107,20 +119,25 @@ public class RefereeService {
         var avgMultiplier = configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER).getValue();
         var expMultiplier = configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER).getValue();
         for (var referee : referees) {
-            var avg = referee.getAverageGrade() != null ? referee.getAverageGrade() : DEFAULT_GRADE;
-            referee.setPotential(avgMultiplier * avg + expMultiplier * referee.getExperience());
+            referee.setPotential(avgMultiplier * effectiveAverageGrade(referee)
+                    + expMultiplier * referee.getExperience());
         }
     }
 
-    private double countAverageGrade(List<Match> matchesForReferee) {
+    /**
+     * Mean effective grade across the referee's graded matches, or {@code null} when there
+     * are none. Null rather than {@link #DEFAULT_GRADE} on purpose: the average is rendered
+     * with three decimals (RS-114), and a defaulted {@code 8.300} would read as a measured
+     * value. Callers that need a number for scoring apply the fallback themselves.
+     */
+    private Double countAverageGrade(List<Match> matchesForReferee) {
         var matchesWithGrade = matchesForReferee.stream()
                 .map(Match::getGrade)
                 .filter(Objects::nonNull)
                 .toList();
         if (matchesWithGrade.isEmpty()) {
-            // Without this guard the next line evaluates to 0.0 / 0 = NaN, which then
-            // poisons every potential calculation that touches this referee.
-            return DEFAULT_GRADE;
+            // Also guards the division below, which would otherwise be 0.0 / 0 = NaN.
+            return null;
         }
         var refereeGrades = matchesWithGrade.stream()
                 .map(Grade::getEffectiveValue)

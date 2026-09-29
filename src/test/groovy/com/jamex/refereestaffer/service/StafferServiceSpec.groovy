@@ -42,10 +42,11 @@ class StafferServiceSpec extends Specification {
         def team2 = Team.builder()
                 .name("test team 123213")
                 .build()
-        // After RefereeService.calculateStats, averageGrade is always non-null — the
-        // no-grades fallback (DEFAULT_GRADE = 8.3) is applied there. Setting it
-        // explicitly here mirrors the real invariant. Ids are needed because the
-        // staffer deduplicates already-assigned referees by id.
+        // Since RS-114 calculateStats leaves averageGrade null for a referee with no graded
+        // match; the fallback lives in countRefereePotentialLvl. The averages below are
+        // therefore *measured* values, which is what this spec wants — the null path has its
+        // own spec further down. Ids are needed because the staffer deduplicates
+        // already-assigned referees by id.
         def ref1 = Referee.builder()
                 .id(1L)
                 .averageGrade(8.1d)
@@ -54,7 +55,7 @@ class StafferServiceSpec extends Specification {
                 .build()
         def ref2 = Referee.builder()
                 .id(2L)
-                .averageGrade(RefereeService.DEFAULT_GRADE)
+                .averageGrade(8.3d)
                 .experience(100)
                 .teamsRefereed([:])
                 .numberOfMatchesInRound((short) 0)
@@ -103,11 +104,57 @@ class StafferServiceSpec extends Specification {
         50              | 0.01          | 3                     | 1.3                | 1.3
     }
 
+    def "should score referee without grades as if they had the default grade"() {
+        given:
+        short queue = 2
+        def team1 = Team.builder().name("home").build()
+        def team2 = Team.builder().name("away").build()
+        // calculateStats leaves averageGrade null for a referee with no graded match (RS-114);
+        // the staffer must still rank them, substituting DEFAULT_GRADE = 8.3.
+        def ungraded = Referee.builder()
+                .id(1L)
+                .averageGrade(null)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
+        def weaker = Referee.builder()
+                .id(2L)
+                .averageGrade(RefereeService.DEFAULT_GRADE - 0.5d)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        def match = Match.builder().home(team1).away(team2).date(matchDateTime).build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        // Only the grade term is weighted, so the ungraded referee wins exactly because
+        // 8.3 was substituted for their null average — a null-as-zero would lose here.
+        match.referee == ungraded
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [ungraded, weaker]
+        1 * refereeService.calculateStats([ungraded, weaker])
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * matchConverter.convertFromEntities([match])
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([ungraded, weaker], matchDateTime) >> []
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : 1.0d,
+                (ConfigName.EXPERIENCE_MULTIPLIER)     : 0.0d,
+                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER): 0.0d,
+                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): 0.0d,
+                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): 0.0d
+        ]
+    }
+
     def "should not assign referees to matches if referee has vacation"() {
         given:
         def ref1 = Referee.builder().id(1L).averageGrade(8.6d).build()
-        def ref2 = Referee.builder().id(2L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        def ref3 = Referee.builder().id(3L).averageGrade(RefereeService.DEFAULT_GRADE).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        // Measured 8.3 averages, not the no-grades fallback — these two are the referees the
+        // staffer is expected to pick, so they must look like ordinary graded referees.
+        def ref2 = Referee.builder().id(2L).averageGrade(8.3d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def ref3 = Referee.builder().id(3L).averageGrade(8.3d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
         def ref4 = Referee.builder().id(4L).averageGrade(8.6d).build()
         def ref5 = Referee.builder().id(5L).averageGrade(8.6d).build()
         def ref6 = Referee.builder().id(6L).averageGrade(8.6d).build()

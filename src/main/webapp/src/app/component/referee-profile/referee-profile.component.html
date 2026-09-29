@@ -24,7 +24,7 @@
   <div class="panel kpi-strip">
     <div class="kpi-strip-grid">
       <app-kpi label="Average grade"
-               [value]="formatGrade(avgGrade())"
+               [value]="avgGradeLabel(avgGrade())"
                [delta]="avgGrade() !== null
                           ? ('Computed from ' + gradedMatchCount() + ' graded matches')
                           : 'No graded matches yet'"></app-kpi>

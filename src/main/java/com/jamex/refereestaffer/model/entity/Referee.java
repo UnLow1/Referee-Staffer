@@ -32,6 +32,12 @@ public class Referee {
     @Column
     private int experience;
 
+    /**
+     * Mean effective observer grade across this referee's graded matches. Set by
+     * {@link com.jamex.refereestaffer.service.RefereeService#calculateStats}; null when the
+     * referee has no graded match yet. Scoring paths substitute
+     * {@code RefereeService.DEFAULT_GRADE} for the null themselves — see RS-114.
+     */
     @Transient
     private Double averageGrade;
 

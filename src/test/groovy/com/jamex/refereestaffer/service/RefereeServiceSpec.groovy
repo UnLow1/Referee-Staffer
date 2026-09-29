@@ -38,7 +38,7 @@ class RefereeServiceSpec extends Specification {
         result.size() == 2
     }
 
-    def "should fall back to default grade when referee has no matches"() {
+    def "should leave average grade unset when referee has no matches"() {
         given:
         def referee = Referee.builder()
                 .id(1L)
@@ -51,11 +51,11 @@ class RefereeServiceSpec extends Specification {
 
         then:
         1 * matchRepository.findAllByRefereeIn([referee]) >> []
-        referee.averageGrade == RefereeService.DEFAULT_GRADE
+        referee.averageGrade == null
         referee.numberOfMatchesInRound == (short) 0
     }
 
-    def "should fall back to default grade when referee's matches have no grades yet"() {
+    def "should leave average grade unset when referee's matches have no grades yet"() {
         given:
         def referee = Referee.builder()
                 .id(1L)
@@ -74,7 +74,7 @@ class RefereeServiceSpec extends Specification {
 
         then:
         1 * matchRepository.findAllByRefereeIn([referee]) >> matchesWithoutGrades
-        referee.averageGrade == RefereeService.DEFAULT_GRADE
+        referee.averageGrade == null
         referee.numberOfMatchesInRound == (short) 2
     }
 
@@ -109,7 +109,7 @@ class RefereeServiceSpec extends Specification {
         teamRefereedMap.get(team3) == 1
 
         and: "referees without matches in the result get the defaults"
-        referees.get(1).averageGrade == RefereeService.DEFAULT_GRADE
+        referees.get(1).averageGrade == null
         referees.get(1).numberOfMatchesInRound == (short) 0
     }
 
@@ -243,7 +243,9 @@ class RefereeServiceSpec extends Specification {
         1 * configurationRepository.findByName(ConfigName.AVERAGE_GRADE_MULTIPLIER) >> new Config(ConfigName.AVERAGE_GRADE_MULTIPLIER, avgMultiplier)
         1 * configurationRepository.findByName(ConfigName.EXPERIENCE_MULTIPLIER) >> new Config(ConfigName.EXPERIENCE_MULTIPLIER, expMultiplier)
 
-        referee.averageGrade == RefereeService.DEFAULT_GRADE
+        // The default grade feeds the potential formula but is never written back to the
+        // referee — a null average is what tells the UI "no grades yet" (RS-114).
+        referee.averageGrade == null
         referee.potential == avgMultiplier * RefereeService.DEFAULT_GRADE + expMultiplier * referee.experience
     }
 

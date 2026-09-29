@@ -4,7 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
-import {Grade, effectiveGradeValue, isSplitGrade} from '../../model/grade';
+import {Grade, effectiveGradeValue, formatObserverGrade, isSplitGrade} from '../../model/grade';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
 import {TeamService} from '../../service/team.service';
@@ -88,6 +88,15 @@ export class GradeListComponent implements OnInit {
   shortCode(team: Team | undefined): string {
     if (!team) return '';
     return team.short ?? team.name?.slice(0, 3).toUpperCase() ?? '';
+  }
+
+  /**
+   * A single observer grade, rendered at the granularity it was awarded with. Deliberately
+   * coarser than the referee average (RS-114): 0.1 is the observer's own step, so extra
+   * decimals here would only be noise.
+   */
+  displayValue(value: number): string {
+    return formatObserverGrade(value);
   }
 
   effectiveValue(grade: Grade): number {
