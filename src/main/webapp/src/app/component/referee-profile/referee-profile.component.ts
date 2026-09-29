@@ -4,7 +4,7 @@ import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
 import {Team} from '../../model/team';
-import {Grade, effectiveGradeValue} from '../../model/grade';
+import {Grade, effectiveGradeValue, formatAverageGrade, formatObserverGrade} from '../../model/grade';
 import {RefereeService} from '../../service/referee.service';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
@@ -83,9 +83,10 @@ export class RefereeProfileComponent implements OnInit {
   );
 
   readonly avgGrade = computed<number | null>(() => {
-    // Prefer the server-computed value (RefereeService.enrichWithStats applies the
-    // DEFAULT_GRADE fallback consistently with the staffer pipeline). Fall back to a
-    // local calc derived from the loaded grades while waiting on the referee response.
+    // Prefer the server-computed value. It is null for a referee with no graded match
+    // (RS-114) — the staffer's DEFAULT_GRADE fallback never reaches the DTO — and the
+    // local calc below then yields null too, so the KPI reads "—" either way. The local
+    // path exists to fill the KPI while waiting on the referee response.
     const fromServer = this.referee()?.averageGrade;
     if (typeof fromServer === 'number') return fromServer;
     const grades = this.matches()
@@ -182,13 +183,14 @@ export class RefereeProfileComponent implements OnInit {
     return (grade ? effectiveGradeValue(grade) : 0) * 10;
   }
 
+  /** A single observer grade from the match history — one decimal, as awarded. */
   displayGrade(grade: Grade): string {
-    return effectiveGradeValue(grade).toFixed(1);
+    return formatObserverGrade(effectiveGradeValue(grade));
   }
 
+  /** The averaged grade in the KPI strip — three decimals, same as every other screen. */
   formatGrade(value: number | null): string {
-    if (value == null) return '—';
-    return value.toFixed(2);
+    return formatAverageGrade(value);
   }
 
   editReferee(): void {

@@ -132,6 +132,15 @@ describe('GradeListComponent', () => {
     expect(component.gradeKind(grades[1])).toBe('warn');
   });
 
+  it('keeps a single observer grade at one decimal', () => {
+    const component = create().componentInstance;
+
+    // Observers award in steps of 0.1, so this column stays coarse while referee
+    // averages moved to three decimals (RS-114).
+    expect(component.displayValue(8.4)).toBe('8.4');
+    expect(component.displayValue(component.effectiveValue({id: 9, value: 7.9, secondValue: 8.3}))).toBe('8.1');
+  });
+
   it('routes grade editing to the match form deep-link', () => {
     const component = create().componentInstance;
     const event = new Event('click');

@@ -3,6 +3,7 @@ import {RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
+import {formatAverageGrade} from '../../model/grade';
 import {Team} from '../../model/team';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
@@ -133,7 +134,7 @@ export class DashboardComponent implements OnInit {
   }
 
   formatAvg(value: number | null): string {
-    return value !== null ? value.toFixed(1) : '—';
+    return formatAverageGrade(value);
   }
 
   pointsBarPct(team: Team): number {

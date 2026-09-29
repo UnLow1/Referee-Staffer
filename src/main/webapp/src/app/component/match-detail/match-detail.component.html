@@ -150,7 +150,7 @@
   </div>
 
   <!-- Candidates -->
-  <div class="panel">
+  <div class="panel candidates-panel">
     <div class="panel__head">
       <div>
         <div class="panel__title">Top referee candidates</div>
@@ -176,7 +176,9 @@
             <tr [class.candidate-row--assigned]="c.isAssigned">
               <td class="num idx-cell">{{ i + 1 }}</td>
               <td><app-ref-avatar [referee]="c.referee"></app-ref-avatar></td>
-              <td class="num right">{{ c.referee.averageGrade !== null && c.referee.averageGrade !== undefined ? c.referee.averageGrade.toFixed(1) : '—' }}</td>
+              <td class="num right"
+                  [class.muted]="!hasAverageGrade(c.referee)"
+                  [title]="hasAverageGrade(c.referee) ? '' : 'No grades yet'">{{ formatAverageGrade(c.referee) }}</td>
               <td class="num right">{{ c.referee.experience }}</td>
               <td class="num right">{{ c.referee.potential !== null && c.referee.potential !== undefined ? round(c.referee.potential) : '—' }}</td>
               <td class="col-actions">

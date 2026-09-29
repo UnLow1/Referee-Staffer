@@ -1,6 +1,7 @@
 import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Referee} from '../../model/referee';
+import {formatAverageGrade} from '../../model/grade';
 import {ModalData} from '../../model/modalData';
 import {RefereeService} from '../../service/referee.service';
 import {IconComponent} from '../common/icon/icon.component';
@@ -142,7 +143,12 @@ export class RefereeListComponent implements OnInit {
   }
 
   formatGrade(grade: number | undefined | null): string {
-    return grade != null ? grade.toFixed(1) : '—';
+    return formatAverageGrade(grade);
+  }
+
+  /** A referee with no graded match shows a dash, not a number — see RS-114. */
+  hasAverageGrade(referee: Referee): boolean {
+    return referee.averageGrade != null;
   }
 
   hasPotential(referee: Referee): boolean {

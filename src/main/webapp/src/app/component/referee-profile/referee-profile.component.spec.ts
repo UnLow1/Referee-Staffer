@@ -173,7 +173,8 @@ describe('RefereeProfileComponent', () => {
 
     expect(component.avgGrade()).toBeNull();
     expect(component.formatGrade(null)).toBe('—');
-    expect(component.formatGrade(8.5)).toBe('8.50');
+    // Three decimals here as on every other screen — the profile used to show two (RS-114).
+    expect(component.formatGrade(8.5)).toBe('8.500');
   });
 
   it('exposes the win balance only when a win was recorded', async () => {

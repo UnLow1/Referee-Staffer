@@ -103,6 +103,50 @@ class StafferServiceSpec extends Specification {
         50              | 0.01          | 3                     | 1.3                | 1.3
     }
 
+    def "should score referee without grades as if they had the default grade"() {
+        given:
+        short queue = 2
+        def team1 = Team.builder().name("home").build()
+        def team2 = Team.builder().name("away").build()
+        // calculateStats leaves averageGrade null for a referee with no graded match (RS-114);
+        // the staffer must still rank them, substituting DEFAULT_GRADE = 8.3.
+        def ungraded = Referee.builder()
+                .id(1L)
+                .averageGrade(null)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
+        def weaker = Referee.builder()
+                .id(2L)
+                .averageGrade(RefereeService.DEFAULT_GRADE - 0.5d)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        def match = Match.builder().home(team1).away(team2).date(matchDateTime).build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        // Only the grade term is weighted, so the ungraded referee wins exactly because
+        // 8.3 was substituted for their null average — a null-as-zero would lose here.
+        match.referee == ungraded
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [ungraded, weaker]
+        1 * refereeService.calculateStats([ungraded, weaker])
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * matchConverter.convertFromEntities([match])
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([ungraded, weaker], matchDateTime) >> []
+        1 * configurationRepository.findAllAsMap() >> [
+                (ConfigName.AVERAGE_GRADE_MULTIPLIER)  : 1.0d,
+                (ConfigName.EXPERIENCE_MULTIPLIER)     : 0.0d,
+                (ConfigName.NUMBER_OF_MATCHES_MULTIPLIER): 0.0d,
+                (ConfigName.HOME_TEAM_REFEREED_MULTIPLIER): 0.0d,
+                (ConfigName.AWAY_TEAM_REFEREED_MULTIPLIER): 0.0d
+        ]
+    }
+
     def "should not assign referees to matches if referee has vacation"() {
         given:
         def ref1 = Referee.builder().id(1L).averageGrade(8.6d).build()
