@@ -139,7 +139,7 @@ describe('DashboardComponent', () => {
 
     // Referee 3 has no grade and must not drag the average down.
     expect(component.avgObserverGrade()).toBe(7.5);
-    expect(component.formatAvg(component.avgObserverGrade())).toBe('7.5');
+    expect(component.formatAvg(component.avgObserverGrade())).toBe('7.500');
 
     refereeService.findAll.mockReturnValue(of([makeReferee(3, {averageGrade: undefined})]));
     const withoutGrades = create().componentInstance;

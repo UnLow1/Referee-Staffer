@@ -186,6 +186,38 @@ describe('MatchDetailComponent', () => {
     expect(component.candidates().map(c => c.isAssigned)).toEqual([false, true, false]);
   });
 
+  it('renders candidate averages at a precision that keeps them comparable', async () => {
+    // Ranking is by potential; the averages below are indistinguishable at one decimal,
+    // which is exactly what made this column useless for comparing candidates (RS-114).
+    refereeService.findAll.mockReturnValue(of([
+      makeReferee(100, {potential: 80, averageGrade: 8.326666666666666}),
+      makeReferee(101, {potential: 70, averageGrade: 8.276923076923078})
+    ]));
+    const fixture = await create(11);
+
+    const cells = candidateAvgCells(fixture);
+    expect(cells.map(c => c.textContent?.trim())).toEqual(['8.327', '8.277']);
+  });
+
+  it('marks a candidate with no grades instead of rendering the default grade', async () => {
+    refereeService.findAll.mockReturnValue(of([
+      makeReferee(100, {potential: 80, averageGrade: undefined}),
+      makeReferee(101, {potential: 70, averageGrade: 8.3})
+    ]));
+    const fixture = await create(11);
+
+    const [ungraded, graded] = candidateAvgCells(fixture);
+    expect(ungraded.textContent?.trim()).toBe('—');
+    expect(ungraded.getAttribute('title')).toBe('No grades yet');
+    expect(graded.textContent?.trim()).toBe('8.300');
+    expect(graded.getAttribute('title')).toBe('');
+  });
+
+  function candidateAvgCells(fixture: ComponentFixture<MatchDetailComponent>): HTMLElement[] {
+    const rows = (fixture.nativeElement as HTMLElement).querySelectorAll('.candidates-panel tbody tr');
+    return Array.from(rows).map(row => row.querySelectorAll<HTMLElement>('td')[2]);
+  }
+
   it('assigns a referee through the update endpoint', async () => {
     const saved = makeMatch({refereeId: 102});
     matchService.update.mockReturnValue(of(saved));

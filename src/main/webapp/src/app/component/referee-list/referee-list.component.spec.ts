@@ -49,6 +49,43 @@ describe('RefereeListComponent', () => {
     expect((fixture.nativeElement as HTMLElement).querySelectorAll('tbody tr').length).toBe(3);
   });
 
+  describe('average grade column', () => {
+    it('renders averages inside a tenth of each other as distinct values', async () => {
+      // Kowalski 8.266…, Nowak 8.330… — identical at one decimal, distinct at three.
+      refereeService.findAll.mockReturnValue(of([
+        {...referees[0], averageGrade: 8.266666666666667},
+        {...referees[1], averageGrade: 8.330769230769231}
+      ]));
+      const fixture = await create();
+
+      const cells = avgCells(fixture);
+      expect(cells.map(c => c.textContent?.trim())).toEqual(['8.331', '8.267']);
+    });
+
+    it('marks a referee with no grades instead of showing the default grade', async () => {
+      refereeService.findAll.mockReturnValue(of([
+        {...referees[0], averageGrade: 8.3},
+        {...referees[1], averageGrade: undefined}
+      ]));
+      const fixture = await create();
+
+      const [ungraded, graded] = avgCells(fixture);
+      expect(ungraded.textContent?.trim()).toBe('—');
+      expect(ungraded.getAttribute('title')).toBe('No grades yet');
+      expect(ungraded.classList).toContain('muted');
+      // The measured 8.3 must stay a number, and must not claim "no grades".
+      expect(graded.textContent?.trim()).toBe('8.300');
+      expect(graded.getAttribute('title')).toBe('');
+      expect(graded.classList).not.toContain('muted');
+    });
+
+    function avgCells(fixture: ComponentFixture<RefereeListComponent>): HTMLElement[] {
+      return Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('tbody tr td:nth-child(3)')
+      );
+    }
+  });
+
   it('filters by name or email', async () => {
     const component = (await create()).componentInstance;
 
