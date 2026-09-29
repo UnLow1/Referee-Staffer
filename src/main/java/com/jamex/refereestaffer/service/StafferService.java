@@ -89,7 +89,7 @@ public class StafferService {
     @Transactional
     public Collection<MatchDto> staffReferees(short queue, List<StaffingLockRequest> locks) {
         if (!matchRepository.existsByQueue(queue)) {
-            throw new MatchNotFoundException(queue);
+            throw MatchNotFoundException.queueOutsideSeason(queue);
         }
         var sortedMatchesToStaff = matchService.getMatchesToAssignInQueue(queue);
         applyLocks(queue, sortedMatchesToStaff, locks);

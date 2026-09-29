@@ -432,7 +432,7 @@ class StafferServiceSpec extends Specification {
         0 * matchService.getMatchesToAssignInQueue(_)
         0 * refereeService.getAvailableRefereesForQueue(_)
         def ex = thrown(MatchNotFoundException)
-        ex.message == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
+        ex.message == String.format(MatchNotFoundException.QUEUE_OUTSIDE_SEASON, queue)
     }
 
     // A queue whose matches are all played or centrally assigned is a normal state, not an

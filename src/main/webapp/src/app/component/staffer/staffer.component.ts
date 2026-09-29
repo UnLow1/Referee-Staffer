@@ -65,6 +65,12 @@ export class StafferComponent {
    * not exist (RS-115). Empty until the request lands, or when nothing has been imported.
    */
   readonly availableQueues = signal<number[]>([]);
+  /**
+   * Where the queue request got to. 'loading' must stay apart from a genuinely empty season:
+   * both have no queues, but only one of them means "nothing has been imported", and the
+   * screen says so. 'failed' keeps the screen usable — see canGenerate.
+   */
+  readonly queuesState = signal<'loading' | 'ready' | 'failed'>('loading');
   readonly matches = signal<Match[] | null>(null);
   readonly referees = signal<Referee[]>([]);
   /** Map<teamId, Team> — populated from /api/teams/standings rows. */
@@ -89,14 +95,21 @@ export class StafferComponent {
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
-    this.matchService.getQueues().subscribe(queues => {
-      this.availableQueues.set(queues);
-      // Queue 1 is only a placeholder default — snap onto a queue that exists so the
-      // stepper never starts outside its own range. An empty season leaves it alone;
-      // there is nothing to snap to and Generate is disabled anyway.
-      if (queues.length > 0 && !queues.includes(this.queue())) {
-        this.queue.set(queues[0]);
-      }
+    this.matchService.getQueues().subscribe({
+      next: queues => {
+        this.availableQueues.set(queues);
+        this.queuesState.set('ready');
+        // Queue 1 is only a placeholder default — snap onto a queue that exists so the
+        // stepper never starts outside its own range. An empty season leaves it alone;
+        // there is nothing to snap to and Generate is disabled anyway.
+        if (queues.length > 0 && !queues.includes(this.queue())) {
+          this.queue.set(queues[0]);
+        }
+      },
+      // The interceptor already toasts the reason. Recording the failure keeps the screen
+      // from claiming the season is empty, and keeps Generate reachable — one unrelated
+      // request must not be able to lock the workspace.
+      error: () => this.queuesState.set('failed')
     });
   }
 
@@ -118,6 +131,23 @@ export class StafferComponent {
   private readonly queueIndex = computed(() => this.availableQueues().indexOf(this.queue()));
 
   readonly hasQueues = computed(() => this.availableQueues().length > 0);
+
+  /**
+   * Generating needs a queue known to exist — or a queue list we failed to load, where the
+   * backend validates the queue instead (400 below 1, 404 outside the season) and the user
+   * keeps a working screen rather than a dead one.
+   */
+  readonly canGenerate = computed(() => this.hasQueues() || this.queuesState() === 'failed');
+
+  /** Why Generate is disabled, as the button's tooltip. */
+  readonly generateHint = computed(() => {
+    if (this.canGenerate()) {
+      return 'Assign referees to this queue';
+    }
+    return this.queuesState() === 'loading'
+      ? 'Loading the season\'s queues…'
+      : 'Import a season first — there are no matches to staff';
+  });
   readonly canDecQueue = computed(() => this.queueIndex() > 0);
   readonly canIncQueue = computed(() => {
     const index = this.queueIndex();
@@ -171,6 +201,12 @@ export class StafferComponent {
       return;
     }
     this.queue.set(next);
+    // The cast on screen belongs to the queue we just left. Keeping it would make the
+    // empty-cast panel assert a reason for a queue nothing was ever computed for, and would
+    // leave canExport() true so Export PDF fetched a different queue's sheet than the table.
+    this.matches.set(null);
+    this.savedAt.set(null);
+    this.closeDrawer();
     this.clearLocks();
   }
 
@@ -179,7 +215,7 @@ export class StafferComponent {
   }
 
   generate(): void {
-    if (!this.hasQueues()) {
+    if (!this.canGenerate()) {
       return;
     }
     this.loading.set(true);

@@ -29,8 +29,8 @@
       {{ exporting() ? 'Exporting…' : 'Export PDF' }}
     </button>
     <button type="button" class="btn btn--primary" (click)="generate()"
-            [disabled]="loading() || !hasQueues()"
-            [title]="hasQueues() ? 'Assign referees to this queue' : 'Import a season first — there are no matches to staff'">
+            [disabled]="loading() || !canGenerate()"
+            [title]="generateHint()">
       <app-icon name="play" [size]="12"></app-icon>
       {{ loading() ? 'Generating…' : 'Generate cast' }}
     </button>
@@ -195,10 +195,18 @@
     </div>
   </div>
 } @else {
-  <!-- Empty state — pre-generation -->
+  <!-- Empty state — pre-generation. "No season imported" is only claimed once the queue
+       request has actually come back empty; while it is in flight the screen stays neutral. -->
   <div class="panel empty-state">
     <div class="panel__body empty-state__body">
-      @if (hasQueues()) {
+      @if (queuesState() === 'loading') {
+        <div class="muted">Loading the season's queues…</div>
+      } @else if (queuesState() === 'failed') {
+        <div class="muted">
+          Could not load the season's queues, so the stepper is unavailable.
+          <strong>Generate cast</strong> still works for queue {{ queue() }} — reload the page to restore the stepper.
+        </div>
+      } @else if (hasQueues()) {
         <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
       } @else {
         <div class="muted">No matches to staff — import a season on the <strong>Import</strong> screen first.</div>

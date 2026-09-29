@@ -83,9 +83,23 @@ class StafferControllerSpec extends Specification {
         then:
         0 * stafferService.staffReferees(_, _)
         response.status == 400
+        // The detail is asserted, not just the status: the 400 comes from built-in method
+        // validation via HandlerMethodValidationException and the advice, and a break anywhere
+        // in that chain would still leave a 400 — with a completely different body in the toast.
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == "queue: must be greater than or equal to 1"
 
         where:
         queue << [0, -1]
+    }
+
+    def "should accept the season's first queue"() {
+        when:
+        def response = mockMvc.perform(post("/api/staffer/1")).andReturn().response
+
+        then:
+        1 * stafferService.staffReferees(1 as short, []) >> []
+        response.status == 200
     }
 
     def "should respond 404 with problem detail for a queue the season does not have"() {
@@ -93,10 +107,12 @@ class StafferControllerSpec extends Specification {
         def response = mockMvc.perform(post("/api/staffer/57")).andReturn().response
 
         then:
-        1 * stafferService.staffReferees(57 as short, []) >> { throw new MatchNotFoundException(57 as short) }
+        1 * stafferService.staffReferees(57 as short, []) >> {
+            throw MatchNotFoundException.queueOutsideSeason(57 as short)
+        }
         response.status == 404
         def json = new JsonSlurper().parseText(response.contentAsString)
-        json.detail == String.format(MatchNotFoundException.QUEUE_EMPTY, 57)
+        json.detail == String.format(MatchNotFoundException.QUEUE_OUTSIDE_SEASON, 57)
     }
 
     def "should respond 409 with problem detail when there are not enough referees"() {

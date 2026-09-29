@@ -1,7 +1,7 @@
 import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {signal, WritableSignal} from '@angular/core';
-import {of, Subject, throwError} from 'rxjs';
+import {Observable, of, Subject, throwError} from 'rxjs';
 import {StafferComponent} from './staffer.component';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -134,7 +134,17 @@ describe('StafferComponent', () => {
 
   /** Re-creates the component against a different season — queues are read once, on construction. */
   function rebuildWithQueues(queues: number[]): void {
-    matchService.getQueues.mockReturnValue(of(queues));
+    rebuildWith(of(queues));
+  }
+
+  /**
+   * Re-creates the component against an arbitrary queues response — a pending Subject for the
+   * loading window, a throwError for the failure path. Destroys the fixture `beforeEach` made,
+   * so only one component is ever live in the TestBed.
+   */
+  function rebuildWith(queues$: Observable<number[]>): void {
+    fixture.destroy();
+    matchService.getQueues.mockReturnValue(queues$);
     fixture = TestBed.createComponent(StafferComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -196,6 +206,38 @@ describe('StafferComponent', () => {
       expect(component.queue()).toBe(1);
     });
 
+    it('stays frozen while the queue list is still in flight', () => {
+      const queues$ = new Subject<number[]>();
+      rebuildWith(queues$);
+
+      expect(component.queuesState()).toBe('loading');
+      expect(component.canIncQueue()).toBe(false);
+      expect(component.canGenerate()).toBe(false);
+      // The guard on a still-unknown queue list: stepping must not fall through to queues[0].
+      component.incQueue();
+      expect(component.queue()).toBe(1);
+
+      queues$.next([4, 5]);
+      expect(component.queuesState()).toBe('ready');
+      expect(component.queue()).toBe(4);
+      expect(component.canIncQueue()).toBe(true);
+      expect(component.canGenerate()).toBe(true);
+    });
+
+    it('keeps generating reachable when the queue list fails to load', () => {
+      rebuildWith(throwError(() => new Error('boom')));
+
+      expect(component.queuesState()).toBe('failed');
+      // The stepper is unusable without the list, but one failed request must not take the
+      // whole screen with it — the backend validates the queue on its own.
+      expect(component.canIncQueue()).toBe(false);
+      expect(component.canDecQueue()).toBe(false);
+      expect(component.canGenerate()).toBe(true);
+
+      component.generate();
+      expect(stafferService.staffReferees).toHaveBeenCalledWith(1, []);
+    });
+
     it('freezes the stepper and blocks generating when nothing has been imported', () => {
       rebuildWithQueues([]);
 
@@ -211,6 +253,30 @@ describe('StafferComponent', () => {
       expect(component.matches()).toBeNull();
     });
 
+    it('drops the previous cast when the queue changes', () => {
+      component.generate();
+      component.save();
+      expect(component.matches()).not.toBeNull();
+      expect(component.canExport()).toBe(true);
+
+      component.incQueue();
+
+      // The result belonged to the queue we left: keeping it would let the empty-cast panel
+      // explain a queue nothing was generated for, and Export PDF fetch a different sheet.
+      expect(component.matches()).toBeNull();
+      expect(component.castIsEmpty()).toBe(false);
+      expect(component.canExport()).toBe(false);
+    });
+
+    it('does not carry an empty cast over to the next queue', () => {
+      stafferService.staffReferees.mockReturnValue(of([]));
+      component.generate();
+      expect(component.castIsEmpty()).toBe(true);
+
+      component.incQueue();
+
+      expect(component.castIsEmpty()).toBe(false);
+    });
   });
 
   describe('generate', () => {
@@ -320,6 +386,8 @@ describe('StafferComponent', () => {
       component.incQueue();
       expect(component.lockCount()).toBe(0);
 
+      // A queue change also drops the cast, so the next lock needs a freshly generated one.
+      component.generate();
       component.toggleLock(component.matches()![0]);
       component.decQueue();
       expect(component.lockCount()).toBe(0);
@@ -590,6 +658,23 @@ describe('StafferComponent', () => {
       expect(el.querySelector('.panel--kpi-strip')).toBeNull();
       expect(el.querySelector('.cast-panel')).toBeNull();
       expect(el.querySelector('.empty-state')?.textContent).toContain('Nothing to staff in queue 1');
+    });
+
+    it('stays neutral about the season while the queue list is loading', () => {
+      rebuildWith(new Subject<number[]>());
+      const el: HTMLElement = fixture.nativeElement;
+
+      const text = el.querySelector('.empty-state')?.textContent ?? '';
+      expect(text).toContain('Loading');
+      expect(text).not.toContain('import a season');
+    });
+
+    it('offers a way forward when the queue list fails to load', () => {
+      rebuildWith(throwError(() => new Error('boom')));
+      const el: HTMLElement = fixture.nativeElement;
+
+      expect(el.querySelector('.empty-state')?.textContent).toContain('Could not load');
+      expect((el.querySelector('.page-head__actions .btn--primary') as HTMLButtonElement).disabled).toBe(false);
     });
 
     it('points at the importer when the season has no matches at all', () => {

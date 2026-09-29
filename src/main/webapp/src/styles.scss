@@ -519,7 +519,7 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
 }
 // Matches .btn:disabled — a stepper arrow at the end of its range is a dead control.
 .seg button:disabled {
-  opacity: 0.35;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 

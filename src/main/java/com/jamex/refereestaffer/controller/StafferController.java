@@ -38,8 +38,9 @@ public class StafferController {
      * the end of the season is a 404 raised by the service, which knows the season's range.
      */
     @PostMapping("/{queue}")
-    public Collection<MatchDto> staffReferees(@PathVariable @Min(1) short queue,
-                                              @RequestBody(required = false) List<StaffingLockRequest> locks) {
+    public Collection<MatchDto> staffReferees(
+            @PathVariable @Min(value = 1, message = "queue: must be greater than or equal to 1") short queue,
+            @RequestBody(required = false) List<StaffingLockRequest> locks) {
         var lockedPairs = locks == null ? List.<StaffingLockRequest>of() : locks;
         log.info("Generating cast for queue {} with {} locked assignments", queue, lockedPairs.size());
         return stafferService.staffReferees(queue, lockedPairs);
