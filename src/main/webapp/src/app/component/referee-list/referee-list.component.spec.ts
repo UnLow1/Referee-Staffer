@@ -51,10 +51,11 @@ describe('RefereeListComponent', () => {
 
   describe('average grade column', () => {
     it('renders averages inside a tenth of each other as distinct values', async () => {
-      // Kowalski 8.266…, Nowak 8.330… — identical at one decimal, distinct at three.
+      // Rows are ordered by potential, so 90 renders first — spelled out here rather than
+      // inherited from the fixture, so a fixture tweak cannot silently flip the expectation.
       refereeService.findAll.mockReturnValue(of([
-        {...referees[0], averageGrade: 8.266666666666667},
-        {...referees[1], averageGrade: 8.330769230769231}
+        {...referees[0], potential: 70, averageGrade: 8.266666666666667},
+        {...referees[1], potential: 90, averageGrade: 8.330769230769231}
       ]));
       const fixture = await create();
 
@@ -62,22 +63,30 @@ describe('RefereeListComponent', () => {
       expect(cells.map(c => c.textContent?.trim())).toEqual(['8.331', '8.267']);
     });
 
-    it('marks a referee with no grades instead of showing the default grade', async () => {
-      refereeService.findAll.mockReturnValue(of([
-        {...referees[0], averageGrade: 8.3},
-        {...referees[1], averageGrade: undefined}
-      ]));
-      const fixture = await create();
+    // null is what the API actually sends — RefereeDto has no @JsonInclude(NON_NULL), so the
+    // key is present and null. undefined only happens before enrichment; cover both.
+    it.each([null, undefined])(
+      'marks a referee whose average is %s instead of showing the default grade',
+      async (noAverage) => {
+        refereeService.findAll.mockReturnValue(of([
+          {...referees[0], potential: 70, averageGrade: 8.3},
+          {...referees[1], potential: 90, averageGrade: noAverage}
+        ]));
+        const fixture = await create();
 
-      const [ungraded, graded] = avgCells(fixture);
-      expect(ungraded.textContent?.trim()).toBe('—');
-      expect(ungraded.getAttribute('title')).toBe('No grades yet');
-      expect(ungraded.classList).toContain('muted');
-      // The measured 8.3 must stay a number, and must not claim "no grades".
-      expect(graded.textContent?.trim()).toBe('8.300');
-      expect(graded.getAttribute('title')).toBe('');
-      expect(graded.classList).not.toContain('muted');
-    });
+        const [ungraded, graded] = avgCells(fixture);
+        expect(ungraded.textContent?.trim()).toBe('—');
+        expect(ungraded.getAttribute('title')).toBe('No grades yet');
+        expect(ungraded.getAttribute('aria-label')).toBe('No grades yet');
+        expect(ungraded.classList).toContain('muted');
+        // The measured 8.3 must stay a number, must not claim "no grades", and must not
+        // carry an empty title attribute either.
+        expect(graded.textContent?.trim()).toBe('8.300');
+        expect(graded.hasAttribute('title')).toBe(false);
+        expect(graded.hasAttribute('aria-label')).toBe(false);
+        expect(graded.classList).not.toContain('muted');
+      }
+    );
 
     function avgCells(fixture: ComponentFixture<RefereeListComponent>): HTMLElement[] {
       return Array.from(

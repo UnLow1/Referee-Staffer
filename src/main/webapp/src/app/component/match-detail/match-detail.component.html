@@ -150,6 +150,7 @@
   </div>
 
   <!-- Candidates -->
+  <!-- candidates-panel is a test hook, not a style: the screen has two `table.tbl`. -->
   <div class="panel candidates-panel">
     <div class="panel__head">
       <div>
@@ -177,8 +178,9 @@
               <td class="num idx-cell">{{ i + 1 }}</td>
               <td><app-ref-avatar [referee]="c.referee"></app-ref-avatar></td>
               <td class="num right"
-                  [class.muted]="!hasAverageGrade(c.referee)"
-                  [title]="hasAverageGrade(c.referee) ? '' : 'No grades yet'">{{ formatAverageGrade(c.referee) }}</td>
+                  [class.muted]="!hasAverageGrade(c.referee.averageGrade)"
+                  [attr.title]="hasAverageGrade(c.referee.averageGrade) ? null : 'No grades yet'"
+                  [attr.aria-label]="hasAverageGrade(c.referee.averageGrade) ? null : 'No grades yet'">{{ avgGradeLabel(c.referee.averageGrade) }}</td>
               <td class="num right">{{ c.referee.experience }}</td>
               <td class="num right">{{ c.referee.potential !== null && c.referee.potential !== undefined ? round(c.referee.potential) : '—' }}</td>
               <td class="col-actions">

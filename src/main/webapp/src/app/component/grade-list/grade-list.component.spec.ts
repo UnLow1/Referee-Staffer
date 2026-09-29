@@ -132,14 +132,34 @@ describe('GradeListComponent', () => {
     expect(component.gradeKind(grades[1])).toBe('warn');
   });
 
-  it('keeps a single observer grade at one decimal', () => {
-    const component = create().componentInstance;
+  it('renders a single observer grade at one decimal', () => {
+    // Observers award in steps of 0.1, so this column stays coarse while referee averages
+    // moved to three decimals (RS-114). Asserted on the rendered cell, not on the helper:
+    // swapping the template over to the average formatter is the regression to catch.
+    const fixture = create();
 
-    // Observers award in steps of 0.1, so this column stays coarse while referee
-    // averages moved to three decimals (RS-114).
-    expect(component.displayValue(8.4)).toBe('8.4');
-    expect(component.displayValue(component.effectiveValue({id: 9, value: 7.9, secondValue: 8.3}))).toBe('8.1');
+    // Rows are newest queue first: grade 501 (6.5, queue 3) then grade 500 (8.4, queue 1).
+    expect(gradeValues(fixture)).toEqual(['6.5', '8.4']);
   });
+
+  it('renders both components of a split grade at one decimal', () => {
+    gradeService.findByIds.mockReturnValue(of([{id: 500, value: 7.9, secondValue: 8.3}]));
+    matchService.findAll.mockReturnValue(of([makeMatch(11, {queue: 1, gradeId: 500})]));
+    const fixture = create();
+
+    const split = (fixture.nativeElement as HTMLElement).querySelector('.grade-cell__split');
+    expect(split?.textContent?.trim()).toBe('7.9/8.3');
+    // The mean of a split grade is still a single observer grade, not an average of many.
+    expect(gradeValues(fixture)).toEqual(['8.1']);
+  });
+
+  function gradeValues(fixture: ComponentFixture<GradeListComponent>): string[] {
+    return Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('.grade-cell__value')
+    ).map(el => el.textContent?.trim() ?? '');
+  }
+
+
 
   it('routes grade editing to the match form deep-link', () => {
     const component = create().componentInstance;

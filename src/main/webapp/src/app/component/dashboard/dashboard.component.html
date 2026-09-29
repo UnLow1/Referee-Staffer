@@ -23,7 +23,7 @@
                         ? ('Σ across ' + upcomingMatches().length + ' matches in queue ' + upcomingQueue())
                         : 'No upcoming matches'"></app-kpi>
     <app-kpi label="Avg observer grade"
-             [value]="formatAvg(avgObserverGrade())"
+             [value]="avgGradeLabel(avgObserverGrade())"
              [delta]="avgObserverGrade() !== null ? 'Across the referee pool' : 'No graded matches yet'"></app-kpi>
   </div>
 </div>
