@@ -7,6 +7,7 @@ import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.model.entity.Vacation;
+import com.jamex.refereestaffer.model.exception.MatchNotFoundException;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.model.request.StaffingLockRequest;
@@ -79,9 +80,17 @@ public class StafferService {
      *
      * <p>Locks deliberately bypass the vacation filter — a pinned pair is an explicit user
      * decision, and rejecting it here would make the UI's lock state impossible to restore.
+     *
+     * <p>A queue the season does not have is a 404 rather than an empty cast (RS-115): an
+     * empty list is a legitimate answer for a queue whose matches are all played or centrally
+     * assigned, so the two cases must not share a response. "Has the queue" means "has at
+     * least one match in it", assignable or not.
      */
     @Transactional
     public Collection<MatchDto> staffReferees(short queue, List<StaffingLockRequest> locks) {
+        if (!matchRepository.existsByQueue(queue)) {
+            throw new MatchNotFoundException(queue);
+        }
         var sortedMatchesToStaff = matchService.getMatchesToAssignInQueue(queue);
         applyLocks(queue, sortedMatchesToStaff, locks);
         // Push the cleared/pinned assignments to the DB before querying availability —

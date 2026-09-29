@@ -56,6 +56,17 @@ public class MatchController {
         return matchConverter.convertFromEntities(matches);
     }
 
+    /**
+     * The queues the season actually has, ascending. The Staffer's queue stepper walks this
+     * list instead of incrementing a counter, so it can never land on a queue that does not
+     * exist (RS-115). Empty until matches are imported.
+     */
+    @GetMapping("/queues")
+    public Collection<Short> getQueues() {
+        log.info("Getting all queues with at least one match");
+        return matchRepository.findDistinctQueues();
+    }
+
     @GetMapping("/{id}")
     public MatchDto getMatch(@PathVariable Long id) {
         log.info("Getting match with id {}", id);

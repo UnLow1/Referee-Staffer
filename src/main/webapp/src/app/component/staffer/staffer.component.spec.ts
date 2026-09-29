@@ -103,7 +103,7 @@ describe('StafferComponent', () => {
     stafferService = createMock<StafferService>(['staffReferees']);
     teamService = createMock<TeamService>(['getStandings']);
     refereeService = createMock<RefereeService>(['findRefereesAvailableForQueue']);
-    matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
+    matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf', 'getQueues']);
     explainerVisible = signal(false);
     edgeTeams = signal(3);
 
@@ -112,6 +112,8 @@ describe('StafferComponent', () => {
     refereeService.findRefereesAvailableForQueue.mockReturnValue(of(referees));
     matchService.getDifficultyBreakdown.mockImplementation(id => of(makeBreakdown(id)));
     matchService.updateList.mockReturnValue(of(void 0));
+    // The season the component boots against: queues 1-3, so the stepper has a real range.
+    matchService.getQueues.mockReturnValue(of([1, 2, 3]));
 
     await TestBed.configureTestingModule({
       imports: [StafferComponent],
@@ -130,6 +132,14 @@ describe('StafferComponent', () => {
     fixture.detectChanges();
   });
 
+  /** Re-creates the component against a different season — queues are read once, on construction. */
+  function rebuildWithQueues(queues: number[]): void {
+    matchService.getQueues.mockReturnValue(of(queues));
+    fixture = TestBed.createComponent(StafferComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
   describe('queue stepper', () => {
     it('increments and decrements the queue', () => {
       component.incQueue();
@@ -139,11 +149,68 @@ describe('StafferComponent', () => {
       expect(component.queue()).toBe(2);
     });
 
-    it('does not go below queue 1', () => {
+    it('does not go below the season\'s first queue', () => {
       component.decQueue();
       component.decQueue();
       expect(component.queue()).toBe(1);
     });
+
+    it('does not go past the season\'s last queue', () => {
+      component.incQueue();
+      component.incQueue();
+      component.incQueue();
+      component.incQueue();
+      expect(component.queue()).toBe(3);
+    });
+
+    it('reports both ends of the range so the template can dead-end the arrows', () => {
+      expect(component.canDecQueue()).toBe(false);
+      expect(component.canIncQueue()).toBe(true);
+
+      component.incQueue();
+      expect(component.canDecQueue()).toBe(true);
+      expect(component.canIncQueue()).toBe(true);
+
+      component.incQueue();
+      expect(component.canDecQueue()).toBe(true);
+      expect(component.canIncQueue()).toBe(false);
+    });
+
+    it('skips over a queue the season does not have', () => {
+      rebuildWithQueues([3, 7]);
+
+      expect(component.queue()).toBe(3);
+      component.incQueue();
+      expect(component.queue()).toBe(7);
+    });
+
+    it('snaps the default queue onto the first queue the season has', () => {
+      rebuildWithQueues([12, 13]);
+
+      expect(component.queue()).toBe(12);
+    });
+
+    it('keeps the default queue when the season has it', () => {
+      rebuildWithQueues([1, 2]);
+
+      expect(component.queue()).toBe(1);
+    });
+
+    it('freezes the stepper and blocks generating when nothing has been imported', () => {
+      rebuildWithQueues([]);
+
+      expect(component.hasQueues()).toBe(false);
+      expect(component.canDecQueue()).toBe(false);
+      expect(component.canIncQueue()).toBe(false);
+
+      component.incQueue();
+      expect(component.queue()).toBe(1);
+
+      component.generate();
+      expect(stafferService.staffReferees).not.toHaveBeenCalled();
+      expect(component.matches()).toBeNull();
+    });
+
   });
 
   describe('generate', () => {
@@ -510,6 +577,42 @@ describe('StafferComponent', () => {
       expect(el.querySelector('.empty-state')).toBeNull();
       expect(el.querySelector('.panel--kpi-strip')).not.toBeNull();
       expect(el.querySelectorAll('tr.cast-row').length).toBe(3);
+    });
+
+    it('explains an empty cast instead of rendering a zeroed KPI strip', () => {
+      stafferService.staffReferees.mockReturnValue(of([]));
+      const el: HTMLElement = fixture.nativeElement;
+
+      (el.querySelector('.page-head__actions .btn--primary') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(component.castIsEmpty()).toBe(true);
+      expect(el.querySelector('.panel--kpi-strip')).toBeNull();
+      expect(el.querySelector('.cast-panel')).toBeNull();
+      expect(el.querySelector('.empty-state')?.textContent).toContain('Nothing to staff in queue 1');
+    });
+
+    it('points at the importer when the season has no matches at all', () => {
+      rebuildWithQueues([]);
+      const el: HTMLElement = fixture.nativeElement;
+
+      expect(el.querySelector('.empty-state')?.textContent).toContain('import a season');
+      expect((el.querySelector('.page-head__actions .btn--primary') as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('disables the stepper arrow that would leave the season', () => {
+      const el: HTMLElement = fixture.nativeElement;
+      const [prev, , next] = Array.from(el.querySelectorAll<HTMLButtonElement>('.seg--stepper button'));
+
+      expect(prev.disabled).toBe(true);
+      expect(next.disabled).toBe(false);
+
+      next.click();
+      next.click();
+      fixture.detectChanges();
+
+      expect(prev.disabled).toBe(false);
+      expect(next.disabled).toBe(true);
     });
 
     it('gates the algorithm explainer on the UI setting', () => {

@@ -517,6 +517,11 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
   color: var(--ink);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
 }
+// Matches .btn:disabled — a stepper arrow at the end of its range is a dead control.
+.seg button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 
 // ——— Mobile nav backdrop (shell) ———
 // Rendered only while the off-canvas nav is open; on desktop the sidenav is a static

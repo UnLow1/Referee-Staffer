@@ -147,6 +147,11 @@
   text-align: center;
   padding: 40px 18px;
 }
+.empty-state__hint {
+  margin-top: 6px;
+  max-width: 52ch;
+  margin-inline: auto;
+}
 
 // ——— Drawer contents ———
 .drawer-section {

@@ -59,6 +59,11 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     }
     await expect(page.getByRole('button', { name: `Queue ${STAFFED_QUEUE}` })).toBeVisible();
 
+    // The fixture's last queue: the stepper is bounded by the queues that exist, so there
+    // is no way to walk past the end of the season into an empty cast (RS-115).
+    await expect(page.getByRole('button', { name: 'Next queue' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Previous queue' })).toBeEnabled();
+
     await page.getByRole('button', { name: 'Generate cast' }).click();
 
     // The cast table appears with one row per match once staffing has persisted.

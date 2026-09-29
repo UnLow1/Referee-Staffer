@@ -3,6 +3,7 @@ package com.jamex.refereestaffer.service
 import com.jamex.refereestaffer.model.converter.MatchConverter
 import com.jamex.refereestaffer.model.dto.MatchDto
 import com.jamex.refereestaffer.model.entity.*
+import com.jamex.refereestaffer.model.exception.MatchNotFoundException
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.model.exception.StafferException
 import com.jamex.refereestaffer.model.request.StaffingLockRequest
@@ -31,6 +32,9 @@ class StafferServiceSpec extends Specification {
     def setup() {
         stafferService = new StafferService(configurationRepository, vacationRepository, matchRepository,
                 refereeRepository, matchConverter, matchService, refereeService)
+        // Every feature below staffs a queue the season has; the RS-115 existence guard is
+        // exercised on its own in the two features at the bottom, which override this stub.
+        matchRepository.existsByQueue(_) >> true
     }
 
     def "should assign referees to matches in queue"() {
@@ -414,6 +418,39 @@ class StafferServiceSpec extends Specification {
         1 * refereeRepository.findById(77l) >> Optional.empty()
         0 * refereeService.getAvailableRefereesForQueue(_)
         thrown(RefereeNotFoundException)
+    }
+
+    def "should reject a queue the season does not have instead of returning an empty cast"() {
+        given:
+        short queue = 57
+
+        when:
+        stafferService.staffReferees(queue, [])
+
+        then:
+        1 * matchRepository.existsByQueue(queue) >> false
+        0 * matchService.getMatchesToAssignInQueue(_)
+        0 * refereeService.getAvailableRefereesForQueue(_)
+        def ex = thrown(MatchNotFoundException)
+        ex.message == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
+    }
+
+    // A queue whose matches are all played or centrally assigned is a normal state, not an
+    // error — it must stay a 200 with an empty cast, unlike the non-existent queue above.
+    def "should return an empty cast for an existing queue with nothing left to staff"() {
+        given:
+        short queue = 4
+
+        when:
+        def result = stafferService.staffReferees(queue, [])
+
+        then:
+        1 * matchRepository.existsByQueue(queue) >> true
+        1 * matchService.getMatchesToAssignInQueue(queue) >> []
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> []
+        1 * matchConverter.convertFromEntities([]) >> []
+        result == []
+        noExceptionThrown()
     }
 
     private static Map<ConfigName, Double> allOnesConfig() {

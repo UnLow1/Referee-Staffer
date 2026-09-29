@@ -1,6 +1,7 @@
 package com.jamex.refereestaffer.controller
 
 import com.jamex.refereestaffer.model.dto.MatchDto
+import com.jamex.refereestaffer.model.exception.MatchNotFoundException
 import com.jamex.refereestaffer.model.exception.StafferException
 import com.jamex.refereestaffer.model.request.StaffingLockRequest
 import com.jamex.refereestaffer.service.StafferService
@@ -71,6 +72,31 @@ class StafferControllerSpec extends Specification {
         then:
         0 * stafferService.staffReferees(_, _)
         response.status == 405
+    }
+
+    // Queue numbering starts at 1. Before RS-115 a non-positive queue was a plain 200 with an
+    // empty body, indistinguishable from "this queue has nothing left to staff".
+    def "should reject a queue below the season's first one"() {
+        when:
+        def response = mockMvc.perform(post("/api/staffer/$queue")).andReturn().response
+
+        then:
+        0 * stafferService.staffReferees(_, _)
+        response.status == 400
+
+        where:
+        queue << [0, -1]
+    }
+
+    def "should respond 404 with problem detail for a queue the season does not have"() {
+        when:
+        def response = mockMvc.perform(post("/api/staffer/57")).andReturn().response
+
+        then:
+        1 * stafferService.staffReferees(57 as short, []) >> { throw new MatchNotFoundException(57 as short) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(MatchNotFoundException.QUEUE_EMPTY, 57)
     }
 
     def "should respond 409 with problem detail when there are not enough referees"() {
