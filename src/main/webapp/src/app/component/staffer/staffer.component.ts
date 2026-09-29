@@ -59,6 +59,18 @@ export class StafferComponent {
   readonly edgeTeams = this.configurationService.edgeTeams;
 
   readonly queue = signal(1);
+  /**
+   * Queues the season actually has, ascending (GET /api/matches/queues). The stepper walks
+   * this list instead of incrementing a counter, so it can never select a queue that does
+   * not exist (RS-115). Empty until the request lands, or when nothing has been imported.
+   */
+  readonly availableQueues = signal<number[]>([]);
+  /**
+   * Where the queue request got to. 'loading' must stay apart from a genuinely empty season:
+   * both have no queues, but only one of them means "nothing has been imported", and the
+   * screen says so. 'failed' keeps the screen usable — see canGenerate.
+   */
+  readonly queuesState = signal<'loading' | 'ready' | 'failed'>('loading');
   readonly matches = signal<Match[] | null>(null);
   readonly referees = signal<Referee[]>([]);
   /** Map<teamId, Team> — populated from /api/teams/standings rows. */
@@ -83,6 +95,22 @@ export class StafferComponent {
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
+    this.matchService.getQueues().subscribe({
+      next: queues => {
+        this.availableQueues.set(queues);
+        this.queuesState.set('ready');
+        // Queue 1 is only a placeholder default — snap onto a queue that exists so the
+        // stepper never starts outside its own range. An empty season leaves it alone;
+        // there is nothing to snap to and Generate is disabled anyway.
+        if (queues.length > 0 && !queues.includes(this.queue())) {
+          this.queue.set(queues[0]);
+        }
+      },
+      // The interceptor already toasts the reason. Recording the failure keeps the screen
+      // from claiming the season is empty, and keeps Generate reachable — one unrelated
+      // request must not be able to lock the workspace.
+      error: () => this.queuesState.set('failed')
+    });
   }
 
   // ——— Derived state ———
@@ -98,6 +126,41 @@ export class StafferComponent {
   );
 
   readonly lockCount = computed(() => this.locks().size);
+
+  /** Position of the selected queue in availableQueues; -1 while the list is still loading. */
+  private readonly queueIndex = computed(() => this.availableQueues().indexOf(this.queue()));
+
+  readonly hasQueues = computed(() => this.availableQueues().length > 0);
+
+  /**
+   * Generating needs a queue known to exist — or a queue list we failed to load, where the
+   * backend validates the queue instead (400 below 1, 404 outside the season) and the user
+   * keeps a working screen rather than a dead one.
+   */
+  readonly canGenerate = computed(() => this.hasQueues() || this.queuesState() === 'failed');
+
+  /** Why Generate is disabled, as the button's tooltip. */
+  readonly generateHint = computed(() => {
+    if (this.canGenerate()) {
+      return 'Assign referees to this queue';
+    }
+    return this.queuesState() === 'loading'
+      ? 'Loading the season\'s queues…'
+      : 'Import a season first — there are no matches to staff';
+  });
+  readonly canDecQueue = computed(() => this.queueIndex() > 0);
+  readonly canIncQueue = computed(() => {
+    const index = this.queueIndex();
+    return index >= 0 && index < this.availableQueues().length - 1;
+  });
+
+  /**
+   * A generated cast with no rows. Distinct from "not generated yet" (matches() === null):
+   * the queue exists, it simply has nothing assignable left — every match is already played
+   * or held by the central-assignment sentinel. The template says so instead of rendering an
+   * empty table under zeroed KPI tiles, which used to look identical to a mistyped queue.
+   */
+  readonly castIsEmpty = computed(() => this.matches()?.length === 0);
 
   /**
    * The sheet is rendered from what the backend has stored, so it may only be exported
@@ -116,12 +179,34 @@ export class StafferComponent {
   // ——— Public actions ———
 
   incQueue(): void {
-    this.queue.update(q => q + 1);
-    this.clearLocks();
+    this.stepQueue(1);
   }
 
   decQueue(): void {
-    this.queue.update(q => Math.max(1, q - 1));
+    this.stepQueue(-1);
+  }
+
+  /**
+   * Moves to the neighbouring queue in availableQueues. Stepping by list position rather
+   * than by number also keeps gaps in the season (a queue with no matches at all) out of
+   * reach, and is a no-op at either end.
+   */
+  private stepQueue(delta: number): void {
+    const index = this.queueIndex();
+    if (index < 0) {
+      return;
+    }
+    const next = this.availableQueues()[index + delta];
+    if (next === undefined) {
+      return;
+    }
+    this.queue.set(next);
+    // The cast on screen belongs to the queue we just left. Keeping it would make the
+    // empty-cast panel assert a reason for a queue nothing was ever computed for, and would
+    // leave canExport() true so Export PDF fetched a different queue's sheet than the table.
+    this.matches.set(null);
+    this.savedAt.set(null);
+    this.closeDrawer();
     this.clearLocks();
   }
 
@@ -130,6 +215,9 @@ export class StafferComponent {
   }
 
   generate(): void {
+    if (!this.canGenerate()) {
+      return;
+    }
     this.loading.set(true);
     this.savedAt.set(null);
     const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));

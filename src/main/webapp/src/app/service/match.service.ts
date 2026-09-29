@@ -22,6 +22,11 @@ export class MatchService {
     return this.http.get<Match[]>(this.matchesUrl)
   }
 
+  /** Queues the season actually has, ascending. Bounds the Staffer's queue stepper (RS-115). */
+  public getQueues(): Observable<number[]> {
+    return this.http.get<number[]>(`${this.matchesUrl}/queues`)
+  }
+
   public save(match: Match): Observable<Match> {
     return this.http.post<Match>(this.matchesUrl, match)
   }

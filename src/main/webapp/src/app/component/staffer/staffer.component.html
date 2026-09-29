@@ -8,10 +8,15 @@
     </div>
   </div>
   <div class="page-head__actions">
+    <!-- Stepper walks the queues the season has — both arrows dead-end at the real range. -->
     <div class="seg seg--stepper">
-      <button type="button" (click)="decQueue()" aria-label="Previous queue">‹</button>
+      <button type="button" (click)="decQueue()" [disabled]="!canDecQueue()"
+              aria-label="Previous queue"
+              title="Previous queue">‹</button>
       <button type="button" class="active">Queue {{ queue() }}</button>
-      <button type="button" (click)="incQueue()" aria-label="Next queue">›</button>
+      <button type="button" (click)="incQueue()" [disabled]="!canIncQueue()"
+              aria-label="Next queue"
+              title="Next queue">›</button>
     </div>
     <button type="button" class="btn" (click)="clearLocks()" [disabled]="lockCount() === 0">
       Clear locks
@@ -23,7 +28,9 @@
       <app-icon name="download" [size]="12"></app-icon>
       {{ exporting() ? 'Exporting…' : 'Export PDF' }}
     </button>
-    <button type="button" class="btn btn--primary" (click)="generate()" [disabled]="loading()">
+    <button type="button" class="btn btn--primary" (click)="generate()"
+            [disabled]="loading() || !canGenerate()"
+            [title]="generateHint()">
       <app-icon name="play" [size]="12"></app-icon>
       {{ loading() ? 'Generating…' : 'Generate cast' }}
     </button>
@@ -61,8 +68,21 @@
   </div>
 }
 
-<!-- KPI strip — shows once a cast has been generated -->
-@if (matches(); as ms) {
+<!-- Result of a generate: an explanation when the cast came back empty, the KPI strip and
+     cast table when it did not, and the pre-generation hint before the first run. An empty
+     cast gets its own branch because "nothing left to assign here" used to look exactly like
+     a mistyped queue — which the bounded stepper now rules out anyway. -->
+@if (castIsEmpty()) {
+  <div class="panel empty-state">
+    <div class="panel__body empty-state__body">
+      <div><strong>Nothing to staff in queue {{ queue() }}.</strong></div>
+      <div class="muted empty-state__hint">
+        Every match in this queue is already played or held by a central assignment,
+        so the algorithm had nothing left to assign. Step to another queue to cast it.
+      </div>
+    </div>
+  </div>
+} @else if (matches(); as ms) {
   <div class="panel panel--kpi-strip">
     <div class="kpi-strip-grid">
       <app-kpi label="Matches in queue" [value]="ms.length"></app-kpi>
@@ -175,10 +195,22 @@
     </div>
   </div>
 } @else {
-  <!-- Empty state — pre-generation -->
+  <!-- Empty state — pre-generation. "No season imported" is only claimed once the queue
+       request has actually come back empty; while it is in flight the screen stays neutral. -->
   <div class="panel empty-state">
     <div class="panel__body empty-state__body">
-      <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
+      @if (queuesState() === 'loading') {
+        <div class="muted">Loading the season's queues…</div>
+      } @else if (queuesState() === 'failed') {
+        <div class="muted">
+          Could not load the season's queues, so the stepper is unavailable.
+          <strong>Generate cast</strong> still works for queue {{ queue() }} — reload the page to restore the stepper.
+        </div>
+      } @else if (hasQueues()) {
+        <div class="muted">Click <strong>Generate cast</strong> to auto-assign referees for queue {{ queue() }}.</div>
+      } @else {
+        <div class="muted">No matches to staff — import a season on the <strong>Import</strong> screen first.</div>
+      }
     </div>
   </div>
 }

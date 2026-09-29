@@ -62,6 +62,27 @@ class MatchControllerSpec extends Specification {
         json*.queue == [3, 4]
     }
 
+    def "should return the queues the season has, ascending"() {
+        when:
+        def response = mockMvc.perform(get("/api/matches/queues")).andReturn().response
+
+        then:
+        1 * matchRepository.findDistinctQueues() >> [1 as Short, 2 as Short, 3 as Short]
+        0 * matchRepository.findById(_)
+        response.status == 200
+        new JsonSlurper().parseText(response.contentAsString) == [1, 2, 3]
+    }
+
+    def "should return an empty queue list before any match is imported"() {
+        when:
+        def response = mockMvc.perform(get("/api/matches/queues")).andReturn().response
+
+        then:
+        1 * matchRepository.findDistinctQueues() >> []
+        response.status == 200
+        new JsonSlurper().parseText(response.contentAsString) == []
+    }
+
     def "should return match as JSON"() {
         given:
         def matchId = 2396l
