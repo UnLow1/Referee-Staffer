@@ -60,6 +60,11 @@ public class MatchController {
      * The queues the season actually has, ascending. The Staffer's queue stepper walks this
      * list instead of incrementing a counter, so it can never land on a queue that does not
      * exist (RS-115). Empty until matches are imported.
+     *
+     * <p>Not the same question as {@code MatchListComponent.availableQueues()}, which derives
+     * its queues from the rows that screen has loaded: that one answers "which queues can I
+     * filter this table by" and must track the table, while this one answers "which queues
+     * does the season have" and must not depend on what any screen happens to hold.
      */
     @GetMapping("/queues")
     public Collection<Short> getQueues() {
