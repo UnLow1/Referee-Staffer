@@ -11,6 +11,9 @@ class ImportCsvParserSpec extends Specification {
 
     static final String HEADER = "Kolejka;Gospodarze;Goście;Data;Sędzia główny;Wynik gospodarze;Wynik goście;Ocena"
 
+    static final String GRADE_HINT = 'grade must be a number between 0 and 10, on its own ("8.3") ' +
+            'or as a split observer grade ("7.9/8.3"), but was'
+
     def "should parse a fully populated row"() {
         when:
         def rows = parse("$HEADER\n3;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3")
@@ -18,7 +21,6 @@ class ImportCsvParserSpec extends Specification {
         then:
         rows.size() == 1
         with(rows[0]) {
-            rowNumber == 2
             queue == 3 as short
             homeTeamName == "Team 1"
             awayTeamName == "Team 2"
@@ -104,9 +106,9 @@ class ImportCsvParserSpec extends Specification {
         rows[0].awayTeamScore == null
 
         where:
-        description             | row
-        "trailing delimiters"  | "1;Team 1;Team 2;15.08.2018 17:00;;;;"
-        "only required cells"  | "1;Team 1;Team 2;15.08.2018 17:00"
+        description            | row
+        "trailing delimiters" | "1;Team 1;Team 2;15.08.2018 17:00;;;;"
+        "only required cells" | "1;Team 1;Team 2;15.08.2018 17:00"
     }
 
     def "should keep a referee on a row that has no result yet"() {
@@ -169,21 +171,115 @@ class ImportCsvParserSpec extends Specification {
         "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;;1;8.3"           || "both team scores must be given or both left empty"
         "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;x;1;8.3"          || 'home team score must be a number but was "x"'
         "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;x;8.3"          || 'away team score must be a number but was "x"'
-        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3/"         || 'grade must be "8.3" or "7.9/8.3" but was "8.3/"'
-        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;/8.3"         || 'grade must be "8.3" or "7.9/8.3" but was "/8.3"'
-        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;7.9/8.3/8.5"  || 'grade must be "8.3" or "7.9/8.3" but was "7.9/8.3/8.5"'
-        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;abc"          || 'grade must be "8.3" or "7.9/8.3" but was "abc"'
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3/"         || "$GRADE_HINT \"8.3/\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;/8.3"         || "$GRADE_HINT \"/8.3\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;7.9/8.3/8.5"  || "$GRADE_HINT \"7.9/8.3/8.5\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;abc"          || "$GRADE_HINT \"abc\""
         "1;Team 1;Team 2"                                                || "expected at least 4 columns (queue, home team, away team, date) but got 3"
         "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3;extra"    || "expected at most 8 columns but got 9"
     }
 
-    def "should fail with an ImportException instead of an IO error when the CSV quoting is broken"() {
+    def "should report the line and the reason when the CSV quoting is broken"() {
         when:
-        parse("$HEADER\n1;\"Team 1\" oops;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3")
+        parse("$HEADER\n$row")
 
         then:
         def e = thrown(ImportException)
-        e.message.startsWith(String.format(ImportException.ERROR_MESSAGE, "import.csv"))
+        e.message == String.format(ImportException.ROW_ERROR_MESSAGE, "import.csv", 2L,
+                "could not be read as CSV: $reason")
+
+        where:
+        description             | row                                                                   || reason
+        "content after a quote" | "1;\"Team 1\" oops;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3"       || "Invalid character between encapsulated token and delimiter at line: 2, position: 93"
+        "unterminated quote"    | "1;\"Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3"              || "(startline 2) EOF reached before encapsulated token finished"
+    }
+
+    def "should reject values that are numbers to Double or Short but not valid data"() {
+        when:
+        parse("$HEADER\n1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3\n$row")
+
+        then:
+        def e = thrown(ImportException)
+        e.message == String.format(ImportException.ROW_ERROR_MESSAGE, "import.csv", 3L, detail)
+
+        where:
+        row                                                            || detail
+        // Double.parseDouble would take all of these; NaN is the dangerous one, because it reaches
+        // RefereeService.countAverageGrade and poisons every score touching that referee
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;NaN"        || "$GRADE_HINT \"NaN\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;Infinity"   || "$GRADE_HINT \"Infinity\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;1e400"      || "$GRADE_HINT \"1e400\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3d"       || "$GRADE_HINT \"8.3d\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;0x1p3"      || "$GRADE_HINT \"0x1p3\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;-5"         || "$GRADE_HINT \"-5\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;10.1"       || "$GRADE_HINT \"10.1\""
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;7.9/NaN"    || "$GRADE_HINT \"7.9/NaN\""
+        // Short.parseShort would take a negative queue and negative scores
+        "-3;Team 1;Team 2;15.08.2018 17:00"                            || "queue must be at least 1 but was -3"
+        "0;Team 1;Team 2;15.08.2018 17:00"                             || "queue must be at least 1 but was 0"
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;-1;2;8.3"       || "home team score must be at least 0 but was -1"
+        "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;-2;8.3"       || "away team score must be at least 0 but was -2"
+    }
+
+    def "should reject a result or grade on a row with no referee"() {
+        when:
+        parse("$HEADER\n1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3\n$row")
+
+        then:
+        def e = thrown(ImportException)
+        e.message == String.format(ImportException.ROW_ERROR_MESSAGE, "import.csv", 3L,
+                "a result or grade requires a referee")
+
+        where:
+        description        | row
+        "result only"     | "1;Team 1;Team 2;15.08.2018 17:00;;2;1;"
+        "grade only"      | "1;Team 1;Team 2;15.08.2018 17:00;;;;8.3"
+        "result and grade"| "1;Team 1;Team 2;15.08.2018 17:00;;2;1;8.3"
+    }
+
+    def "should reject a file whose first row is data rather than a header"() {
+        when:
+        parse(csv)
+
+        then:
+        def e = thrown(ImportException)
+        e.message == String.format(ImportException.ROW_ERROR_MESSAGE, "import.csv", 1L,
+                'the first row must be a header, but "1" looks like data')
+
+        where:
+        // A headerless export would otherwise silently lose its first match, and a single-row
+        // headerless file would report a successful import of nothing
+        csv << ["1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3",
+                "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3\n2;Team 2;Team 1;22.08.2018 16:00;Jan Kowalski;0;0;8.1"]
+    }
+
+    def "should truncate a long cell in the error message"() {
+        given:
+        def longCell = "x" * 200
+
+        when:
+        parse("$HEADER\n1;Team 1;Team 2;$longCell")
+
+        then:
+        def e = thrown(ImportException)
+        e.message == String.format(ImportException.ROW_ERROR_MESSAGE, "import.csv", 2L,
+                "date must match dd.MM.yyyy HH:mm but was \"${"x" * 50}…\"")
+        e.message.length() < 200
+    }
+
+    def "should accept the boundary grades"() {
+        when:
+        def rows = parse("$HEADER\n1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;0;0;$grade")
+
+        then:
+        rows[0].gradeValue == expected
+
+        where:
+        grade || expected
+        "0"   || 0d
+        "10"  || 10d
+        "10.0"|| 10d
+        "8"   || 8d
     }
 
     private static List<ImportRow> parse(String csv) {

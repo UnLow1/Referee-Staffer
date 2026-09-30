@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.exception.ImportException;
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Turns an uploaded season CSV into validated {@link ImportRow}s.
@@ -50,18 +52,28 @@ final class ImportCsvParser {
     private static final int REQUIRED_COLUMNS = 4;
     private static final int MAX_COLUMNS = 8;
 
+    /** An observer mark is a plain decimal on a 0-10 scale — see {@link #parseGradeComponent}. */
+    private static final Pattern GRADE_COMPONENT = Pattern.compile("\\d+(\\.\\d+)?");
+    private static final double MAX_GRADE = 10;
+
+    /** Longest raw cell echoed back in an error message, so a 1 MB upload cannot become a 1 MB 400. */
+    private static final int MAX_QUOTED_LENGTH = 50;
+
+    private static final String GRADE_FORMAT_HINT = "grade must be a number between 0 and " + (int) MAX_GRADE
+            + ", on its own (\"8.3\") or as a split observer grade (\"7.9/8.3\"), but was ";
+
     /**
-     * Blank lines are skipped rather than rejected, so {@code rowNumber} counts CSV records (row 1
-     * being the header) — for the files this app actually sees that is also the physical line
-     * number. Surrounding spaces are stripped explicitly in {@link #cell} instead of via
-     * {@code setIgnoreSurroundingSpaces}, because that option leaves tabs in place.
+     * {@code CSVFormat.DEFAULT} already skips blank lines and treats {@code "} as the quote
+     * character; only the delimiter differs from the default. Because blank lines are skipped,
+     * {@code rowNumber} in error messages counts CSV records (row 1 being the header) — for the
+     * files this app actually sees that is also the physical line number. Surrounding spaces are
+     * stripped explicitly in {@link #cell} instead of via {@code setIgnoreSurroundingSpaces},
+     * because that option leaves tabs in place.
      */
     private static final CSVFormat FORMAT = CSVFormat.Builder.create(CSVFormat.DEFAULT)
             .setDelimiter(';')
-            .setIgnoreEmptyLines(true)
             .get();
 
-    /** U+FEFF, as an int so it compares directly against what {@link Reader#read()} returns. */
     private static final int BOM = 0xFEFF;
 
     private ImportCsvParser() {
@@ -70,34 +82,70 @@ final class ImportCsvParser {
     static List<ImportRow> parse(MultipartFile file) {
         var filename = file.getOriginalFilename();
         try (var reader = openReader(file); var parser = FORMAT.parse(reader)) {
-            var rows = new ArrayList<ImportRow>();
+            return readRows(filename, parser);
+        } catch (IOException e) {
+            throw new ImportException(filename, e);
+        }
+    }
+
+    private static List<ImportRow> readRows(String filename, CSVParser parser) {
+        var rows = new ArrayList<ImportRow>();
+        try {
             for (var record : parser) {
                 if (record.getRecordNumber() == 1) {
-                    continue; // header
+                    requireHeader(filename, record);
+                    continue;
                 }
                 rows.add(toRow(filename, record));
             }
-            return rows;
-        } catch (IOException | UncheckedIOException e) {
-            throw new ImportException(filename, e);
-        } catch (IllegalStateException e) {
-            // Commons CSV rethrows a mid-iteration IOException (unbalanced quotes, stray quote
-            // inside an unquoted cell) as an IllegalStateException from its iterator.
-            throw new ImportException(filename, e);
+        } catch (UncheckedIOException | IllegalStateException e) {
+            // Commons CSV surfaces a mid-iteration IOException (content after a closing quote, an
+            // unterminated quoted cell) wrapped in one of these. Its own message carries the
+            // position, so it is folded into the detail rather than dropped — otherwise the most
+            // likely real-world CSV defect would be the one failure with no explanation.
+            var cause = e.getCause();
+            if (!(cause instanceof IOException)) {
+                throw e;
+            }
+            throw new ImportException(filename, parser.getCurrentLineNumber(),
+                    "could not be read as CSV: " + cause.getMessage());
+        }
+        return rows;
+    }
+
+    /**
+     * The first record is the header and is dropped, as it always was. It is sanity-checked first,
+     * because dropping a data row instead would silently lose a match — a headerless export would
+     * import one fewer match than it contains, and a single-row headerless file would report a
+     * successful import of nothing.
+     */
+    private static void requireHeader(String filename, CSVRecord record) {
+        var firstCell = cell(record, QUEUE);
+        if (firstCell != null && GRADE_COMPONENT.matcher(firstCell).matches()) {
+            throw new ImportException(filename, record.getRecordNumber(),
+                    "the first row must be a header, but " + quote(firstCell) + " looks like data");
         }
     }
 
     /**
      * Reads as UTF-8 (the platform default used before was only right by accident on JDK 18+) and
-     * swallows a leading byte order mark, which spreadsheet exports routinely prepend.
+     * swallows a leading byte order mark, which spreadsheet exports routinely prepend — including
+     * {@code data/import data file.csv}.
      */
     private static Reader openReader(MultipartFile file) throws IOException {
         var reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8));
-        reader.mark(1);
-        if (reader.read() != BOM) {
-            reader.reset();
+        try {
+            reader.mark(1);
+            if (reader.read() != BOM) {
+                reader.reset();
+            }
+            return reader;
+        } catch (IOException e) {
+            // Nothing has registered the reader with a try-with-resources yet, so close it here or
+            // the multipart stream leaks.
+            reader.close();
+            throw e;
         }
-        return reader;
     }
 
     private static ImportRow toRow(String filename, CSVRecord record) {
@@ -116,7 +164,7 @@ final class ImportCsvParser {
             }
         }
 
-        var queue = parseShort(filename, row, "queue", required(filename, row, "queue", record, QUEUE));
+        var queue = parseShort(filename, row, "queue", required(filename, row, "queue", record, QUEUE), 1);
         var homeTeamName = required(filename, row, "home team", record, HOME_TEAM);
         var awayTeamName = required(filename, row, "away team", record, AWAY_TEAM);
         var date = parseDate(filename, row, required(filename, row, "date", record, DATE));
@@ -124,15 +172,24 @@ final class ImportCsvParser {
 
         var rawHomeScore = cell(record, HOME_TEAM_SCORE);
         var rawAwayScore = cell(record, AWAY_TEAM_SCORE);
+        var rawGrade = cell(record, GRADE);
         if ((rawHomeScore == null) != (rawAwayScore == null)) {
             throw new ImportException(filename, row, "both team scores must be given or both left empty");
         }
-        var homeTeamScore = rawHomeScore == null ? null : parseShort(filename, row, "home team score", rawHomeScore);
-        var awayTeamScore = rawAwayScore == null ? null : parseShort(filename, row, "away team score", rawAwayScore);
+        // A grade marks a referee's performance and is only ever read back by walking a referee's
+        // matches, so a result or grade without a referee would be write-only data inflating the
+        // reported counters. The old parser rejected this shape too, by accident.
+        if (referee == null && (rawHomeScore != null || rawGrade != null)) {
+            throw new ImportException(filename, row, "a result or grade requires a referee");
+        }
+        var homeTeamScore = rawHomeScore == null ? null
+                : parseShort(filename, row, "home team score", rawHomeScore, 0);
+        var awayTeamScore = rawAwayScore == null ? null
+                : parseShort(filename, row, "away team score", rawAwayScore, 0);
 
-        var grade = parseGrade(filename, row, cell(record, GRADE));
+        var grade = parseGrade(filename, row, rawGrade);
 
-        return new ImportRow(row, queue, homeTeamName, awayTeamName, date, referee,
+        return new ImportRow(queue, homeTeamName, awayTeamName, date, referee,
                 homeTeamScore, awayTeamScore, grade.value(), grade.secondValue());
     }
 
@@ -149,15 +206,15 @@ final class ImportCsvParser {
         var parts = rawReferee.split("\\s+");
         if (parts.length != 2) {
             throw new ImportException(filename, row,
-                    "referee must be given as \"<first name> <last name>\" but was \"" + rawReferee + "\"");
+                    "referee must be given as \"<first name> <last name>\" but was " + quote(rawReferee));
         }
         return new ImportRow.RefereeName(parts[0], parts[1]);
     }
 
     /**
-     * Parses the grade cell into {@code [value, secondValue]}, where {@code secondValue} is only
-     * set for a split observer grade ("7.9/8.3" — two components whose mean referee stats use).
-     * Returns an empty pair for an empty cell.
+     * Parses the grade cell into value plus optional second value, the second one only set for a
+     * split observer grade ("7.9/8.3" — two components whose mean referee stats use). Returns an
+     * empty pair for an empty cell.
      */
     private static ParsedGrade parseGrade(String filename, long row, String rawGrade) {
         if (rawGrade == null) {
@@ -167,23 +224,32 @@ final class ImportCsvParser {
         // silently passing as the plain grade "8.3"
         var parts = rawGrade.split("/", -1);
         if (parts.length > 2) {
-            throw new ImportException(filename, row, "grade must be \"8.3\" or \"7.9/8.3\" but was \"" + rawGrade + "\"");
+            throw new ImportException(filename, row, GRADE_FORMAT_HINT + quote(rawGrade));
         }
         var value = parseGradeComponent(filename, row, rawGrade, parts[0]);
         var secondValue = parts.length == 2 ? parseGradeComponent(filename, row, rawGrade, parts[1]) : null;
         return new ParsedGrade(value, secondValue);
     }
 
-    private record ParsedGrade(Double value, Double secondValue) {
+    /**
+     * Accepts only a plain decimal on the 0-10 scale. {@code Double.parseDouble} alone would also
+     * take {@code NaN}, {@code Infinity}, {@code 1e400} (which overflows to infinity), a {@code d}
+     * or {@code f} suffix and hex float notation. {@code NaN} is the dangerous one: it reaches
+     * {@code RefereeService.countAverageGrade} through {@code Grade.getEffectiveValue()} and from
+     * there poisons every score that touches the referee, with nothing to point at the cause.
+     */
+    private static Double parseGradeComponent(String filename, long row, String rawGrade, String component) {
+        if (!GRADE_COMPONENT.matcher(component).matches()) {
+            throw new ImportException(filename, row, GRADE_FORMAT_HINT + quote(rawGrade));
+        }
+        var value = Double.parseDouble(component);
+        if (value > MAX_GRADE) {
+            throw new ImportException(filename, row, GRADE_FORMAT_HINT + quote(rawGrade));
+        }
+        return value;
     }
 
-    private static Double parseGradeComponent(String filename, long row, String rawGrade, String component) {
-        try {
-            return Double.valueOf(component);
-        } catch (NumberFormatException e) {
-            throw new ImportException(filename, row,
-                    "grade must be \"8.3\" or \"7.9/8.3\" but was \"" + rawGrade + "\"");
-        }
+    private record ParsedGrade(Double value, Double secondValue) {
     }
 
     private static LocalDateTime parseDate(String filename, long row, String rawDate) {
@@ -191,16 +257,27 @@ final class ImportCsvParser {
             return LocalDateTime.parse(rawDate, FORMATTER);
         } catch (DateTimeParseException e) {
             throw new ImportException(filename, row,
-                    "date must match " + DATE_FORMAT + " but was \"" + rawDate + "\"");
+                    "date must match " + DATE_FORMAT + " but was " + quote(rawDate));
         }
     }
 
-    private static short parseShort(String filename, long row, String column, String rawValue) {
+    /**
+     * Parses a whole number, rejecting anything below {@code minimum}. A negative queue or score
+     * used to pass straight through: {@code queue} drives the queue navigation across the app and
+     * scores feed the standings arithmetic in {@code TeamService}, and this parser is the one gate
+     * where such a rule belongs.
+     */
+    private static short parseShort(String filename, long row, String column, String rawValue, int minimum) {
+        short value;
         try {
-            return Short.parseShort(rawValue);
+            value = Short.parseShort(rawValue);
         } catch (NumberFormatException e) {
-            throw new ImportException(filename, row, column + " must be a number but was \"" + rawValue + "\"");
+            throw new ImportException(filename, row, column + " must be a number but was " + quote(rawValue));
         }
+        if (value < minimum) {
+            throw new ImportException(filename, row, column + " must be at least " + minimum + " but was " + value);
+        }
+        return value;
     }
 
     private static String required(String filename, long row, String column, CSVRecord record, int index) {
@@ -218,5 +295,11 @@ final class ImportCsvParser {
         }
         var value = record.get(index).strip();
         return value.isEmpty() ? null : value;
+    }
+
+    /** Quotes a raw cell for an error message, truncated so the 400 body stays a readable size. */
+    private static String quote(String value) {
+        var shown = value.length() <= MAX_QUOTED_LENGTH ? value : value.substring(0, MAX_QUOTED_LENGTH) + "…";
+        return '"' + shown + '"';
     }
 }

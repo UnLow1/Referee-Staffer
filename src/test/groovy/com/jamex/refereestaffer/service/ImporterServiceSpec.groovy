@@ -20,6 +20,8 @@ class ImporterServiceSpec extends Specification {
 
     static final String HEADER = "queue;home;away;date;referee;homeScore;awayScore;grade"
 
+    static final String GRADE_HINT = 'grade must be a number between 0 and 10, on its own ("8.3") or as a split observer grade ("7.9/8.3"), but was'
+
     @Subject
     ImporterService importerService
 
@@ -104,10 +106,13 @@ class ImporterServiceSpec extends Specification {
 
     def "should create every team and referee exactly once regardless of how often rows repeat them"() {
         given:
+        // Row shape chosen so the expected order tells the three candidate orderings apart:
+        // per-row home-then-away (Widzew, Legia, Lech), the old all-homes-then-aways
+        // (Widzew, Lech, Legia) and HashSet iteration order (Lech, Widzew, Legia).
         MultipartFile multipartFile = csv(
-                "1;Team1;Team2;01.01.2025 12:00;John Smith;1;0;8.3",
-                "2;Team2;Team1;08.01.2025 12:00;John Smith;2;2;8.1",
-                "3;Team3;Team1;15.01.2025 12:00;Ann Brown;0;1;8.0")
+                "1;Widzew;Legia;01.01.2025 12:00;John Smith;1;0;8.3",
+                "2;Lech;Widzew;08.01.2025 12:00;John Smith;2;2;8.1",
+                "3;Legia;Lech;15.01.2025 12:00;Ann Brown;0;1;8.0")
 
         when:
         importerService.importData(multipartFile, 30 as short)
@@ -115,7 +120,7 @@ class ImporterServiceSpec extends Specification {
         then:
         // LinkedHashSet keeps the order the file introduces the teams in
         1 * teamRepository.saveAll({ List<Team> teams ->
-            teams*.name == ["Team1", "Team2", "Team3"]
+            teams*.name == ["Widzew", "Legia", "Lech"]
         })
         1 * refereeRepository.saveAll({ List<Referee> referees ->
             referees.collect { "$it.firstName $it.lastName" } == ["John Smith", "Ann Brown"]
@@ -204,9 +209,9 @@ class ImporterServiceSpec extends Specification {
         badRow                                                      || detail
         "2;Team1;Team2;NOTADATE;John Smith;1;0;8.5"                 || 'date must match dd.MM.yyyy HH:mm but was "NOTADATE"'
         "2;Team1;Team2"                                             || "expected at least 4 columns (queue, home team, away team, date) but got 3"
-        "2;Team1;Team2;08.01.2025 12:00;John Smith;1;0;7.9/8.3/8.5" || 'grade must be "8.3" or "7.9/8.3" but was "7.9/8.3/8.5"'
-        "2;Team1;Team2;08.01.2025 12:00;John Smith;1;0;8.3/"        || 'grade must be "8.3" or "7.9/8.3" but was "8.3/"'
-        "2;Team1;Team2;08.01.2025 12:00;John Smith;1;0;/8.3"        || 'grade must be "8.3" or "7.9/8.3" but was "/8.3"'
+        "2;Team1;Team2;08.01.2025 12:00;John Smith;1;0;7.9/8.3/8.5" || "$GRADE_HINT \"7.9/8.3/8.5\""
+        "2;Team1;Team2;08.01.2025 12:00;John Smith;1;0;8.3/"        || "$GRADE_HINT \"8.3/\""
+        "2;Team1;Team2;08.01.2025 12:00;John Smith;1;0;/8.3"        || "$GRADE_HINT \"/8.3\""
         "2;Team1;Team2;08.01.2025 12:00;John Smith;1;;8.3"          || "both team scores must be given or both left empty"
     }
 

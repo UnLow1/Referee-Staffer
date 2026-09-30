@@ -1,9 +1,23 @@
+import {HttpErrorResponse} from '@angular/common/http';
 import {Component, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {saveAs} from 'file-saver';
 import {ImporterService} from '../../service/importer.service';
 import {ImportResponse} from '../../request/importResponse';
 import {IconComponent} from '../common/icon/icon.component';
+
+const GENERIC_IMPORT_ERROR = 'Import failed — check that the CSV format matches the example.';
+
+/**
+ * The backend rejects a malformed CSV with an RFC 7807 ProblemDetail whose `detail` names the
+ * offending row and column ("... (row 3: date must match dd.MM.yyyy HH:mm but was "NOTADATE")").
+ * That is the whole point of the server-side validation, so it is shown verbatim; anything else
+ * (network failure, 500, an empty body) falls back to the generic hint.
+ */
+function importErrorMessage(error: HttpErrorResponse): string {
+  const detail: unknown = error.error?.detail;
+  return typeof detail === 'string' && detail.trim().length > 0 ? detail : GENERIC_IMPORT_ERROR;
+}
 
 /**
  * Import data — drop-zone for the bulk CSV upload that backs the entire app.
@@ -53,8 +67,8 @@ export class ImporterComponent {
         this.importResult.set(result);
         this.uploading.set(false);
       },
-      error: () => {
-        this.importError.set('Import failed — check that the CSV format matches the example.');
+      error: (error: HttpErrorResponse) => {
+        this.importError.set(importErrorMessage(error));
         this.uploading.set(false);
       }
     });
