@@ -59,6 +59,14 @@ class DeleteEndpointsIntegrationSpec extends Specification {
         wipeDomainData()
     }
 
+    def cleanup() {
+        // The H2 instance is shared JVM-wide. A feature that fails mid-way would otherwise
+        // leave grade/vacation rows behind, and StafferIntegrationSpec.setup() does not
+        // touch those two tables - the failure would resurface there as an unrelated
+        // FK error. Leave only the data.sql config rows for whoever runs next.
+        wipeDomainData()
+    }
+
     def "should reject deleting a referee with assigned matches instead of failing on the foreign key"() {
         given:
         def home = teamRepository.save(new Team("Team1", "City1"))
@@ -132,7 +140,28 @@ class DeleteEndpointsIntegrationSpec extends Specification {
         response.status == 404
 
         where:
-        path << ["/api/referees/999999", "/api/teams/999999"]
+        path << ["/api/referees/999999", "/api/teams/999999", "/api/grades/999999"]
+    }
+
+    def "should keep the vacations of a referee whose delete is rejected"() {
+        given: "the one case where the cascade and the refusal meet in the same method"
+        def home = teamRepository.save(new Team("Team1", "City1"))
+        def away = teamRepository.save(new Team("Team2", "City2"))
+        def referee = refereeRepository.save(new Referee("John", "Doe", "john@doe.com", 5))
+        matchRepository.save(new Match((short) 1, home, away,
+                LocalDateTime.of(2026, 3, 1, 12, 0), referee, (short) 2, (short) 1))
+        vacationRepository.save(new Vacation(null, referee,
+                LocalDate.of(2026, 7, 1), LocalDate.of(2026, 7, 14)))
+
+        when:
+        def response = mockMvc.perform(delete("/api/referees/$referee.id")).andReturn().response
+
+        then: "409 wins over the cascade and the transaction rolls back - the vacation is still there"
+        response.status == 409
+        jsonSlurper.parseText(response.contentAsString).detail ==
+                String.format(EntityInUseException.REFEREE_HAS_MATCHES, referee.id, 1L)
+        refereeRepository.findById(referee.id).isPresent()
+        vacationRepository.count() == 1
     }
 
     def "should delete a grade and leave its match untouched"() {

@@ -38,7 +38,9 @@ export class RefereeListComponent implements OnInit {
 
   readonly deleteGuard = computed<ModalData>(() => ({
     header: 'Delete referee?',
-    message: `This will permanently remove ${this.deleteTargetLabel()}. This action cannot be undone.`,
+    // Spells out the vacation cascade: the backend removes a referee's vacations along
+    // with them (matches, being shared history, block the delete with a 409 instead).
+    message: `This will permanently remove ${this.deleteTargetLabel()}, along with any vacations recorded for them. Referees with assigned matches cannot be deleted. This action cannot be undone.`,
     confirmLabel: 'Delete',
     tone: 'danger',
     icon: 'trash'

@@ -1,7 +1,7 @@
 import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed, fakeAsync, tick} from '@angular/core/testing';
 import {Router} from '@angular/router';
-import {of} from 'rxjs';
+import {of, throwError} from 'rxjs';
 import {GradeListComponent} from './grade-list.component';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
@@ -153,5 +153,16 @@ describe('GradeListComponent', () => {
     expect(gradeService.delete).toHaveBeenCalledWith(row.grade);
     expect(component.rows().map(r => r.match.id)).toEqual([12]);
     expect(component.matches().find(m => m.id === 11)?.gradeId).toBeUndefined();
+  });
+
+  it('keeps the row when the grade delete is rejected', () => {
+    gradeService.delete.mockReturnValue(throwError(() => new Error('Not found')));
+    const component = create().componentInstance;
+    const row = component.rows()[1];
+
+    component.deleteGrade(row, new Event('click'));
+
+    expect(component.rows().map(r => r.match.id)).toEqual([12, 11]);
+    expect(component.matches().find(m => m.id === 11)?.gradeId).toBe(row.grade.id);
   });
 });

@@ -89,6 +89,9 @@ describe('RefereeListComponent', () => {
       fixture.detectChanges();
 
       expect(component.deleteGuard().message).toContain('Anna Nowak');
+      // The backend removes the referee's vacations with them — say so before the click.
+      expect(component.deleteGuard().message).toContain('vacations');
+      expect(component.deleteGuard().message).toContain('assigned matches');
       expect((fixture.nativeElement as HTMLElement).querySelector('.modal')).not.toBeNull();
 
       component.confirmDelete();

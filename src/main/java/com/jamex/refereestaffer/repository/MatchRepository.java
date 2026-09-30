@@ -4,6 +4,8 @@ import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -17,7 +19,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     long countByReferee(Referee referee);
 
-    long countByHomeOrAway(Team home, Team away);
+    // Spelled out rather than derived: countByHomeOrAway(a, b) would also compile and
+    // answer a different question than "how many matches does this team play".
+    @Query("select count(m) from Match m where m.home = :team or m.away = :team")
+    long countByTeam(@Param("team") Team team);
 
     List<Match> findAllByQueue(Short queue);
 

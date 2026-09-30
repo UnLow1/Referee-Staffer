@@ -13,6 +13,7 @@ import com.jamex.refereestaffer.model.exception.VacationNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.MessageSourceResolvable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.FieldError;
@@ -35,6 +36,8 @@ import java.util.stream.Collectors;
 public class RestExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RestExceptionHandler.class);
+
+    static final String DATA_DEPENDENCY_DETAIL = "The operation would break a data dependency";
 
     @ExceptionHandler({
             MatchNotFoundException.class,
@@ -62,6 +65,20 @@ public class RestExceptionHandler {
         // referencing rows first. Same 409 family as the staffing conflict above.
         log.info("Delete rejected: {}", ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /**
+     * Backstop for a constraint the services do not check explicitly: a foreign key added
+     * later, or the narrow window between a dependency count and the delete that follows it.
+     * The services' own checks produce the useful message (they name the blocking count);
+     * this only keeps an unanticipated violation from surfacing as a 500. The detail is
+     * deliberately generic — the driver's message names tables and constraints, which has
+     * no business in a toast.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, DATA_DEPENDENCY_DETAIL);
     }
 
     @ExceptionHandler(ImportException.class)

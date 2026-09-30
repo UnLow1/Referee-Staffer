@@ -117,15 +117,20 @@ export class GradeListComponent implements OnInit {
 
   deleteGrade(row: GradeRow, event: Event): void {
     event.stopPropagation();
-    this.gradeService.delete(row.grade).subscribe(() => {
-      this.matches.update(prev => prev.map(m =>
-        m.id === row.match.id ? {...m, gradeId: undefined as unknown as number} : m
-      ));
-      this.gradesById.update(prev => {
-        const next = new Map(prev);
-        next.delete(row.grade.id);
-        return next;
-      });
+    this.gradeService.delete(row.grade).subscribe({
+      next: () => {
+        this.matches.update(prev => prev.map(m =>
+          m.id === row.match.id ? {...m, gradeId: undefined as unknown as number} : m
+        ));
+        this.gradesById.update(prev => {
+          const next = new Map(prev);
+          next.delete(row.grade.id);
+          return next;
+        });
+      },
+      // Leave the row in place on a failure — the interceptor's toast carries the reason,
+      // and dropping it would claim a delete that did not happen.
+      error: () => undefined
     });
   }
 }
