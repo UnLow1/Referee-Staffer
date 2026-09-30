@@ -120,9 +120,14 @@ export class TeamListComponent implements OnInit {
   confirmDelete(): void {
     const team = this.deleteTarget();
     if (!team) return;
-    this.teamService.delete(team.id).subscribe(() => {
-      this.teams.update(prev => prev.filter(t => t.id !== team.id));
-      this.deleteTarget.set(null);
+    this.teamService.delete(team.id).subscribe({
+      next: () => {
+        this.teams.update(prev => prev.filter(t => t.id !== team.id));
+        this.deleteTarget.set(null);
+      },
+      // A team that still plays matches comes back as 409; the global interceptor already
+      // toasts the reason, so close the dialog instead of leaving the overlay on top of it.
+      error: () => this.deleteTarget.set(null)
     });
   }
 }

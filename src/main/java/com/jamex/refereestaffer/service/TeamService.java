@@ -3,9 +3,12 @@ package com.jamex.refereestaffer.service;
 import com.jamex.refereestaffer.model.dto.StandingsDto;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.exception.EntityInUseException;
+import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.TeamRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -55,6 +58,26 @@ public class TeamService {
                 .max(Short::compare)
                 .orElse(null);
         return new StandingsDto(afterQueue, rows);
+    }
+
+    /**
+     * Deletes a team, refusing the delete while matches still reference it.
+     *
+     * <p>{@code match.home_id} / {@code match.away_id} are not nullable in any meaningful
+     * sense — a match without its teams is not a match — so there is no unassign variant
+     * here the way there could be for a referee. Either the matches go first or the delete
+     * is rejected with a 409 naming how many block it.
+     */
+    @Transactional
+    public void deleteTeam(Long id) {
+        var team = teamRepository.findById(id)
+                .orElseThrow(() -> new TeamNotFoundException(id));
+
+        var matches = matchRepository.countByHomeOrAway(team, team);
+        if (matches > 0) {
+            throw EntityInUseException.teamHasMatches(id, matches);
+        }
+        teamRepository.delete(team);
     }
 
     private static Comparator<Team> tableOrder(Map<Long, TeamStats> statsByTeamId) {

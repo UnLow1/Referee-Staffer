@@ -1,7 +1,7 @@
 import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
-import {of} from 'rxjs';
+import {of, throwError} from 'rxjs';
 import {TeamListComponent} from './team-list.component';
 import {TeamService} from '../../service/team.service';
 import {Standing, Standings} from '../../model/standing';
@@ -84,6 +84,21 @@ describe('TeamListComponent', () => {
     expect(teamService.delete).toHaveBeenCalledWith(2);
     expect(component.teams().map(t => t.id)).toEqual([1, 3]);
     expect(component.deleteTarget()).toBeNull();
+  });
+
+  it('keeps the team and closes the dialog when the delete is rejected', async () => {
+    const fixture = await create();
+    const component = fixture.componentInstance;
+    // 409 from the backend: the team still takes part in matches.
+    teamService.delete.mockReturnValue(throwError(() => new Error('Conflict')));
+
+    component.askDelete(rows[1]);
+    component.confirmDelete();
+    fixture.detectChanges();
+
+    expect(component.teams().map(t => t.id)).toEqual([1, 2, 3]);
+    expect(component.deleteTarget()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.modal')).toBeNull();
   });
 
   describe('deep links', () => {
