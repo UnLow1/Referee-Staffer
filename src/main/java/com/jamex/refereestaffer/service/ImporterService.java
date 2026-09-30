@@ -4,7 +4,6 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
-import com.jamex.refereestaffer.model.exception.ImportException;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException;
 import com.jamex.refereestaffer.model.request.ImportResponse;
@@ -18,15 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ImporterService {
@@ -34,8 +26,6 @@ public class ImporterService {
     private static final Logger log = LoggerFactory.getLogger(ImporterService.class);
 
     private static final String CREATED = "Created ";
-    private static final String DATE_FORMAT = "dd.MM.yyyy HH:mm";
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_FORMAT);
 
     private final TeamRepository teamRepository;
     private final RefereeRepository refereeRepository;
@@ -50,69 +40,56 @@ public class ImporterService {
         this.gradeRepository = gradeRepository;
     }
 
+    /**
+     * Imports a whole season CSV. The file is parsed and validated up front by
+     * {@link ImportCsvParser} — any format problem fails the import with a 400 naming the offending
+     * row, before a single entity is written. Referees and teams are created from every row;
+     * results and grades are only taken from queues up to {@code numberOfQueuesToImport}, so a file
+     * covering a full season can be imported as a partially played one.
+     */
     @Transactional
     public ImportResponse importData(MultipartFile file, Short numberOfQueuesToImport) {
-        List<String> result = new ArrayList<>();
-        try (var is = file.getInputStream()) {
-            var br = new BufferedReader(new InputStreamReader(is));
-            String line;
-            br.readLine(); // skip headers
-            while ((line = br.readLine()) != null) {
-                result.add(line);
-            }
+        var rows = ImportCsvParser.parse(file);
 
-            createTeams(result);
-            createReferees(result);
-            createMatchesAndGrades(result, numberOfQueuesToImport);
+        createTeams(rows);
+        createReferees(rows);
+        createMatchesAndGrades(rows, numberOfQueuesToImport);
 
-            var noOfMatches = matchRepository.findAll().size();
-            var noOfReferees = refereeRepository.findAll().size();
-            var noOfGrades = gradeRepository.findAll().size();
-            var noOfTeams = teamRepository.findAll().size();
+        var noOfMatches = matchRepository.findAll().size();
+        var noOfReferees = refereeRepository.findAll().size();
+        var noOfGrades = gradeRepository.findAll().size();
+        var noOfTeams = teamRepository.findAll().size();
 
-            return new ImportResponse(noOfMatches, noOfReferees, noOfGrades, noOfTeams);
-        } catch (IOException | DateTimeParseException | ArrayIndexOutOfBoundsException | NumberFormatException e) {
-            // Wrap parse-time failures (malformed CSV: missing columns, bad dates, non-numeric
-            // scores/queue/grade) so the caller gets a 400 via RestExceptionHandler instead of a
-            // 500 with stacktrace. Domain exceptions (TeamNotFoundException,
-            // RefereeNotFoundException) intentionally fall through — they have their own 404
-            // mapping and the message already identifies which entity is missing.
-            throw new ImportException(file.getOriginalFilename(), e);
-        }
+        return new ImportResponse(noOfMatches, noOfReferees, noOfGrades, noOfTeams);
     }
 
-    private void createMatchesAndGrades(List<String> lines, Short numberOfQueuesToImport) {
-        var splittedLines = lines.stream()
-                .map(line -> line.split(";"))
-                .toList();
-
-        for (var line : splittedLines) {
-            var queue = Short.parseShort(line[0]);
-            var homeTeamName = line[1];
+    private void createMatchesAndGrades(List<ImportRow> rows, Short numberOfQueuesToImport) {
+        for (var row : rows) {
+            var homeTeamName = row.homeTeamName();
             var homeTeam = teamRepository.findByName(homeTeamName)
                     .orElseThrow(() -> new TeamNotFoundException(homeTeamName));
-            var awayTeamName = line[2];
+            var awayTeamName = row.awayTeamName();
             var awayTeam = teamRepository.findByName(awayTeamName)
                     .orElseThrow(() -> new TeamNotFoundException(awayTeamName));
-            var date = LocalDateTime.parse(line[3], FORMATTER);
+
+            // Queues past the requested count are imported as fixtures only — no referee, no
+            // result, no grade — even when the file already carries them.
+            var imported = row.queue() <= numberOfQueuesToImport;
 
             Referee referee = null;
-            Short homeTeamScore = null;
-            Short awayTeamScore = null;
-            if (line.length > 4 && queue <= numberOfQueuesToImport) {
-                var refereeFirstName = line[4].split(" ")[0];
-                var refereeLastName = line[4].split(" ")[1];
-                referee = refereeRepository.findByFirstNameAndLastName(refereeFirstName, refereeLastName)
-                        .orElseThrow(() -> new RefereeNotFoundException(refereeFirstName, refereeLastName));
-                homeTeamScore = Short.valueOf(line[5]);
-                awayTeamScore = Short.valueOf(line[6]);
+            if (imported && row.hasReferee()) {
+                var name = row.referee();
+                referee = refereeRepository.findByFirstNameAndLastName(name.firstName(), name.lastName())
+                        .orElseThrow(() -> new RefereeNotFoundException(name.firstName(), name.lastName()));
             }
-            var match = new Match(queue, homeTeam, awayTeam, date, referee, homeTeamScore, awayTeamScore);
+            var homeTeamScore = imported && row.hasResult() ? row.homeTeamScore() : null;
+            var awayTeamScore = imported && row.hasResult() ? row.awayTeamScore() : null;
+
+            var match = new Match(row.queue(), homeTeam, awayTeam, row.date(), referee, homeTeamScore, awayTeamScore);
             matchRepository.save(match);
 
-            if (line.length == 8 && queue <= numberOfQueuesToImport) {
-                var grade = parseGrade(match, line[7]);
-                gradeRepository.save(grade);
+            if (imported && row.hasGrade()) {
+                gradeRepository.save(new Grade(match, row.gradeValue(), row.gradeSecondValue()));
             }
         }
         var grades = gradeRepository.findAll();
@@ -121,44 +98,26 @@ public class ImporterService {
         log.info(CREATED + matches.size() + " matches");
     }
 
-    // The grade column holds either a plain grade ("8.3") or a split grade ("7.9/8.3") —
-    // an observer grade broken into two components; referee stats use their mean.
-    private Grade parseGrade(Match match, String rawGrade) {
-        // limit -1 keeps trailing empty strings, so a malformed "8.3/" fails
-        // on Double.parseDouble("") instead of silently passing as a plain grade
-        var parts = rawGrade.split("/", -1);
-        if (parts.length > 2) {
-            throw new NumberFormatException("Invalid grade format: " + rawGrade);
-        }
-        var value = Double.parseDouble(parts[0]);
-        var secondValue = parts.length == 2 ? Double.parseDouble(parts[1]) : null;
-        return new Grade(match, value, secondValue);
-    }
-
-    private void createReferees(List<String> lines) {
-        var referees = lines.stream()
-                .map(line -> line.split(";"))
-                .filter(line -> line.length > 4)
-                .map(line -> line[4])
+    private void createReferees(List<ImportRow> rows) {
+        var referees = rows.stream()
+                .filter(ImportRow::hasReferee)
+                .map(ImportRow::referee)
                 .distinct()
-//                .filter(referee -> !referee.isBlank())
-                .map(refereeName -> new Referee(refereeName.split(" ")[0], refereeName.split(" ")[1]))
+                .map(name -> new Referee(name.firstName(), name.lastName()))
                 .toList();
 
         refereeRepository.saveAll(referees);
         log.info(CREATED + referees.size() + " referees");
     }
 
-    private void createTeams(List<String> lines) {
-        var teamNames = lines.stream()
-                .map(line -> line.split(";"))
-                .map(line -> line[1])
-                .collect(Collectors.toSet());
-        var awayTeams = lines.stream()
-                .map(line -> line.split(";"))
-                .map(line -> line[2])
-                .collect(Collectors.toSet());
-        teamNames.addAll(awayTeams);
+    private void createTeams(List<ImportRow> rows) {
+        // LinkedHashSet so the teams are created in the order the file lists them, which keeps
+        // generated ids stable for a given file instead of depending on hash order.
+        var teamNames = new LinkedHashSet<String>();
+        for (var row : rows) {
+            teamNames.add(row.homeTeamName());
+            teamNames.add(row.awayTeamName());
+        }
 
         var teams = teamNames.stream()
                 .map(Team::new)
