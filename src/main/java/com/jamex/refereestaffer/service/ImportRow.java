@@ -13,11 +13,11 @@ import java.time.LocalDateTime;
  * <p>Optional cells are {@code null} rather than empty strings, so
  * {@code "31;1;2;01.01.2025 12:00;;;;"} (a scheduled, not-yet-played match) is a valid row with no
  * referee, no result and no grade, and {@code "31;1;2"} (a fixture whose kick-off is not
- * scheduled yet, RS-119) is one with no date either. {@code rowNumber} is the 1-based CSV record number the cells
- * came from, kept so error messages can point at the offending line.
+ * scheduled yet, RS-119) is one with no date either. The row deliberately carries no CSV line number: by construction
+ * every parse failure is raised before the row exists, so a line number here would be a field
+ * nothing reads.
  */
-public record ImportRow(long rowNumber,
-                        short queue,
+public record ImportRow(short queue,
                         String homeTeamName,
                         String awayTeamName,
                         LocalDateTime date,
