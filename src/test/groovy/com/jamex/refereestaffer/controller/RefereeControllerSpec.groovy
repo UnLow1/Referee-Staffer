@@ -3,6 +3,7 @@ package com.jamex.refereestaffer.controller
 import com.jamex.refereestaffer.model.converter.RefereeConverter
 import com.jamex.refereestaffer.model.dto.RefereeDto
 import com.jamex.refereestaffer.model.entity.Referee
+import com.jamex.refereestaffer.model.exception.EntityInUseException
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.repository.RefereeRepository
 import com.jamex.refereestaffer.service.RefereeService
@@ -10,6 +11,7 @@ import groovy.json.JsonSlurper
 import org.spockframework.runtime.model.parallel.ExecutionMode
 import org.spockframework.spring.SpringBean
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -241,7 +243,45 @@ class RefereeControllerSpec extends Specification {
         def response = mockMvc.perform(delete("/api/referees/241")).andReturn().response
 
         then:
-        1 * refereeRepository.deleteById(241l)
+        1 * refereeService.deleteReferee(241l)
+        0 * refereeRepository.deleteById(_)
         response.status == 200
+    }
+
+    def "should return 409 with the blocking match count when the referee is still assigned"() {
+        when:
+        def response = mockMvc.perform(delete("/api/referees/241")).andReturn().response
+
+        then:
+        1 * refereeService.deleteReferee(241l) >> { throw EntityInUseException.refereeHasMatches(241l, 3l) }
+        response.status == 409
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(EntityInUseException.REFEREE_HAS_MATCHES, 241l, 3l)
+    }
+
+    def "should degrade an unanticipated constraint violation to 409 rather than 500"() {
+        when:
+        def response = mockMvc.perform(delete("/api/referees/241")).andReturn().response
+
+        then:
+        1 * refereeService.deleteReferee(241l) >> {
+            throw new DataIntegrityViolationException("Referential integrity constraint violation: SOME_FK")
+        }
+        response.status == 409
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        // Generic on purpose - the driver message names tables and constraints.
+        json.detail == RestExceptionHandler.DATA_DEPENDENCY_DETAIL
+        !json.detail.contains("SOME_FK")
+    }
+
+    def "should return 404 when deleting a referee that does not exist"() {
+        when:
+        def response = mockMvc.perform(delete("/api/referees/241")).andReturn().response
+
+        then:
+        1 * refereeService.deleteReferee(241l) >> { throw new RefereeNotFoundException(241l) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(RefereeNotFoundException.NOT_FOUND_WITH_ID, 241l)
     }
 }

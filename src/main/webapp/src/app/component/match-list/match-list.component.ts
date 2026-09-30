@@ -254,9 +254,14 @@ export class MatchListComponent implements OnInit {
   confirmDelete(): void {
     const match = this.deleteTarget();
     if (!match) return;
-    this.matchService.delete(match.id).subscribe(() => {
-      this.matches.update(prev => prev.filter(m => m.id !== match.id));
-      this.deleteTarget.set(null);
+    this.matchService.delete(match.id).subscribe({
+      next: () => {
+        this.matches.update(prev => prev.filter(m => m.id !== match.id));
+        this.deleteTarget.set(null);
+      },
+      // The global interceptor already toasts the reason — close the dialog so the
+      // overlay is not sitting on top of it.
+      error: () => this.deleteTarget.set(null)
     });
   }
 

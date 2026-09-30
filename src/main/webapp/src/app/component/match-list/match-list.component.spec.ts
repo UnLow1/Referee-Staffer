@@ -1,7 +1,7 @@
 import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
-import {of} from 'rxjs';
+import {of, throwError} from 'rxjs';
 import {MatchListComponent} from './match-list.component';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
@@ -296,6 +296,20 @@ describe('MatchListComponent', () => {
     expect(matchService.delete).toHaveBeenCalledWith(11);
     expect(component.matches().map(m => m.id)).toEqual([12, 13]);
     expect(component.deleteTarget()).toBeNull();
+  });
+
+  it('keeps the match and closes the dialog when the delete is rejected', async () => {
+    const fixture = await create();
+    const component = fixture.componentInstance;
+    matchService.delete.mockReturnValue(throwError(() => new Error('Conflict')));
+
+    component.askDelete(matches[0], new Event('click'));
+    component.confirmDelete();
+    fixture.detectChanges();
+
+    expect(component.matches().map(m => m.id)).toEqual([11, 12, 13]);
+    expect(component.deleteTarget()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.modal')).toBeNull();
   });
 
   describe('deep links', () => {

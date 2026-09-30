@@ -5,10 +5,16 @@ import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
+import com.jamex.refereestaffer.model.exception.EntityInUseException;
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
+import com.jamex.refereestaffer.repository.VacationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,15 +33,48 @@ public class RefereeService {
     // can reference it without hardcoding 8.3.
     static final double DEFAULT_GRADE = 8.3;
 
+    private static final Logger log = LoggerFactory.getLogger(RefereeService.class);
+
     private final RefereeRepository refereeRepository;
     private final MatchRepository matchRepository;
     private final ConfigurationRepository configurationRepository;
+    private final VacationRepository vacationRepository;
 
     public RefereeService(RefereeRepository refereeRepository, MatchRepository matchRepository,
-                          ConfigurationRepository configurationRepository) {
+                          ConfigurationRepository configurationRepository, VacationRepository vacationRepository) {
         this.refereeRepository = refereeRepository;
         this.matchRepository = matchRepository;
         this.configurationRepository = configurationRepository;
+        this.vacationRepository = vacationRepository;
+    }
+
+    /**
+     * Deletes a referee, refusing the delete while matches still reference them.
+     *
+     * <p>Two foreign keys point at {@code referee}: {@code match.referee_id} and
+     * {@code vacation.referee_id}. They are treated differently on purpose. Matches are
+     * shared history — who refereed a finished game must not silently disappear, so a
+     * referee with any match is rejected with a 409 naming the count
+     * ({@link EntityInUseException}) and the caller decides what to do with those matches.
+     * Vacations belong to the referee alone and mean nothing without them, so they are
+     * removed along with the referee instead of blocking the delete.
+     */
+    @Transactional
+    public void deleteReferee(Long id) {
+        var referee = refereeRepository.findById(id)
+                .orElseThrow(() -> new RefereeNotFoundException(id));
+
+        var matches = matchRepository.countByReferee(referee);
+        if (matches > 0) {
+            throw EntityInUseException.refereeHasMatches(id, matches);
+        }
+
+        var vacations = vacationRepository.findAllByReferee(referee);
+        if (!vacations.isEmpty()) {
+            log.info("Deleting {} vacation(s) of referee with id = {}", vacations.size(), id);
+            vacationRepository.deleteAll(vacations);
+        }
+        refereeRepository.delete(referee);
     }
 
     public List<Referee> getAvailableRefereesForQueue(Short queue) {

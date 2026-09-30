@@ -6,9 +6,13 @@ import com.jamex.refereestaffer.model.entity.Grade
 import com.jamex.refereestaffer.model.entity.Match
 import com.jamex.refereestaffer.model.entity.Referee
 import com.jamex.refereestaffer.model.entity.Team
+import com.jamex.refereestaffer.model.entity.Vacation
+import com.jamex.refereestaffer.model.exception.EntityInUseException
+import com.jamex.refereestaffer.model.exception.RefereeNotFoundException
 import com.jamex.refereestaffer.repository.ConfigurationRepository
 import com.jamex.refereestaffer.repository.MatchRepository
 import com.jamex.refereestaffer.repository.RefereeRepository
+import com.jamex.refereestaffer.repository.VacationRepository
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -20,9 +24,10 @@ class RefereeServiceSpec extends Specification {
     RefereeRepository refereeRepository = Mock()
     MatchRepository matchRepository = Mock()
     ConfigurationRepository configurationRepository = Mock()
+    VacationRepository vacationRepository = Mock()
 
     def setup() {
-        refereeService = new RefereeService(refereeRepository, matchRepository, configurationRepository)
+        refereeService = new RefereeService(refereeRepository, matchRepository, configurationRepository, vacationRepository)
     }
 
     def "should return available referees"() {
@@ -286,5 +291,70 @@ class RefereeServiceSpec extends Specification {
                 .build()
 
         return [match1, match2]
+    }
+
+    def "should delete referee without matches together with their vacations"() {
+        given:
+        def refereeId = 7L
+        def referee = new Referee("John", "Doe", "john@doe.com", 5)
+        def vacations = [new Vacation(1L, referee, null, null), new Vacation(2L, referee, null, null)]
+
+        when:
+        refereeService.deleteReferee(refereeId)
+
+        then:
+        1 * refereeRepository.findById(refereeId) >> Optional.of(referee)
+        1 * matchRepository.countByReferee(referee) >> 0L
+        1 * vacationRepository.findAllByReferee(referee) >> vacations
+        1 * vacationRepository.deleteAll(vacations)
+        1 * refereeRepository.delete(referee)
+    }
+
+    def "should not touch vacation repository when referee has none"() {
+        given:
+        def refereeId = 7L
+        def referee = new Referee("John", "Doe", "john@doe.com", 5)
+
+        when:
+        refereeService.deleteReferee(refereeId)
+
+        then:
+        1 * refereeRepository.findById(refereeId) >> Optional.of(referee)
+        1 * matchRepository.countByReferee(referee) >> 0L
+        1 * vacationRepository.findAllByReferee(referee) >> []
+        0 * vacationRepository.deleteAll(_)
+        1 * refereeRepository.delete(referee)
+    }
+
+    def "should reject deleting referee with assigned matches and name the count"() {
+        given:
+        def refereeId = 7L
+        def referee = new Referee("John", "Doe", "john@doe.com", 5)
+
+        when:
+        refereeService.deleteReferee(refereeId)
+
+        then:
+        1 * refereeRepository.findById(refereeId) >> Optional.of(referee)
+        1 * matchRepository.countByReferee(referee) >> 4L
+        0 * refereeRepository.delete(_)
+        0 * vacationRepository.deleteAll(_)
+        def exception = thrown(EntityInUseException)
+        exception.message == String.format(EntityInUseException.REFEREE_HAS_MATCHES, refereeId, 4L)
+    }
+
+    def "should throw not found when deleting a referee that does not exist"() {
+        given:
+        def refereeId = 404L
+
+        when:
+        refereeService.deleteReferee(refereeId)
+
+        then:
+        1 * refereeRepository.findById(refereeId) >> Optional.empty()
+        0 * matchRepository.countByReferee(_)
+        0 * refereeRepository.delete(_)
+        def exception = thrown(RefereeNotFoundException)
+        exception.message == String.format(RefereeNotFoundException.NOT_FOUND_WITH_ID, refereeId)
     }
 }

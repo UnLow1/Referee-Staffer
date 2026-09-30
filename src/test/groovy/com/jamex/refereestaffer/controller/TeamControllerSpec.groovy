@@ -4,6 +4,7 @@ import com.jamex.refereestaffer.model.converter.TeamConverter
 import com.jamex.refereestaffer.model.dto.StandingsDto
 import com.jamex.refereestaffer.model.dto.TeamDto
 import com.jamex.refereestaffer.model.entity.Team
+import com.jamex.refereestaffer.model.exception.EntityInUseException
 import com.jamex.refereestaffer.model.exception.TeamNotFoundException
 import com.jamex.refereestaffer.repository.TeamRepository
 import com.jamex.refereestaffer.service.TeamService
@@ -236,7 +237,30 @@ class TeamControllerSpec extends Specification {
         def response = mockMvc.perform(delete("/api/teams/213")).andReturn().response
 
         then:
-        1 * teamRepository.deleteById(213l)
+        1 * teamService.deleteTeam(213l)
+        0 * teamRepository.deleteById(_)
         response.status == 200
+    }
+
+    def "should return 409 with the blocking match count when the team still plays matches"() {
+        when:
+        def response = mockMvc.perform(delete("/api/teams/213")).andReturn().response
+
+        then:
+        1 * teamService.deleteTeam(213l) >> { throw EntityInUseException.teamHasMatches(213l, 8l) }
+        response.status == 409
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(EntityInUseException.TEAM_HAS_MATCHES, 213l, 8l)
+    }
+
+    def "should return 404 when deleting a team that does not exist"() {
+        when:
+        def response = mockMvc.perform(delete("/api/teams/213")).andReturn().response
+
+        then:
+        1 * teamService.deleteTeam(213l) >> { throw new TeamNotFoundException(213l) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(TeamNotFoundException.NOT_FOUND_WITH_ID, 213l)
     }
 }

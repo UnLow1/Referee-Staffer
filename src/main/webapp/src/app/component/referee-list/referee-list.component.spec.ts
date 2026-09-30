@@ -1,7 +1,7 @@
 import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
-import {of} from 'rxjs';
+import {of, throwError} from 'rxjs';
 import {RefereeListComponent} from './referee-list.component';
 import {RefereeService} from '../../service/referee.service';
 import {Referee} from '../../model/referee';
@@ -89,6 +89,9 @@ describe('RefereeListComponent', () => {
       fixture.detectChanges();
 
       expect(component.deleteGuard().message).toContain('Anna Nowak');
+      // The backend removes the referee's vacations with them — say so before the click.
+      expect(component.deleteGuard().message).toContain('vacations');
+      expect(component.deleteGuard().message).toContain('assigned matches');
       expect((fixture.nativeElement as HTMLElement).querySelector('.modal')).not.toBeNull();
 
       component.confirmDelete();
@@ -96,6 +99,21 @@ describe('RefereeListComponent', () => {
       expect(refereeService.delete).toHaveBeenCalledWith(2);
       expect(component.referees().map(r => r.id)).toEqual([1, 3]);
       expect(component.deleteTarget()).toBeNull();
+    });
+
+    it('keeps the referee and closes the dialog when the delete is rejected', async () => {
+      const fixture = await create();
+      const component = fixture.componentInstance;
+      // 409 from the backend: the referee still has matches assigned.
+      refereeService.delete.mockReturnValue(throwError(() => new Error('Conflict')));
+
+      component.askDelete(referees[1], new Event('click'));
+      component.confirmDelete();
+      fixture.detectChanges();
+
+      expect(component.referees().map(r => r.id)).toEqual([1, 2, 3]);
+      expect(component.deleteTarget()).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.modal')).toBeNull();
     });
 
     it('does nothing when confirming without a target', async () => {

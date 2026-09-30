@@ -197,7 +197,15 @@ public class MatchService {
                 .orElseThrow(() -> new MatchNotFoundException(matchId));
         if (match.getGrade() != null) {
             log.info("Deleting grade with id = {}", match.getGrade().getId());
-            gradeRepository.delete(match.getGrade());
+            var grade = match.getGrade();
+            // Clear the back-reference first, as GradeService.deleteGrade does: Match.grade
+            // is the inverse side of an eager one-to-one, so a managed match still pointing
+            // at the removed grade fails the flush-time transient-reference check. Today
+            // this method survives without it only because MatchService is not
+            // @Transactional and each repository call commits on its own - adding that
+            // annotation later must not be what discovers this.
+            match.setGrade(null);
+            gradeRepository.delete(grade);
         }
         matchRepository.delete(match);
     }

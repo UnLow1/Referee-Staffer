@@ -139,9 +139,14 @@ export class VacationListComponent implements OnInit {
   confirmDelete(): void {
     const vacation = this.deleteTarget();
     if (!vacation) return;
-    this.vacationService.delete(vacation.id).subscribe(() => {
-      this.vacations.update(prev => prev.filter(v => v.id !== vacation.id));
-      this.deleteTarget.set(null);
+    this.vacationService.delete(vacation.id).subscribe({
+      next: () => {
+        this.vacations.update(prev => prev.filter(v => v.id !== vacation.id));
+        this.deleteTarget.set(null);
+      },
+      // The global interceptor already toasts the reason — close the dialog so the
+      // overlay is not sitting on top of it.
+      error: () => this.deleteTarget.set(null)
     });
   }
 }

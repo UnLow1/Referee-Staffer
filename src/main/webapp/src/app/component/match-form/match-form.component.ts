@@ -71,7 +71,14 @@ export class MatchFormComponent implements OnInit {
         else if (this.isNewGradeAdded())
           this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
         else if (this.isGradeRemoved())
-          this.gradeService.delete(this.grade).subscribe(() => this.saved.emit(match));
+          // The match itself is already saved at this point, so emit either way: the list
+          // re-reads from the server and shows what actually happened to the grade. Without
+          // the error branch a failed grade delete leaves the drawer open on a saved match,
+          // with only a toast to explain it.
+          this.gradeService.delete(this.grade).subscribe({
+            next: () => this.saved.emit(match),
+            error: () => this.saved.emit(match)
+          });
         else
           this.saved.emit(match);
       });
