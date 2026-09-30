@@ -135,9 +135,14 @@ export class RefereeListComponent implements OnInit {
   confirmDelete(): void {
     const referee = this.deleteTarget();
     if (!referee) return;
-    this.refereeService.delete(referee.id).subscribe(() => {
-      this.referees.update(prev => prev.filter(r => r.id !== referee.id));
-      this.deleteTarget.set(null);
+    this.refereeService.delete(referee.id).subscribe({
+      next: () => {
+        this.referees.update(prev => prev.filter(r => r.id !== referee.id));
+        this.deleteTarget.set(null);
+      },
+      // A referee with assigned matches comes back as 409; the global interceptor already
+      // toasts the reason, so close the dialog instead of leaving the overlay on top of it.
+      error: () => this.deleteTarget.set(null)
     });
   }
 

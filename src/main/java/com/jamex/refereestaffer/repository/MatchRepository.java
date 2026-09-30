@@ -2,6 +2,7 @@ package com.jamex.refereestaffer.repository;
 
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
+import com.jamex.refereestaffer.model.entity.Team;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,6 +14,10 @@ import java.util.List;
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findAllByRefereeIn(Collection<Referee> referees);
+
+    long countByReferee(Referee referee);
+
+    long countByHomeOrAway(Team home, Team away);
 
     List<Match> findAllByQueue(Short queue);
 

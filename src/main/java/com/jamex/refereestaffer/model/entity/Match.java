@@ -98,6 +98,10 @@ public class Match {
         this.referee = referee;
     }
 
+    public void setGrade(Grade grade) {
+        this.grade = grade;
+    }
+
     public Grade getGrade() {
         return grade;
     }

@@ -96,6 +96,6 @@ public class RefereeController {
     @DeleteMapping("/{id}")
     public void deleteReferee(@PathVariable Long id) {
         log.info("Deleting referee with id = {}", id);
-        refereeRepository.deleteById(id);
+        refereeService.deleteReferee(id);
     }
 }
