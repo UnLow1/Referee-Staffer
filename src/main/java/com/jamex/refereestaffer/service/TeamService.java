@@ -73,7 +73,7 @@ public class TeamService {
         var team = teamRepository.findById(id)
                 .orElseThrow(() -> new TeamNotFoundException(id));
 
-        var matches = matchRepository.countByHomeOrAway(team, team);
+        var matches = matchRepository.countByTeam(team);
         if (matches > 0) {
             throw EntityInUseException.teamHasMatches(id, matches);
         }

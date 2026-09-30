@@ -19,7 +19,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     long countByReferee(Referee referee);
 
-    long countByHomeOrAway(Team home, Team away);
+    // Spelled out rather than derived: countByHomeOrAway(a, b) would also compile and
+    // answer a different question than "how many matches does this team play".
+    @Query("select count(m) from Match m where m.home = :team or m.away = :team")
+    long countByTeam(@Param("team") Team team);
 
     List<Match> findAllByQueue(Short queue);
 

@@ -137,7 +137,7 @@ class TeamServiceSpec extends Specification {
 
         then:
         1 * teamRepository.findById(teamId) >> Optional.of(team)
-        1 * matchRepository.countByHomeOrAway(team, team) >> 0L
+        1 * matchRepository.countByTeam(team) >> 0L
         1 * teamRepository.delete(team)
     }
 
@@ -151,7 +151,7 @@ class TeamServiceSpec extends Specification {
 
         then:
         1 * teamRepository.findById(teamId) >> Optional.of(team)
-        1 * matchRepository.countByHomeOrAway(team, team) >> 6L
+        1 * matchRepository.countByTeam(team) >> 6L
         0 * teamRepository.delete(_)
         def exception = thrown(EntityInUseException)
         exception.message == String.format(EntityInUseException.TEAM_HAS_MATCHES, teamId, 6L)
@@ -166,7 +166,7 @@ class TeamServiceSpec extends Specification {
 
         then:
         1 * teamRepository.findById(teamId) >> Optional.empty()
-        0 * matchRepository.countByHomeOrAway(_, _)
+        0 * matchRepository.countByTeam(_)
         0 * teamRepository.delete(_)
         def exception = thrown(TeamNotFoundException)
         exception.message == String.format(TeamNotFoundException.NOT_FOUND_WITH_ID, teamId)
