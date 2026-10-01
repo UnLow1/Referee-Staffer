@@ -33,15 +33,21 @@ describe('TeamFormComponent', () => {
 
     expect(component.editMode).toBe(false);
     expect(component.subtitle).toBe('New club in the league');
-    expect(component.model).toEqual({name: '', city: ''});
+    expect(component.model).toEqual({name: '', city: '', shortOverride: ''});
   });
 
-  it('copies only name and city in edit mode', () => {
+  it('copies name, city and the stored override in edit mode', () => {
     const component = create(existing).componentInstance;
 
     expect(component.editMode).toBe(true);
     expect(component.subtitle).toBe('Alfa');
-    expect(component.model).toEqual({name: 'Alfa', city: 'Krakow'});
+    expect(component.model).toEqual({name: 'Alfa', city: 'Krakow', shortOverride: ''});
+  });
+
+  it('pre-fills the short code field from the stored override, not the computed one', () => {
+    const component = create({...existing, short: 'ALF', shortOverride: 'AFA'}).componentInstance;
+
+    expect(component.model.shortOverride).toBe('AFA');
   });
 
   it('ignores submit while the form is invalid', () => {
@@ -58,7 +64,7 @@ describe('TeamFormComponent', () => {
     const emitted: Team[] = [];
     component.saved.subscribe(t => emitted.push(t));
 
-    component.model = {name: 'Beta', city: 'Gdansk'};
+    component.model = {name: 'Beta', city: 'Gdansk', shortOverride: ''};
     component.onSubmit(validForm);
 
     expect(teamService.save).toHaveBeenCalledWith(expect.objectContaining({name: 'Beta', city: 'Gdansk'}));
@@ -76,5 +82,55 @@ describe('TeamFormComponent', () => {
       id: 3, name: 'Alfa', city: 'Wieliczka', points: 40, short: 'ALF'
     }));
     expect(teamService.save).not.toHaveBeenCalled();
+  });
+
+  it('submits a hand-typed short code normalised to upper case', () => {
+    const component = create(existing).componentInstance;
+    teamService.update.mockReturnValue(of(existing));
+
+    component.model.shortOverride = ' afa ';
+    component.onSubmit(validForm);
+
+    expect(teamService.update).toHaveBeenCalledWith(expect.objectContaining({shortOverride: 'AFA'}));
+  });
+
+  it('submits null when the short code field is left blank so the backend clears the override', () => {
+    const component = create({...existing, shortOverride: 'AFA'}).componentInstance;
+    teamService.update.mockReturnValue(of(existing));
+
+    component.model.shortOverride = '   ';
+    component.onSubmit(validForm);
+
+    expect(teamService.update).toHaveBeenCalledWith(expect.objectContaining({shortOverride: null}));
+  });
+
+  it('never submits the computed short field as the override', () => {
+    const component = create(existing).componentInstance;
+    teamService.update.mockReturnValue(of(existing));
+
+    component.onSubmit(validForm);
+
+    // `short` rides along untouched, but the writable half stays null — otherwise the
+    // name-derived fallback would be persisted and frozen against later renames.
+    const payload = teamService.update.mock.calls[0][0];
+    expect(payload.short).toBe('ALF');
+    expect(payload.shortOverride).toBeNull();
+  });
+
+  it('derives the placeholder code from the typed name, skipping separators', () => {
+    const component = create(null).componentInstance;
+
+    component.model.name = 'FC Barcelona';
+
+    expect(component.derivedShort).toBe('FCB');
+  });
+
+  it('renders the short code input bound to the override', () => {
+    const fixture = create({...existing, shortOverride: 'AFA'});
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('#short');
+
+    expect(input).toBeTruthy();
+    expect(input.value).toBe('AFA');
+    expect(input.required).toBe(false);
   });
 });
