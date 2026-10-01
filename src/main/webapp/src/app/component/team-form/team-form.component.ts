@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
-import {Team} from '../../model/team';
+import {deriveShortCode, SHORT_CODE_MAX_LENGTH, SHORT_CODE_PATTERN, Team} from '../../model/team';
 import {TeamService} from '../../service/team.service';
 import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
 import {IconComponent} from '../common/icon/icon.component';
@@ -37,9 +37,17 @@ export class TeamFormComponent implements OnInit {
     return this.team != null;
   }
 
+  /**
+   * Bound to the input's `[pattern]` as a RegExp rather than a string: Angular compiles a
+   * string pattern without the `u` flag, which would turn `\p{L}` into an identity escape
+   * and mark every real code invalid.
+   */
+  readonly shortCodePattern = SHORT_CODE_PATTERN;
+  readonly shortCodeMaxLength = SHORT_CODE_MAX_LENGTH;
+
   /** The code the pill renders today — shown as the placeholder so the default is visible. */
   get derivedShort(): string {
-    return this.model.name.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3).toUpperCase();
+    return deriveShortCode(this.model.name);
   }
 
   get subtitle(): string {

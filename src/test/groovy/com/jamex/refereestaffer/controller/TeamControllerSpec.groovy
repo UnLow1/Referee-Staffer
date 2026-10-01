@@ -108,7 +108,7 @@ class TeamControllerSpec extends Specification {
     }
 
     def "should update team ignoring the read-only short field"() {
-        given: "a rename payload echoing the previously served short code and keeping the override"
+        given: "a rename payload echoing the previously served short code plus a new override"
         def existing = Team.builder()
                 .id(65l)
                 .name("Legia")
@@ -119,14 +119,14 @@ class TeamControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/teams")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 65, "name": "Wisla", "city": "Krakow", "short": "LEG", "shortOverride": "LGW"}'))
+                .content('{"id": 65, "name": "Wisla", "city": "Krakow", "short": "LEG", "shortOverride": "WIS"}'))
                 .andReturn().response
 
         then:
         1 * teamRepository.findById(65l) >> Optional.of(existing)
-        and: "the computed `short` is discarded; only `shortOverride` reaches the entity"
+        and: "the computed `short` is discarded while `shortOverride` does reach the entity"
         1 * teamRepository.save({ Team saved ->
-            saved.name == "Wisla" && saved.city == "Krakow" && saved.shortCodeOverride == "LGW"
+            saved.name == "Wisla" && saved.city == "Krakow" && saved.shortCodeOverride == "WIS"
         })
         0 * teamConverter.convertFromDto(_)
         response.status == 200
@@ -181,7 +181,39 @@ class TeamControllerSpec extends Specification {
         response.status == 400
 
         where:
-        override << ["TOOMANYCHARS", "LG-", "LG A"]
+        override << ["TOOLONG", "LG-", "LG A", "LG."]
+    }
+
+    def "should accept a short code override carrying Polish diacritics"() {
+        given:
+        def existing = Team.builder().id(65l).name("LKS Lodz").city("Lodz").build()
+
+        when: "a code only \\p{L} accepts - \\p{Alnum} would reject it"
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "LKS Lodz", "city": "Lodz", "shortOverride": "\u0141KS"}'))
+                .andReturn().response
+
+        then:
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved -> saved.shortCodeOverride == "\u0141KS" })
+        response.status == 200
+    }
+
+    def "should clear the short code override when the field is omitted entirely"() {
+        given:
+        def existing = Team.builder().id(65l).name("Lechia").city("Gdansk").shortCode("LGA").build()
+
+        when: "a client that does not know about the field - PUT replaces, it does not patch"
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "Lechia", "city": "Gdansk"}'))
+                .andReturn().response
+
+        then:
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved -> saved.shortCodeOverride == null && saved.shortCode == "LEC" })
+        response.status == 200
     }
 
     def "should respond 404 when updating a missing team"() {

@@ -150,7 +150,8 @@ public class ImporterService {
     }
 
     /**
-     * Creates one team per distinct name in the CSV, each with a generated {@code short_code}.
+     * Creates one team per distinct name in the CSV, storing a {@code short_code} for the
+     * teams that need one.
      *
      * <p>Names are collected into a {@link LinkedHashSet} so the order follows first
      * appearance in the file rather than hash order: the generator resolves collisions by
@@ -173,11 +174,26 @@ public class ImporterService {
         var teams = teamNames.stream()
                 .map(name -> Team.builder()
                         .name(name)
-                        .shortCode(shortCodeGenerator.generate(name))
+                        .shortCode(overrideFor(name, shortCodeGenerator))
                         .build())
                 .toList();
 
         teamRepository.saveAll(teams);
         log.info(CREATED + teams.size() + " teams");
+    }
+
+    /**
+     * Returns the code to store for {@code name}, or {@code null} when the generated code is
+     * the one {@code Team.getShortCode()} would derive anyway.
+     *
+     * <p>Storing a redundant copy would freeze the code against later renames — the very
+     * behaviour the read-only {@code short} field exists to avoid — and buys nothing, since
+     * the rendered result is identical either way. The generator is still asked for every
+     * team, so each derived code stays reserved and a genuine collision (Lech / Lechia) is
+     * the one case that ends up with a stored override.
+     */
+    private static String overrideFor(String name, TeamShortCodeGenerator shortCodeGenerator) {
+        var generated = shortCodeGenerator.generate(name);
+        return generated == null || generated.equals(Team.deriveShortCode(name)) ? null : generated;
     }
 }

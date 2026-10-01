@@ -34,10 +34,16 @@ public record TeamDto(
          * pair. Kept separate from `short` on purpose: `short` is a computed read model, so
          * a client echoing a whole GET payload back on an unrelated edit would otherwise
          * persist the name-derived fallback and freeze the code across future renames.
-         * Sending null (or blank) clears the override and restores the fallback.
+         *
+         * <p>Blank clears the override and restores the fallback. So does *omitting* the
+         * field: PUT replaces this value rather than patching it, so a client that leaves it
+         * out is asking for the derived code back.
+         *
+         * <p>Capped at 4 characters, shorter than the 8-character column: the only consumer
+         * is the 22x22 team pill, which has no room for more.
          */
         @JsonProperty("shortOverride")
-        @Size(max = 8, message = "short code must be at most 8 characters")
+        @Size(max = 4, message = "short code must be at most 4 characters")
         // Unicode classes, not \p{Alnum}: that one is ASCII-only in Java, so a code carrying a
         // Polish diacritic would 400 even though the importer happily derives one.
         @Pattern(regexp = "^[\\p{L}\\p{N}]*$", message = "short code must be alphanumeric")
