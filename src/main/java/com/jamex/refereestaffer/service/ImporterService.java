@@ -25,8 +25,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ImporterService {
@@ -149,19 +149,32 @@ public class ImporterService {
         log.info(CREATED + referees.size() + " referees");
     }
 
+    /**
+     * Creates one team per distinct name in the CSV, each with a generated {@code short_code}.
+     *
+     * <p>Names are collected into a {@link LinkedHashSet} so the order follows first
+     * appearance in the file rather than hash order: the generator resolves collisions by
+     * handing the plain prefix to whoever asks first, so a stable order is what makes the
+     * generated codes reproducible across imports of the same CSV.
+     */
     private void createTeams(List<String> lines) {
-        var teamNames = lines.stream()
+        var splittedLines = lines.stream()
                 .map(line -> line.split(";"))
-                .map(line -> line[1])
-                .collect(Collectors.toSet());
-        var awayTeams = lines.stream()
-                .map(line -> line.split(";"))
-                .map(line -> line[2])
-                .collect(Collectors.toSet());
-        teamNames.addAll(awayTeams);
+                .toList();
+        var teamNames = new LinkedHashSet<String>();
+        for (var line : splittedLines) {
+            teamNames.add(line[1]);
+        }
+        for (var line : splittedLines) {
+            teamNames.add(line[2]);
+        }
 
+        var shortCodeGenerator = new TeamShortCodeGenerator();
         var teams = teamNames.stream()
-                .map(Team::new)
+                .map(name -> Team.builder()
+                        .name(name)
+                        .shortCode(shortCodeGenerator.generate(name))
+                        .build())
                 .toList();
 
         teamRepository.saveAll(teams);

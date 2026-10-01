@@ -6,9 +6,14 @@ import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
 import {IconComponent} from '../common/icon/icon.component';
 
 /**
- * Team add/edit form — drawer opened from the team list. Only `name` and `city` are
- * user-edited; `points` / `short` stay backend-owned and ride along via the spread
- * on submit.
+ * Team add/edit form — drawer opened from the team list. `name`, `city` and the optional
+ * short-code override are user-edited; `points` and the computed `short` stay backend-owned
+ * and ride along via the spread on submit.
+ *
+ * The short-code field writes `shortOverride`, not `short`: the latter is a computed read
+ * model (the backend derives it from the name when no override is stored), so submitting it
+ * would freeze the code against future renames. Leaving the field empty submits null, which
+ * clears any override and hands the code back to the name-derived default.
  *
  * Rendered behind an @if by the host, so ngOnInit sees the final input.
  */
@@ -26,10 +31,15 @@ export class TeamFormComponent implements OnInit {
   @Output() saved = new EventEmitter<Team>();
   @Output() closed = new EventEmitter<void>();
 
-  model: Pick<Team, 'name' | 'city'> = {name: '', city: ''};
+  model: {name: string; city: string; shortOverride: string} = {name: '', city: '', shortOverride: ''};
 
   get editMode(): boolean {
     return this.team != null;
+  }
+
+  /** The code the pill renders today — shown as the placeholder so the default is visible. */
+  get derivedShort(): string {
+    return this.model.name.replace(/[^\p{L}\p{N}]/gu, '').slice(0, 3).toUpperCase();
   }
 
   get subtitle(): string {
@@ -38,13 +48,20 @@ export class TeamFormComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.team) {
-      this.model = {name: this.team.name, city: this.team.city};
+      this.model = {
+        name: this.team.name,
+        city: this.team.city,
+        shortOverride: this.team.shortOverride ?? ''
+      };
     }
   }
 
   onSubmit(form: NgForm): void {
     if (!form.valid) return;
-    const payload: Team = {...(this.team ?? {} as Team), ...this.model};
+    // Blank means "no override" — send null rather than '' so the backend clears the column
+    // instead of storing an empty string.
+    const shortOverride = this.model.shortOverride.trim().toUpperCase() || null;
+    const payload: Team = {...(this.team ?? {} as Team), ...this.model, shortOverride};
     const request = this.editMode
       ? this.teamService.update(payload)
       : this.teamService.save(payload);

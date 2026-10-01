@@ -107,8 +107,8 @@ class TeamControllerSpec extends Specification {
         response.status == 200
     }
 
-    def "should update team preserving the stored short code"() {
-        given: "a rename payload echoing the previously served short code"
+    def "should update team ignoring the read-only short field"() {
+        given: "a rename payload echoing the previously served short code and keeping the override"
         def existing = Team.builder()
                 .id(65l)
                 .name("Legia")
@@ -119,16 +119,69 @@ class TeamControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/teams")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 65, "name": "Wisla", "city": "Krakow", "short": "LEG"}'))
+                .content('{"id": 65, "name": "Wisla", "city": "Krakow", "short": "LEG", "shortOverride": "LGW"}'))
+                .andReturn().response
+
+        then:
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        and: "the computed `short` is discarded; only `shortOverride` reaches the entity"
+        1 * teamRepository.save({ Team saved ->
+            saved.name == "Wisla" && saved.city == "Krakow" && saved.shortCodeOverride == "LGW"
+        })
+        0 * teamConverter.convertFromDto(_)
+        response.status == 200
+    }
+
+    def "should store the short code override sent by the team form"() {
+        given:
+        def existing = Team.builder().id(65l).name("Lechia").city("Gdansk").build()
+
+        when: "the form submits a hand-picked code in lower case"
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "Lechia", "city": "Gdansk", "short": "LEC", "shortOverride": "lga"}'))
                 .andReturn().response
 
         then:
         1 * teamRepository.findById(65l) >> Optional.of(existing)
         1 * teamRepository.save({ Team saved ->
-            saved.name == "Wisla" && saved.city == "Krakow" && saved.shortCode == "LGW"
+            saved.shortCodeOverride == "LGA" && saved.shortCode == "LGA"
         })
-        0 * teamConverter.convertFromDto(_)
         response.status == 200
+    }
+
+    def "should clear the short code override when the form sends a blank one"() {
+        given:
+        def existing = Team.builder().id(65l).name("Lechia").city("Gdansk").shortCode("LGA").build()
+
+        when: "the user empties the short code field"
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 65, "name": "Lechia", "city": "Gdansk", "short": "LGA", "shortOverride": ""}'))
+                .andReturn().response
+
+        then: "the override is dropped and the name-derived code takes over again"
+        1 * teamRepository.findById(65l) >> Optional.of(existing)
+        1 * teamRepository.save({ Team saved ->
+            saved.shortCodeOverride == null && saved.shortCode == "LEC"
+        })
+        response.status == 200
+    }
+
+    def "should reject an invalid short code override"() {
+        when:
+        def response = mockMvc.perform(put("/api/teams")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(/{"id": 65, "name": "Lechia", "city": "Gdansk", "shortOverride": "$override"}/))
+                .andReturn().response
+
+        then: "validation fails before the repository is touched"
+        0 * teamRepository.findById(_)
+        0 * teamRepository.save(_)
+        response.status == 400
+
+        where:
+        override << ["TOOMANYCHARS", "LG-", "LG A"]
     }
 
     def "should respond 404 when updating a missing team"() {
