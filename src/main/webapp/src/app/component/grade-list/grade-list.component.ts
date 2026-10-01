@@ -3,7 +3,7 @@ import {Router} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
 import {Referee} from '../../model/referee';
-import {Team} from '../../model/team';
+import {shortCodeOf, Team} from '../../model/team';
 import {Grade, effectiveGradeValue, isSplitGrade} from '../../model/grade';
 import {MatchService} from '../../service/match.service';
 import {RefereeService} from '../../service/referee.service';
@@ -86,8 +86,7 @@ export class GradeListComponent implements OnInit {
   }
 
   shortCode(team: Team | undefined): string {
-    if (!team) return '';
-    return team.short ?? team.name?.slice(0, 3).toUpperCase() ?? '';
+    return shortCodeOf(team);
   }
 
   effectiveValue(grade: Grade): number {

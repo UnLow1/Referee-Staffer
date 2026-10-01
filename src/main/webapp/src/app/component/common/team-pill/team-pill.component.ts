@@ -1,11 +1,11 @@
 import {Component, computed, input, ChangeDetectionStrategy} from '@angular/core';
-import {Team} from '../../../model/team';
+import {shortCodeOf, Team} from '../../../model/team';
 
 /**
  * 22×22 rounded square with the team's 3-letter code (mono uppercase) plus the full
  * team name. `side` flips the colour treatment — home is dark, away is light.
  *
- * The backend sends `Team.short` (TeamDto renames shortCode → short); this atom still
+ * The backend sends `Team.short` (TeamDto renames shortCode → short); `shortCodeOf` still
  * derives the code from `name` as a fallback so list views render coherently even
  * when the field is absent.
  */
@@ -56,9 +56,5 @@ export class TeamPillComponent {
   readonly team = input<Team | undefined>(undefined);
   readonly side = input<'home' | 'away'>('home');
 
-  readonly short = computed(() => {
-    const t = this.team();
-    if (!t) return '';
-    return t.short ?? t.name?.slice(0, 3).toUpperCase() ?? '';
-  });
+  readonly short = computed(() => shortCodeOf(this.team()));
 }

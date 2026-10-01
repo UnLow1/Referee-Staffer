@@ -25,8 +25,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ImporterService {
@@ -149,22 +149,51 @@ public class ImporterService {
         log.info(CREATED + referees.size() + " referees");
     }
 
+    /**
+     * Creates one team per distinct name in the CSV, storing a {@code short_code} for the
+     * teams that need one.
+     *
+     * <p>Names are collected into a {@link LinkedHashSet} so the order follows first
+     * appearance in the file rather than hash order: the generator resolves collisions by
+     * handing the plain prefix to whoever asks first, so a stable order is what makes the
+     * generated codes reproducible across imports of the same CSV.
+     */
     private void createTeams(List<String> lines) {
-        var teamNames = lines.stream()
+        var splittedLines = lines.stream()
                 .map(line -> line.split(";"))
-                .map(line -> line[1])
-                .collect(Collectors.toSet());
-        var awayTeams = lines.stream()
-                .map(line -> line.split(";"))
-                .map(line -> line[2])
-                .collect(Collectors.toSet());
-        teamNames.addAll(awayTeams);
+                .toList();
+        var teamNames = new LinkedHashSet<String>();
+        for (var line : splittedLines) {
+            teamNames.add(line[1]);
+        }
+        for (var line : splittedLines) {
+            teamNames.add(line[2]);
+        }
 
+        var shortCodeGenerator = new TeamShortCodeGenerator();
         var teams = teamNames.stream()
-                .map(Team::new)
+                .map(name -> Team.builder()
+                        .name(name)
+                        .shortCode(overrideFor(name, shortCodeGenerator))
+                        .build())
                 .toList();
 
         teamRepository.saveAll(teams);
         log.info(CREATED + teams.size() + " teams");
+    }
+
+    /**
+     * Returns the code to store for {@code name}, or {@code null} when the generated code is
+     * the one {@code Team.getShortCode()} would derive anyway.
+     *
+     * <p>Storing a redundant copy would freeze the code against later renames — the very
+     * behaviour the read-only {@code short} field exists to avoid — and buys nothing, since
+     * the rendered result is identical either way. The generator is still asked for every
+     * team, so each derived code stays reserved and a genuine collision (Lech / Lechia) is
+     * the one case that ends up with a stored override.
+     */
+    private static String overrideFor(String name, TeamShortCodeGenerator shortCodeGenerator) {
+        var generated = shortCodeGenerator.generate(name);
+        return generated == null || generated.equals(Team.deriveShortCode(name)) ? null : generated;
     }
 }

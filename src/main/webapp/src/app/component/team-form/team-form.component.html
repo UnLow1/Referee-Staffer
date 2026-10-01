@@ -26,5 +26,19 @@
         <span class="hint">Used to detect same-city derbies in match difficulty.</span>
       }
     </div>
+
+    <div class="field-block" [class.invalid]="short.invalid && (short.touched || short.dirty)">
+      <label class="lbl" for="short">Short code</label>
+      <input class="input" type="text" id="short" name="short" [placeholder]="derivedShort || 'LEG'"
+             [maxlength]="shortCodeMaxLength" [pattern]="shortCodePattern" autocapitalize="characters"
+             [(ngModel)]="model.shortOverride" #short="ngModel">
+      @if (short.invalid && (short.touched || short.dirty)) {
+        <span class="err"><app-icon name="info" [size]="12"></app-icon>Letters and digits only, up to
+          {{ shortCodeMaxLength }}</span>
+      } @else {
+        <span class="hint">Shown on the team pill. Leave empty to derive it from the name &mdash; set it
+          to break ties, e.g. Lech vs Lechia.</span>
+      }
+    </div>
   </form>
 </app-form-drawer>
