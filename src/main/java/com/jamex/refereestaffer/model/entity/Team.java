@@ -98,6 +98,8 @@ public class Team {
      */
     public String getShortCode() {
         if (shortCode != null && !shortCode.isBlank()) {
+            // Upper-cased here as well as in the setter: Hibernate writes the field directly
+            // when loading a row, so a legacy lower-case value never passes through setShortCode.
             return shortCode.toUpperCase();
         }
         return deriveShortCode(name);
@@ -114,6 +116,8 @@ public class Team {
      * the team form un-sets a code the user no longer wants.
      */
     public void setShortCode(String shortCode) {
+        // Trimming matters for in-process callers (the importer, tests); requests never reach
+        // here with surrounding whitespace, since TeamDto's @Pattern rejects it with a 400.
         this.shortCode = shortCode == null || shortCode.isBlank() ? null : shortCode.trim().toUpperCase();
     }
 
@@ -125,7 +129,12 @@ public class Team {
      */
     public static String deriveShortCode(String name) {
         var alphanumeric = alphanumericUpperCase(name);
-        return alphanumeric.substring(0, Math.min(SHORT_CODE_LENGTH, alphanumeric.length()));
+        // Counted in code points, not chars, so a name opening with a supplementary-plane
+        // character cannot be cut in the middle of a surrogate pair.
+        if (alphanumeric.codePointCount(0, alphanumeric.length()) <= SHORT_CODE_LENGTH) {
+            return alphanumeric;
+        }
+        return alphanumeric.substring(0, alphanumeric.offsetByCodePoints(0, SHORT_CODE_LENGTH));
     }
 
     /** Uppercased name with every non-alphanumeric character dropped; never null. */

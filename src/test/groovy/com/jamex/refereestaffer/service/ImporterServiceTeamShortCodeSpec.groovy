@@ -48,25 +48,27 @@ class ImporterServiceTeamShortCodeSpec extends Specification {
         return saved
     }
 
-    def "should store a generated short code for every imported team"() {
-        when:
+    def "should not store an override when the generated code equals the fallback"() {
+        when: "two teams whose prefixes do not collide with anything"
         def teams = importAndCaptureTeams("1;Legia;Wisla;01.01.2025 12:00;John Smith;1;0;8.3")
 
-        then: "the column is populated, not left to the name-derived fallback"
+        then: "the column stays empty, so a later rename still moves the code"
         teams*.name == ["Legia", "Wisla"]
-        teams*.shortCodeOverride == ["LEG", "WIS"]
+        teams*.shortCodeOverride == [null, null]
+        and: "the rendered codes are unaffected - the fallback already produces them"
+        teams*.shortCode == ["LEG", "WIS"]
     }
 
-    def "should give colliding team names distinct short codes"() {
+    def "should store an override for the team that loses a prefix collision"() {
         when: "Lech and Lechia share a three-letter prefix"
         def teams = importAndCaptureTeams(
                 "1;Lech;Lechia;01.01.2025 12:00;John Smith;1;0;8.3")
 
-        then: "the second one slides off the shared prefix instead of duplicating it"
+        then: "the first keeps the fallback, the second gets a stored code"
         teams*.name == ["Lech", "Lechia"]
-        teams*.shortCodeOverride == ["LEC", "LEH"]
-        and: "which is the whole point - the rendered codes differ too"
-        teams*.shortCode.toSet().size() == 2
+        teams*.shortCodeOverride == [null, "LECH"]
+        and: "which is the whole point of the ticket - the rendered codes now differ"
+        teams*.shortCode == ["LEC", "LECH"]
     }
 
     def "should assign codes in CSV order so the same file always imports identically"() {
@@ -76,8 +78,9 @@ class ImporterServiceTeamShortCodeSpec extends Specification {
 
         then: "first appearance wins the plain prefix - home columns before away columns"
         teams*.name == ["Lechia", "Lech"]
-        and: "so the codes swap owners compared with the opposite ordering"
-        teams*.shortCodeOverride == ["LEC", "LEH"]
+        and: "so this time Lechia keeps the fallback and Lech is the one carrying an override"
+        teams*.shortCodeOverride == [null, "LECH"]
+        teams*.shortCode == ["LEC", "LECH"]
     }
 
     def "should deduplicate team names appearing in several rows"() {
@@ -88,7 +91,7 @@ class ImporterServiceTeamShortCodeSpec extends Specification {
 
         then: "each team is created once, so no code is wasted on a repeat"
         teams*.name == ["Legia", "Wisla"]
-        teams*.shortCodeOverride == ["LEG", "WIS"]
+        teams*.shortCode == ["LEG", "WIS"]
     }
 
     def "should leave the override empty when a team name has no alphanumeric character"() {
@@ -99,31 +102,24 @@ class ImporterServiceTeamShortCodeSpec extends Specification {
         teams*.name == ["???", "Wisla"]
         teams[0].shortCodeOverride == null
         teams[0].shortCode == ""
-        teams[1].shortCodeOverride == "WIS"
     }
 
-    def "should generate distinct codes across the whole real import file"() {
-        given:
-        def file = new File("data/import data file.csv")
-        def multipartFile = new MockMultipartFile("file", new FileInputStream(file))
-        List<Team> saved = null
+    def "should give every team a distinct rendered code across a colliding league"() {
+        when: "a league where four clubs share the LEC prefix and two more share WIS"
+        def teams = importAndCaptureTeams(
+                "1;Lech;Lechia;01.01.2025 12:00;John Smith;1;0;8.3",
+                "2;Lecha;Lechxx;02.01.2025 12:00;John Smith;1;0;8.3",
+                "3;Wisla;Wislanie;03.01.2025 12:00;John Smith;1;0;8.3",
+                "4;\u015al\u0105sk;\u0141KS;04.01.2025 12:00;John Smith;1;0;8.3")
 
-        teamRepository.saveAll(_) >> { args -> saved = args[0] as List<Team>; saved }
-        teamRepository.findByName(_) >> Optional.of(new Team())
-        refereeRepository.findByFirstNameAndLastName(_, _) >> Optional.of(new Referee())
-        teamRepository.findAll() >> []
-        refereeRepository.findAll() >> []
-        matchRepository.findAll() >> []
-        gradeRepository.findAll() >> []
-
-        when:
-        importerService.importData(multipartFile, 30 as short)
-
-        then: "every team gets a code and no two teams share one"
-        saved.size() > 1
-        saved.every { it.shortCodeOverride != null }
-        saved*.shortCodeOverride.toSet().size() == saved.size()
-        and: "codes fit the short_code column"
-        saved.every { it.shortCodeOverride.length() <= 8 }
+        then: "home columns are collected before away columns"
+        teams*.name == ["Lech", "Lecha", "Wisla", "\u015al\u0105sk", "Lechia", "Lechxx", "Wislanie", "\u0141KS"]
+        and: "no two teams render the same code - which the fallback alone could never manage"
+        teams*.shortCode == ["LEC", "LECH", "WIS", "\u015aL\u0104", "LEH", "LEX", "WISL", "\u0141KS"]
+        teams*.shortCode.toSet().size() == 8
+        and: "only the teams that lost a collision carry a stored override"
+        teams.findAll { it.shortCodeOverride != null }*.name == ["Lecha", "Lechia", "Lechxx", "Wislanie"]
+        and: "every code stays renderable in the pill, diacritics included"
+        teams*.shortCode.every { it.length() <= TeamShortCodeGenerator.MAX_CODE_LENGTH }
     }
 }

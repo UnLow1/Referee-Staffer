@@ -4,7 +4,7 @@ import {NgForm} from '@angular/forms';
 import {of} from 'rxjs';
 import {TeamFormComponent} from './team-form.component';
 import {TeamService} from '../../service/team.service';
-import {Team} from '../../model/team';
+import {SHORT_CODE_MAX_LENGTH, Team} from '../../model/team';
 import {createMock} from '../../testing/mock';
 
 describe('TeamFormComponent', () => {
@@ -132,5 +132,61 @@ describe('TeamFormComponent', () => {
     expect(input).toBeTruthy();
     expect(input.value).toBe('AFA');
     expect(input.required).toBe(false);
+  });
+
+  // The specs below type into the real input and read the form's own validity, so the
+  // template validators actually run. Asserting on a {valid: true} NgForm stub cannot catch
+  // a broken `pattern`, which is how an unusable field once passed a green suite.
+  async function typeShortCode(fixture: ComponentFixture<TeamFormComponent>, value: string): Promise<NgForm> {
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('#short');
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return formOf(fixture);
+  }
+
+  function formOf(fixture: ComponentFixture<TeamFormComponent>): NgForm {
+    return fixture.debugElement.query(node => node.name === 'form').injector.get(NgForm);
+  }
+
+  it.each([
+    ['LGA', true],
+    ['ŁKS', true],
+    ['LG1', true],
+    ['', true],
+    ['LG-', false],
+    ['LG A', false]
+  ])('treats a short code of %o as valid=%o', async (value, expected) => {
+    const fixture = create(existing);
+
+    const form = await typeShortCode(fixture, value as string);
+
+    expect((fixture.nativeElement.querySelector('#short') as HTMLInputElement).value).toBe(value);
+    expect(form.controls['short'].valid).toBe(expected);
+  });
+
+  it('keeps the whole form submittable after typing a plain code', async () => {
+    const fixture = create(existing);
+
+    const form = await typeShortCode(fixture, 'LGA');
+
+    // The drawer gates its submit button on form validity, so an invalid pattern here would
+    // make the drawer silently unsavable — including for a plain name or city edit.
+    expect(form.valid).toBe(true);
+  });
+
+  it('caps the short code input at the length the team pill can render', () => {
+    const input: HTMLInputElement = create(existing).nativeElement.querySelector('#short');
+
+    expect(input.maxLength).toBe(SHORT_CODE_MAX_LENGTH);
+  });
+
+  it('opens valid for an imported team that already carries an override', async () => {
+    const fixture = create({...existing, short: 'LECH', shortOverride: 'LECH'});
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(formOf(fixture).valid).toBe(true);
   });
 });
