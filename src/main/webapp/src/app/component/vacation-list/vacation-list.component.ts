@@ -44,7 +44,7 @@ export class VacationListComponent implements OnInit {
   readonly deleteTarget = signal<Vacation | null>(null);
 
   readonly sortedVacations = computed(() =>
-    [...this.vacations()].sort((a, b) => String(a.startDate).localeCompare(String(b.startDate))));
+    [...this.vacations()].sort((a, b) => a.startDate.localeCompare(b.startDate)));
 
   readonly deleteGuard = computed<ModalData>(() => {
     const target = this.deleteTarget();
@@ -103,8 +103,8 @@ export class VacationListComponent implements OnInit {
 
   status(vacation: Vacation): VacationStatus {
     const today = todayIso();
-    if (today < String(vacation.startDate)) return 'upcoming';
-    if (today > String(vacation.endDate)) return 'past';
+    if (today < vacation.startDate) return 'upcoming';
+    if (today > vacation.endDate) return 'past';
     return 'active';
   }
 

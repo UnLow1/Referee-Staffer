@@ -31,11 +31,8 @@ export class VacationFormComponent implements OnInit {
   @Output() closed = new EventEmitter<void>();
 
   referees: Referee[] = [];
-  model: Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'> = {
-    refereeId: undefined as unknown as number,
-    startDate: undefined as unknown as Date,
-    endDate: undefined as unknown as Date
-  };
+  /** Draft of the editable fields — every one starts empty, so they are all optional. */
+  model: Partial<Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'>> = {};
 
   get editMode(): boolean {
     return this.vacation != null;
@@ -58,6 +55,8 @@ export class VacationFormComponent implements OnInit {
 
   onSubmit(form: NgForm): void {
     if (!form.valid || this.endBeforeStart) return;
+    // `{} as Vacation` covers the create path, where there is no `id` yet — the same
+    // create-payload gap as the other three forms, tracked as RS-118.
     const payload: Vacation = {...(this.vacation ?? {} as Vacation), ...this.model};
     const request = this.editMode
       ? this.vacationService.update(payload)

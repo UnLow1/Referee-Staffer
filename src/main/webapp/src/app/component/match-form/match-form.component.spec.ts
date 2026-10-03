@@ -34,13 +34,12 @@ describe('MatchFormComponent', () => {
       queue: 3,
       homeTeamId: 1,
       awayTeamId: 2,
-      date: new Date('2026-03-01T12:00:00'),
+      date: '2026-03-01T12:00:00',
       refereeId: 100,
-      gradeId: undefined,
       homeScore: 2,
       awayScore: 1,
       ...overrides
-    } as Match;
+    };
   }
 
   const validForm = {valid: true} as NgForm;
@@ -80,7 +79,7 @@ describe('MatchFormComponent', () => {
       expect(component.teams).toEqual(teams);
       expect(component.referees).toEqual(referees);
       expect(component.editMode).toBe(false);
-      expect(component.model).toEqual({} as Match);
+      expect(component.model).toEqual({});
       expect(gradeService.findById).not.toHaveBeenCalled();
     });
 
@@ -135,6 +134,8 @@ describe('MatchFormComponent', () => {
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
+      // Cast only because `Match.id` is required on the read model (RS-118), not
+      // because any of the three fields set here is mistyped.
       component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2} as Match;
       component.onSubmit(validForm);
 
@@ -239,6 +240,8 @@ describe('MatchFormComponent', () => {
       const gradeDelete = new Subject<void>();
       gradeService.delete.mockReturnValue(gradeDelete);
 
+      // `GradeDto.value` is @NotNull, so the cast is the empty-draft state of the form
+      // input, not a nullable wire field.
       component.grade.value = undefined as unknown as number;
       component.onSubmit(validForm);
 

@@ -54,15 +54,20 @@ export class GradeListComponent implements OnInit {
     const refs = this.refereesById();
     const teams = this.teamsById();
     return this.matches()
-      .filter(m => m.gradeId != null)
-      .map<GradeRow>(m => ({
-        match: m,
-        referee: m.refereeId != null ? refs.get(m.refereeId) : undefined,
-        home: teams.get(m.homeTeamId),
-        away: teams.get(m.awayTeamId),
-        grade: grades.get(m.gradeId)!
-      }))
-      .filter(r => r.grade != null)
+      // flatMap, not filter + map: `filter` narrows nothing, so the grade lookup would
+      // otherwise need a non-null assertion that contradicts the drop below. Two reasons
+      // to drop a match — it has no gradeId, or the batch lookup didn't return its grade.
+      .flatMap<GradeRow>(m => {
+        const grade = m.gradeId != null ? grades.get(m.gradeId) : undefined;
+        if (grade == null) return [];
+        return [{
+          match: m,
+          referee: m.refereeId != null ? refs.get(m.refereeId) : undefined,
+          home: teams.get(m.homeTeamId),
+          away: teams.get(m.awayTeamId),
+          grade
+        }];
+      })
       .sort((a, b) => (b.match.queue ?? 0) - (a.match.queue ?? 0));
   });
 
@@ -119,7 +124,7 @@ export class GradeListComponent implements OnInit {
     event.stopPropagation();
     this.gradeService.delete(row.grade).subscribe(() => {
       this.matches.update(prev => prev.map(m =>
-        m.id === row.match.id ? {...m, gradeId: undefined as unknown as number} : m
+        m.id === row.match.id ? {...m, gradeId: undefined} : m
       ));
       this.gradesById.update(prev => {
         const next = new Map(prev);
