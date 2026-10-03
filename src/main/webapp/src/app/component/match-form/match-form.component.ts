@@ -85,7 +85,8 @@ export class MatchFormComponent implements OnInit {
    * Narrows the draft into a create payload. Queue and both teams are `required` in the
    * template (and unconditionally `@NotNull` on MatchDto), so a valid form always filled
    * them — this re-proves that to the compiler instead of casting an incomplete draft to
-   * a full `Match`.
+   * a full `Match`. A `null` result therefore means the validators were bypassed, not
+   * that the user left something out — the drawer keeps submit disabled until then.
    */
   private toPayload(): NewMatch | null {
     const {queue, homeTeamId, awayTeamId} = this.model;

@@ -27,8 +27,8 @@ export interface Referee {
 /**
  * Body of POST /api/referees. `id` is backend-assigned and every stat field is derived by
  * RefereeService.enrichWithStats, so a create carries the four editable fields — exactly
- * RefereeDto's unconditional `@NotNull` / `@NotBlank` set.
+ * RefereeDto's unconditional `@NotNull` / `@NotBlank` set. The stats are omitted rather
+ * than made optional, so the type cannot be used to send a value the backend ignores.
  */
 export type NewReferee =
-  Partial<Omit<Referee, 'id'>>
-  & Pick<Referee, 'firstName' | 'lastName' | 'email' | 'experience'>;
+  Omit<Referee, 'id' | 'averageGrade' | 'lastQueue' | 'potential' | 'homeWins' | 'awayWins'>;

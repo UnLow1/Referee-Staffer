@@ -66,7 +66,9 @@ export class VacationFormComponent implements OnInit {
   /**
    * Narrows the draft into a create payload. All three inputs are `required` in the
    * template, so a valid form always filled them — this re-proves that to the compiler
-   * instead of casting an incomplete draft to a full `Vacation`.
+   * instead of casting an incomplete draft to a full `Vacation`. A `null` result therefore
+   * means the validators were bypassed, not that the user left something out — the drawer
+   * keeps submit disabled until then.
    */
   private toPayload(): NewVacation | null {
     const {refereeId, startDate, endDate} = this.model;

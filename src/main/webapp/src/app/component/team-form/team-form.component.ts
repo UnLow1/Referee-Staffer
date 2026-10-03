@@ -47,7 +47,8 @@ export class TeamFormComponent implements OnInit {
     if (!form.valid) return;
     const request = this.team
       ? this.teamService.update({...this.team, ...this.model})
-      : this.teamService.save(this.model);
+      // A copy, not the live draft: `ngModel` keeps mutating `this.model`.
+      : this.teamService.save({...this.model});
     request.subscribe(saved => this.saved.emit(saved));
   }
 }

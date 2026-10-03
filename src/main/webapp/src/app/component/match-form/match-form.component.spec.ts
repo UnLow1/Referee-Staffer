@@ -159,6 +159,27 @@ describe('MatchFormComponent', () => {
       expect(emitted).toEqual([saved]);
     });
 
+    it('posts every optional draft field alongside the mandatory ones', () => {
+      const component = createComponent(null).componentInstance;
+      matchService.save.mockReturnValue(of(makeMatch({id: 42})));
+
+      // A full draft: the payload must carry the optional fields too, not just the three
+      // the create contract marks mandatory.
+      const draft = {
+        queue: 3,
+        homeTeamId: 1,
+        awayTeamId: 2,
+        date: new Date('2026-03-01T12:00:00'),
+        refereeId: 100,
+        homeScore: 2,
+        awayScore: 1
+      };
+      component.model = {...draft};
+      component.onSubmit(validForm);
+
+      expect(matchService.save).toHaveBeenCalledWith(draft);
+    });
+
     it('posts nothing when a mandatory field is missing, even if the form claims to be valid', () => {
       const component = createComponent(null).componentInstance;
 
@@ -231,10 +252,12 @@ describe('MatchFormComponent', () => {
     it('updates the match and emits it when the grade was never touched', () => {
       createInEditMode();
 
+      // Touch an optional field so the assert cannot pass on the untouched copy alone.
+      component.model.awayScore = 3;
       component.onSubmit(validForm);
 
       // The draft is spread back over the edited row, so id and gradeId survive.
-      expect(matchService.update).toHaveBeenCalledWith(edited);
+      expect(matchService.update).toHaveBeenCalledWith({...edited, awayScore: 3});
       expect(gradeService.save).not.toHaveBeenCalled();
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.delete).not.toHaveBeenCalled();
