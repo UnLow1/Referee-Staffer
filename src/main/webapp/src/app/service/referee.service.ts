@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
-import {Referee} from "../model/referee";
+import {NewReferee, Referee} from "../model/referee";
 import {environment} from "../../environments/environment";
 
 @Injectable({
@@ -30,7 +30,7 @@ export class RefereeService {
     return this.http.put<Referee>(this.refereesUrl, referee)
   }
 
-  public save(referee: Referee): Observable<Referee> {
+  public save(referee: NewReferee): Observable<Referee> {
     return this.http.post<Referee>(this.refereesUrl, referee)
   }
 

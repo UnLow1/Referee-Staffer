@@ -23,3 +23,12 @@ export interface Referee {
   /** Number of past matches officiated where the away team won. See homeWins. */
   awayWins?: number;
 }
+
+/**
+ * Body of POST /api/referees. `id` is backend-assigned and every stat field is derived by
+ * RefereeService.enrichWithStats, so a create carries the four editable fields — exactly
+ * RefereeDto's unconditional `@NotNull` / `@NotBlank` set.
+ */
+export type NewReferee =
+  Partial<Omit<Referee, 'id'>>
+  & Pick<Referee, 'firstName' | 'lastName' | 'email' | 'experience'>;
