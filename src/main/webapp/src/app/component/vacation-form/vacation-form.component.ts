@@ -55,6 +55,8 @@ export class VacationFormComponent implements OnInit {
 
   onSubmit(form: NgForm): void {
     if (!form.valid || this.endBeforeStart) return;
+    // `{} as Vacation` covers the create path, where there is no `id` yet — the same
+    // create-payload gap as the other three forms, tracked as RS-118.
     const payload: Vacation = {...(this.vacation ?? {} as Vacation), ...this.model};
     const request = this.editMode
       ? this.vacationService.update(payload)
