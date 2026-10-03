@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
-import {Vacation} from '../../model/vacation';
+import {NewVacation, Vacation} from '../../model/vacation';
 import {Referee} from '../../model/referee';
 import {VacationService} from '../../service/vacation.service';
 import {RefereeService} from '../../service/referee.service';
@@ -31,11 +31,8 @@ export class VacationFormComponent implements OnInit {
   @Output() closed = new EventEmitter<void>();
 
   referees: Referee[] = [];
-  model: Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'> = {
-    refereeId: undefined as unknown as number,
-    startDate: undefined as unknown as Date,
-    endDate: undefined as unknown as Date
-  };
+  /** Draft of the editable fields — nothing is preselected, so all three are optional. */
+  model: Partial<Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'>> = {};
 
   get editMode(): boolean {
     return this.vacation != null;
@@ -58,10 +55,22 @@ export class VacationFormComponent implements OnInit {
 
   onSubmit(form: NgForm): void {
     if (!form.valid || this.endBeforeStart) return;
-    const payload: Vacation = {...(this.vacation ?? {} as Vacation), ...this.model};
-    const request = this.editMode
-      ? this.vacationService.update(payload)
+    const payload = this.toPayload();
+    if (!payload) return;
+    const request = this.vacation
+      ? this.vacationService.update({...this.vacation, ...payload})
       : this.vacationService.save(payload);
     request.subscribe(saved => this.saved.emit(saved));
+  }
+
+  /**
+   * Narrows the draft into a create payload. All three inputs are `required` in the
+   * template, so a valid form always filled them — this re-proves that to the compiler
+   * instead of casting an incomplete draft to a full `Vacation`.
+   */
+  private toPayload(): NewVacation | null {
+    const {refereeId, startDate, endDate} = this.model;
+    if (refereeId == null || startDate == null || endDate == null) return null;
+    return {refereeId, startDate, endDate};
   }
 }

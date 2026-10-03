@@ -8,3 +8,10 @@ export interface Team {
   // `name` when absent.
   short?: string;
 }
+
+/**
+ * Body of POST /api/teams. `id` is backend-assigned, `points` is maintained from match
+ * results and `short` is read-only (TeamDto ignores it on write), so a create carries
+ * name + city — TeamDto's `@NotBlank` pair.
+ */
+export type NewTeam = Partial<Omit<Team, 'id'>> & Pick<Team, 'name' | 'city'>;

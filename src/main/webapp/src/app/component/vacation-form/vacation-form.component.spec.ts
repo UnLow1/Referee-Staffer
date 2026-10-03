@@ -113,7 +113,20 @@ describe('VacationFormComponent', () => {
       component.onSubmit(validForm);
 
       expect(vacationService.save).toHaveBeenCalledWith(expect.objectContaining({refereeId: 1}));
+      // The backend assigns the id, so the create payload must not invent one.
+      expect(vacationService.save.mock.calls[0][0]).not.toHaveProperty('id');
       expect(emitted).toEqual([saved]);
+    });
+
+    it('posts nothing when a mandatory field is missing, even if the form claims to be valid', () => {
+      const component = create(null).componentInstance;
+
+      // No referee picked; both date inputs are `required` as well.
+      component.model = {startDate: '2026-08-01' as unknown as Date};
+      component.onSubmit(validForm);
+
+      expect(vacationService.save).not.toHaveBeenCalled();
+      expect(vacationService.update).not.toHaveBeenCalled();
     });
 
     it('updates on edit, keeping the id from the original vacation', () => {

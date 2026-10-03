@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
-import {Vacation} from "../model/vacation";
+import {NewVacation, Vacation} from "../model/vacation";
 import {environment} from "../../environments/environment";
 
 @Injectable({
@@ -26,7 +26,7 @@ export class VacationService {
     return this.http.get<Vacation>(`${this.vacationsUrl}/${id}`, this.httpOptions);
   }
 
-  public save(vacation: Vacation): Observable<Vacation> {
+  public save(vacation: NewVacation): Observable<Vacation> {
     return this.http.post<Vacation>(this.vacationsUrl, vacation)
   }
 

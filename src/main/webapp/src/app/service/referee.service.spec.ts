@@ -5,7 +5,7 @@ import {HttpTestingController, provideHttpClientTesting} from '@angular/common/h
 import {RefereeService} from './referee.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
-import {Referee} from '../model/referee';
+import {NewReferee, Referee} from '../model/referee';
 
 describe('RefereeService', () => {
   const refereesUrl = '/api/referees';
@@ -61,13 +61,20 @@ describe('RefereeService', () => {
     expect(result).toEqual(referee);
   });
 
-  it('save POSTs the new referee', () => {
+  it('save POSTs the create payload without an id', () => {
+    const payload: NewReferee = {
+      firstName: referee.firstName,
+      lastName: referee.lastName,
+      email: referee.email,
+      experience: referee.experience
+    };
     let result: Referee | undefined;
-    service.save(referee).subscribe(r => result = r);
+    service.save(payload).subscribe(r => result = r);
 
     const req = httpTesting.expectOne(refereesUrl);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(referee);
+    expect(req.request.body).toEqual(payload);
+    expect(req.request.body).not.toHaveProperty('id');
     req.flush(referee);
 
     expect(result).toEqual(referee);
