@@ -54,7 +54,8 @@ export class GradeListComponent implements OnInit {
     const refs = this.refereesById();
     const teams = this.teamsById();
     return this.matches()
-      .filter(m => m.gradeId != null)
+      // Type predicate, not a plain filter: it narrows gradeId to a number for the map below.
+      .filter((m): m is Match & {gradeId: number} => m.gradeId != null)
       .map<GradeRow>(m => ({
         match: m,
         referee: m.refereeId != null ? refs.get(m.refereeId) : undefined,
@@ -119,7 +120,7 @@ export class GradeListComponent implements OnInit {
     event.stopPropagation();
     this.gradeService.delete(row.grade).subscribe(() => {
       this.matches.update(prev => prev.map(m =>
-        m.id === row.match.id ? {...m, gradeId: undefined as unknown as number} : m
+        m.id === row.match.id ? {...m, gradeId: undefined} : m
       ));
       this.gradesById.update(prev => {
         const next = new Map(prev);

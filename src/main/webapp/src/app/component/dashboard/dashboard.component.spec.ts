@@ -33,13 +33,9 @@ describe('DashboardComponent', () => {
       queue: 1,
       homeTeamId: 1,
       awayTeamId: 2,
-      date: new Date('2026-03-01T12:00:00'),
-      refereeId: undefined,
-      gradeId: undefined,
-      homeScore: undefined,
-      awayScore: undefined,
+      date: '2026-03-01T12:00:00',
       ...overrides
-    } as Match;
+    };
   }
 
   const matches: Match[] = [

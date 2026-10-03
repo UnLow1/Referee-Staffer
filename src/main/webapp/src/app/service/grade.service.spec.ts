@@ -16,7 +16,7 @@ describe('GradeService', () => {
     queue: 5,
     homeTeamId: 1,
     awayTeamId: 2,
-    date: new Date('2026-05-10T17:00:00Z'),
+    date: '2026-05-10T17:00:00',
     refereeId: 7,
     gradeId: 4,
     homeScore: 2,
