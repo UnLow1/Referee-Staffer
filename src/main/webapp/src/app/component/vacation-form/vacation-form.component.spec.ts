@@ -18,10 +18,9 @@ describe('VacationFormComponent', () => {
     {id: 2, firstName: 'Adam', lastName: 'Adamski', email: 'a@example.com', experience: 8}
   ];
 
-  // Native date inputs bind ISO strings, not Date objects — mirror that in the fixture.
-  const existing = {
+  const existing: Vacation = {
     id: 4, refereeId: 2, startDate: '2026-08-01', endDate: '2026-08-14'
-  } as unknown as Vacation;
+  };
 
   const validForm = {valid: true} as NgForm;
 
@@ -56,7 +55,7 @@ describe('VacationFormComponent', () => {
     const component = create(existing).componentInstance;
 
     expect(component.editMode).toBe(true);
-    expect(component.model).toEqual({refereeId: 2, startDate: '2026-08-01', endDate: '2026-08-14'} as unknown as typeof component.model);
+    expect(component.model).toEqual({refereeId: 2, startDate: '2026-08-01', endDate: '2026-08-14'});
   });
 
   describe('endBeforeStart', () => {
@@ -64,19 +63,19 @@ describe('VacationFormComponent', () => {
       const component = create(null).componentInstance;
       expect(component.endBeforeStart).toBe(false);
 
-      component.model.startDate = '2026-08-01' as unknown as Date;
+      component.model.startDate = '2026-08-01';
       expect(component.endBeforeStart).toBe(false);
     });
 
     it('is true only when the end is strictly before the start', () => {
       const component = create(null).componentInstance;
-      component.model.startDate = '2026-08-10' as unknown as Date;
+      component.model.startDate = '2026-08-10';
 
-      component.model.endDate = '2026-08-09' as unknown as Date;
+      component.model.endDate = '2026-08-09';
       expect(component.endBeforeStart).toBe(true);
 
       // A one-day vacation (start == end) is valid.
-      component.model.endDate = '2026-08-10' as unknown as Date;
+      component.model.endDate = '2026-08-10';
       expect(component.endBeforeStart).toBe(false);
     });
   });
@@ -93,7 +92,7 @@ describe('VacationFormComponent', () => {
       const component = create(null).componentInstance;
       component.model = {
         refereeId: 1, startDate: '2026-08-10', endDate: '2026-08-01'
-      } as unknown as typeof component.model;
+      };
 
       component.onSubmit(validForm);
 
@@ -109,7 +108,7 @@ describe('VacationFormComponent', () => {
 
       component.model = {
         refereeId: 1, startDate: '2026-08-01', endDate: '2026-08-05'
-      } as unknown as typeof component.model;
+      };
       component.onSubmit(validForm);
 
       expect(vacationService.save).toHaveBeenCalledWith(expect.objectContaining({refereeId: 1}));
@@ -120,7 +119,7 @@ describe('VacationFormComponent', () => {
       const component = create(existing).componentInstance;
       vacationService.update.mockReturnValue(of(existing));
 
-      component.model.endDate = '2026-08-20' as unknown as Date;
+      component.model.endDate = '2026-08-20';
       component.onSubmit(validForm);
 
       expect(vacationService.update).toHaveBeenCalledWith(expect.objectContaining({

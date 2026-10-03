@@ -34,13 +34,12 @@ describe('MatchFormComponent', () => {
       queue: 3,
       homeTeamId: 1,
       awayTeamId: 2,
-      date: new Date('2026-03-01T12:00:00'),
+      date: '2026-03-01T12:00:00',
       refereeId: 100,
-      gradeId: undefined,
       homeScore: 2,
       awayScore: 1,
       ...overrides
-    } as Match;
+    };
   }
 
   const validForm = {valid: true} as NgForm;

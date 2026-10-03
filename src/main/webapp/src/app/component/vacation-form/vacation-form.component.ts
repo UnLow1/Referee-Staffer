@@ -31,11 +31,8 @@ export class VacationFormComponent implements OnInit {
   @Output() closed = new EventEmitter<void>();
 
   referees: Referee[] = [];
-  model: Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'> = {
-    refereeId: undefined as unknown as number,
-    startDate: undefined as unknown as Date,
-    endDate: undefined as unknown as Date
-  };
+  /** Draft of the editable fields — every one starts empty, so they are all optional. */
+  model: Partial<Pick<Vacation, 'refereeId' | 'startDate' | 'endDate'>> = {};
 
   get editMode(): boolean {
     return this.vacation != null;

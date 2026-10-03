@@ -12,8 +12,8 @@ describe('VacationService', () => {
   const vacation: Vacation = {
     id: 2,
     refereeId: 7,
-    startDate: new Date('2026-07-01'),
-    endDate: new Date('2026-07-14'),
+    startDate: '2026-07-01',
+    endDate: '2026-07-14',
   };
 
   let service: VacationService;
