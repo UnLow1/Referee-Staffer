@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
-import {Referee} from '../../model/referee';
+import {NewReferee, Referee} from '../../model/referee';
 import {RefereeService} from '../../service/referee.service';
 import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
 import {IconComponent} from '../common/icon/icon.component';
@@ -11,7 +11,7 @@ import {IconComponent} from '../common/icon/icon.component';
  * The host renders this component behind an @if, so it is recreated per open and the
  * working copy can be taken once in ngOnInit. Editable fields only — the enriched stats
  * (averageGrade, potential, lastQueue, homeWins, awayWins) never appear in the form;
- * they survive an edit because the original referee is spread into the payload.
+ * they survive an edit because the draft is spread over the original referee.
  */
 @Component({
   selector: 'app-referee-form',
@@ -31,11 +31,11 @@ export class RefereeFormComponent implements OnInit {
   // TLD dot, so a stricter regex is enforced via `pattern`.
   readonly emailPattern = '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$';
 
-  model: Pick<Referee, 'firstName' | 'lastName' | 'email' | 'experience'> = {
+  /** Draft of the editable fields — `experience` starts out unset, so all four are optional. */
+  model: Partial<Pick<Referee, 'firstName' | 'lastName' | 'email' | 'experience'>> = {
     firstName: '',
     lastName: '',
-    email: '',
-    experience: undefined as unknown as number
+    email: ''
   };
 
   get editMode(): boolean {
@@ -57,10 +57,24 @@ export class RefereeFormComponent implements OnInit {
 
   onSubmit(form: NgForm): void {
     if (!form.valid) return;
-    const payload: Referee = {...(this.referee ?? {} as Referee), ...this.model};
-    const request = this.editMode
-      ? this.refereeService.update(payload)
+    const payload = this.toPayload();
+    if (!payload) return;
+    const request = this.referee
+      ? this.refereeService.update({...this.referee, ...payload})
       : this.refereeService.save(payload);
     request.subscribe(saved => this.saved.emit(saved));
+  }
+
+  /**
+   * Narrows the draft into a create payload. All four inputs are `required` in the
+   * template, so a valid form always filled them — this re-proves that to the compiler
+   * instead of casting an incomplete draft to a full `Referee`. A `null` result therefore
+   * means the validators were bypassed, not that the user left something out — the drawer
+   * keeps submit disabled until then.
+   */
+  private toPayload(): NewReferee | null {
+    const {firstName, lastName, email, experience} = this.model;
+    if (firstName == null || lastName == null || email == null || experience == null) return null;
+    return {firstName, lastName, email, experience};
   }
 }

@@ -7,8 +7,9 @@ import {IconComponent} from '../common/icon/icon.component';
 
 /**
  * Team add/edit form — drawer opened from the team list. Only `name` and `city` are
- * user-edited; `points` / `short` stay backend-owned and ride along via the spread
- * on submit.
+ * user-edited; `points` / `short` stay backend-owned. A create posts the draft as-is
+ * (`NewTeam` has no `id`), an edit spreads the draft over the original row so the
+ * backend-owned fields ride along.
  *
  * Rendered behind an @if by the host, so ngOnInit sees the final input.
  */
@@ -44,10 +45,10 @@ export class TeamFormComponent implements OnInit {
 
   onSubmit(form: NgForm): void {
     if (!form.valid) return;
-    const payload: Team = {...(this.team ?? {} as Team), ...this.model};
-    const request = this.editMode
-      ? this.teamService.update(payload)
-      : this.teamService.save(payload);
+    const request = this.team
+      ? this.teamService.update({...this.team, ...this.model})
+      // A copy, not the live draft: `ngModel` keeps mutating `this.model`.
+      : this.teamService.save({...this.model});
     request.subscribe(saved => this.saved.emit(saved));
   }
 }

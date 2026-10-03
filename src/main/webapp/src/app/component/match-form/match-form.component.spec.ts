@@ -80,30 +80,45 @@ describe('MatchFormComponent', () => {
       expect(component.teams).toEqual(teams);
       expect(component.referees).toEqual(referees);
       expect(component.editMode).toBe(false);
-      expect(component.model).toEqual({} as Match);
+      expect(component.model).toEqual({});
+      expect(component.existingGrade).toBeNull();
       expect(gradeService.findById).not.toHaveBeenCalled();
     });
 
-    it('copies the edited match into the form model so edits do not leak into the list', () => {
-      const match = makeMatch();
+    it('copies the editable fields of the edited match, leaving identity out of the draft', () => {
+      gradeService.findById.mockReturnValue(of({id: 5, value: 8.1}));
+      const match = makeMatch({gradeId: 5});
       const component = createComponent(match).componentInstance;
 
       expect(component.editMode).toBe(true);
-      expect(component.model).toEqual(match);
-      expect(component.model).not.toBe(match);
+      expect(component.model).toEqual({
+        queue: 3,
+        date: match.date,
+        homeTeamId: 1,
+        awayTeamId: 2,
+        refereeId: 100,
+        homeScore: 2,
+        awayScore: 1
+      });
+      // The draft describes a create payload: the backend owns id and gradeId.
+      expect(component.model).not.toHaveProperty('id');
+      expect(component.model).not.toHaveProperty('gradeId');
 
       component.model.queue = 99;
       expect(match.queue).toBe(3);
     });
 
-    it('fetches the existing grade when the match references one', () => {
+    it('fetches the existing grade when the match references one and splits it from the draft', () => {
       const grade: Grade = {id: 5, value: 8.1};
       gradeService.findById.mockReturnValue(of(grade));
 
       const component = createComponent(makeMatch({gradeId: 5})).componentInstance;
 
       expect(gradeService.findById).toHaveBeenCalledWith(5);
-      expect(component.grade).toEqual(grade);
+      // The id stays on existingGrade; the draft holds only what the inputs bind to.
+      expect(component.existingGrade).toEqual(grade);
+      expect(component.grade).toEqual({value: 8.1, secondValue: undefined});
+      expect(component.grade).not.toHaveProperty('id');
     });
 
     it('shows the mode in the drawer title', () => {
@@ -135,12 +150,45 @@ describe('MatchFormComponent', () => {
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
-      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2} as Match;
+      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2};
       component.onSubmit(validForm);
 
-      expect(matchService.save).toHaveBeenCalledWith(component.model);
+      expect(matchService.save).toHaveBeenCalledWith({queue: 3, homeTeamId: 1, awayTeamId: 2});
+      expect(matchService.save.mock.calls[0][0]).not.toHaveProperty('id');
       expect(gradeService.save).not.toHaveBeenCalled();
       expect(emitted).toEqual([saved]);
+    });
+
+    it('posts every optional draft field alongside the mandatory ones', () => {
+      const component = createComponent(null).componentInstance;
+      matchService.save.mockReturnValue(of(makeMatch({id: 42})));
+
+      // A full draft: the payload must carry the optional fields too, not just the three
+      // the create contract marks mandatory.
+      const draft = {
+        queue: 3,
+        homeTeamId: 1,
+        awayTeamId: 2,
+        date: new Date('2026-03-01T12:00:00'),
+        refereeId: 100,
+        homeScore: 2,
+        awayScore: 1
+      };
+      component.model = {...draft};
+      component.onSubmit(validForm);
+
+      expect(matchService.save).toHaveBeenCalledWith(draft);
+    });
+
+    it('posts nothing when a mandatory field is missing, even if the form claims to be valid', () => {
+      const component = createComponent(null).componentInstance;
+
+      // Only the queue was filled: a create payload needs both teams too.
+      component.model = {queue: 3};
+      component.onSubmit(validForm);
+
+      expect(matchService.save).not.toHaveBeenCalled();
+      expect(gradeService.save).not.toHaveBeenCalled();
     });
 
     it('saves a split grade with both components', () => {
@@ -149,11 +197,13 @@ describe('MatchFormComponent', () => {
       matchService.save.mockReturnValue(of(saved));
       gradeService.save.mockReturnValue(of({id: 6, value: 7.9, secondValue: 8.3}));
 
+      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2};
       component.grade.value = 7.9;
       component.grade.secondValue = 8.3;
       component.onSubmit(validForm);
 
-      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade);
+      expect(gradeService.save).toHaveBeenCalledWith(saved, {value: 7.9, secondValue: 8.3});
+      expect(gradeService.save.mock.calls[0][1]).not.toHaveProperty('id');
       expect(component.grade.secondValue).toBe(8.3);
     });
 
@@ -166,21 +216,23 @@ describe('MatchFormComponent', () => {
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
+      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2};
       component.grade.value = 8.4;
       component.onSubmit(validForm);
 
       // The grade must be attached to the match id returned by the backend,
       // and `saved` must not fire until the grade round-trip finishes.
-      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade);
+      expect(gradeService.save).toHaveBeenCalledWith(saved, {value: 8.4, secondValue: undefined});
       expect(emitted).toEqual([]);
 
-      gradeSave.next(component.grade);
+      gradeSave.next({id: 6, value: 8.4});
       expect(emitted).toEqual([saved]);
     });
   });
 
   describe('submit in edit mode', () => {
     let component: MatchFormComponent;
+    let edited: Match;
     let updated: Match;
     let emitted: Match[];
 
@@ -192,16 +244,20 @@ describe('MatchFormComponent', () => {
 
     function createInEditMode(gradeId?: number, storedGrade?: Grade): void {
       if (storedGrade) gradeService.findById.mockReturnValue(of(storedGrade));
-      component = createComponent(makeMatch({gradeId})).componentInstance;
+      edited = makeMatch({gradeId});
+      component = createComponent(edited).componentInstance;
       component.saved.subscribe(m => emitted.push(m));
     }
 
     it('updates the match and emits it when the grade was never touched', () => {
       createInEditMode();
 
+      // Touch an optional field so the assert cannot pass on the untouched copy alone.
+      component.model.awayScore = 3;
       component.onSubmit(validForm);
 
-      expect(matchService.update).toHaveBeenCalledWith(component.model);
+      // The draft is spread back over the edited row, so id and gradeId survive.
+      expect(matchService.update).toHaveBeenCalledWith({...edited, awayScore: 3});
       expect(gradeService.save).not.toHaveBeenCalled();
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.delete).not.toHaveBeenCalled();
@@ -215,7 +271,8 @@ describe('MatchFormComponent', () => {
       component.grade.value = 8.0;
       component.onSubmit(validForm);
 
-      expect(gradeService.update).toHaveBeenCalledWith(component.grade);
+      // The stored id comes from existingGrade, the value from the draft.
+      expect(gradeService.update).toHaveBeenCalledWith({id: 5, value: 8.0, secondValue: undefined});
       expect(gradeService.save).not.toHaveBeenCalled();
       expect(gradeService.delete).not.toHaveBeenCalled();
       expect(emitted).toEqual([updated]);
@@ -228,7 +285,7 @@ describe('MatchFormComponent', () => {
       component.grade.value = 8.2;
       component.onSubmit(validForm);
 
-      expect(gradeService.save).toHaveBeenCalledWith(updated, component.grade);
+      expect(gradeService.save).toHaveBeenCalledWith(updated, {value: 8.2, secondValue: undefined});
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.delete).not.toHaveBeenCalled();
       expect(emitted).toEqual([updated]);
@@ -239,10 +296,10 @@ describe('MatchFormComponent', () => {
       const gradeDelete = new Subject<void>();
       gradeService.delete.mockReturnValue(gradeDelete);
 
-      component.grade.value = undefined as unknown as number;
+      component.grade.value = undefined;
       component.onSubmit(validForm);
 
-      expect(gradeService.delete).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.delete).toHaveBeenCalledWith({id: 5, value: 7.5});
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.save).not.toHaveBeenCalled();
       // Emission waits for the delete to complete.

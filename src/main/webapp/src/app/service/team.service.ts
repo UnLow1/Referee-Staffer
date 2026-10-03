@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
-import {Team} from "../model/team";
+import {NewTeam, Team} from "../model/team";
 import {Standings} from "../model/standing";
 import {environment} from "../../environments/environment";
 
@@ -31,7 +31,7 @@ export class TeamService {
     return this.http.post<Team[]>(`${this.teamsUrl}/byIds`, {ids}, this.httpOptions);
   }
 
-  public save(team: Team): Observable<Team> {
+  public save(team: NewTeam): Observable<Team> {
     return this.http.post<Team>(this.teamsUrl, team)
   }
 

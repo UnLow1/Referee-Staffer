@@ -23,3 +23,12 @@ export interface Referee {
   /** Number of past matches officiated where the away team won. See homeWins. */
   awayWins?: number;
 }
+
+/**
+ * Body of POST /api/referees. `id` is backend-assigned and every stat field is derived by
+ * RefereeService.enrichWithStats, so a create carries the four editable fields — exactly
+ * RefereeDto's unconditional `@NotNull` / `@NotBlank` set. The stats are omitted rather
+ * than made optional, so the type cannot be used to send a value the backend ignores.
+ */
+export type NewReferee =
+  Omit<Referee, 'id' | 'averageGrade' | 'lastQueue' | 'potential' | 'homeWins' | 'awayWins'>;

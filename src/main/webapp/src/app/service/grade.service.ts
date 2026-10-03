@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from "@angular/common/http";
 import {Observable} from "rxjs";
-import {Grade} from "../model/grade";
+import {Grade, NewGrade} from "../model/grade";
 import {Match} from "../model/match";
 import {environment} from "../../environments/environment";
 
@@ -35,7 +35,7 @@ export class GradeService {
     return this.http.post<Grade[]>(`${this.gradesUrl}/byIds`, {ids}, this.httpOptions);
   }
 
-  public save(match: Match, grade: Grade): Observable<Grade> {
+  public save(match: Match, grade: NewGrade): Observable<Grade> {
     return this.http.post<Grade>(`${this.gradesUrl}/${match.id}`, grade)
   }
 

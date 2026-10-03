@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from "@angular/common/http";
 import {Observable} from "rxjs";
-import {Match} from "../model/match";
+import {Match, NewMatch} from "../model/match";
 import {DifficultyBreakdown} from "../model/difficultyBreakdown";
 import {environment} from "../../environments/environment";
 
@@ -22,7 +22,7 @@ export class MatchService {
     return this.http.get<Match[]>(this.matchesUrl)
   }
 
-  public save(match: Match): Observable<Match> {
+  public save(match: NewMatch): Observable<Match> {
     return this.http.post<Match>(this.matchesUrl, match)
   }
 

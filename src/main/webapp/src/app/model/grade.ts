@@ -6,6 +6,12 @@ export interface Grade {
 }
 
 /**
+ * Body of POST /api/grades/{matchId}. `id` is backend-assigned; GradeDto requires `value`
+ * and leaves the second component of a split grade optional.
+ */
+export type NewGrade = Omit<Grade, 'id'>;
+
+/**
  * The grade that counts towards referee statistics: the arithmetic mean of both
  * components of a split grade (7.9/8.3 -> 8.1), or the single value otherwise.
  * Mirrors Grade.getEffectiveValue() on the backend.
