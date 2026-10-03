@@ -79,7 +79,7 @@ describe('MatchFormComponent', () => {
       expect(component.teams).toEqual(teams);
       expect(component.referees).toEqual(referees);
       expect(component.editMode).toBe(false);
-      expect(component.model).toEqual({} as Match);
+      expect(component.model).toEqual({});
       expect(gradeService.findById).not.toHaveBeenCalled();
     });
 

@@ -54,16 +54,20 @@ export class GradeListComponent implements OnInit {
     const refs = this.refereesById();
     const teams = this.teamsById();
     return this.matches()
-      // Type predicate, not a plain filter: it narrows gradeId to a number for the map below.
-      .filter((m): m is Match & {gradeId: number} => m.gradeId != null)
-      .map<GradeRow>(m => ({
-        match: m,
-        referee: m.refereeId != null ? refs.get(m.refereeId) : undefined,
-        home: teams.get(m.homeTeamId),
-        away: teams.get(m.awayTeamId),
-        grade: grades.get(m.gradeId)!
-      }))
-      .filter(r => r.grade != null)
+      // flatMap, not filter + map: `filter` narrows nothing, so the grade lookup would
+      // otherwise need a non-null assertion that contradicts the drop below. Two reasons
+      // to drop a match — it has no gradeId, or the batch lookup didn't return its grade.
+      .flatMap<GradeRow>(m => {
+        const grade = m.gradeId != null ? grades.get(m.gradeId) : undefined;
+        if (grade == null) return [];
+        return [{
+          match: m,
+          referee: m.refereeId != null ? refs.get(m.refereeId) : undefined,
+          home: teams.get(m.homeTeamId),
+          away: teams.get(m.awayTeamId),
+          grade
+        }];
+      })
       .sort((a, b) => (b.match.queue ?? 0) - (a.match.queue ?? 0));
   });
 
