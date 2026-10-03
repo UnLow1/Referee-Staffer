@@ -74,11 +74,24 @@ describe('RefereeFormComponent', () => {
     component.model = {firstName: 'Anna', lastName: 'Nowak', email: 'anna@example.com', experience: 3};
     component.onSubmit(validForm);
 
-    expect(refereeService.save).toHaveBeenCalledWith(expect.objectContaining({
+    expect(refereeService.save).toHaveBeenCalledWith({
       firstName: 'Anna', lastName: 'Nowak', email: 'anna@example.com', experience: 3
-    }));
+    });
+    // The backend assigns the id, so the create payload must not invent one.
+    expect(refereeService.save.mock.calls[0][0]).not.toHaveProperty('id');
     expect(refereeService.update).not.toHaveBeenCalled();
     expect(emitted).toEqual([saved]);
+  });
+
+  it('posts nothing when a mandatory field is missing, even if the form claims to be valid', () => {
+    const component = create(null).componentInstance;
+
+    // `experience` starts out unset and every input is `required`.
+    component.model = {firstName: 'Anna', lastName: 'Nowak', email: 'anna@example.com'};
+    component.onSubmit(validForm);
+
+    expect(refereeService.save).not.toHaveBeenCalled();
+    expect(refereeService.update).not.toHaveBeenCalled();
   });
 
   it('updates on edit with the enriched stats riding along in the payload', () => {

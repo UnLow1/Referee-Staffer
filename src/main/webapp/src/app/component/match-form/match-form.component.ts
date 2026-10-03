@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
-import {Match} from '../../model/match';
+import {Match, NewMatch} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {Grade} from '../../model/grade';
@@ -17,9 +17,8 @@ import {IconComponent} from '../common/icon/icon.component';
  * date, a "Fixture" section with the home/away vs-split (selects exclude each other via
  * the excludeValue pipe), and a "Result & assignment" section.
  *
- * The grade branch in onSubmit reflects that `Match` references the grade by `gradeId`
- * while the form edits a separate `grade.value`; the save/update/delete decision tree
- * must stay intact.
+ * `persistGrade` reflects that `Match` references the grade by `gradeId` while the form
+ * edits a separate `grade.value`; the save/update/delete decision tree must stay intact.
  */
 @Component({
   selector: 'app-match-form',
@@ -40,8 +39,13 @@ export class MatchFormComponent implements OnInit {
 
   teams: Team[] = [];
   referees: Referee[] = [];
-  model: Match = {} as Match;
-  grade: Grade = {} as Grade;
+  /** Draft of the editable fields — `id` and `gradeId` stay on the match row, not here. */
+  model: Partial<Pick<Match,
+    'queue' | 'date' | 'homeTeamId' | 'awayTeamId' | 'refereeId' | 'homeScore' | 'awayScore'>> = {};
+  /** Grade draft; an empty `value` means "no grade" and drives the delete branch. */
+  grade: Partial<Pick<Grade, 'value' | 'secondValue'>> = {};
+  /** The grade the edited match already had, loaded in ngOnInit. Null when it had none. */
+  existingGrade: Grade | null = null;
 
   get editMode(): boolean {
     return this.match != null;
@@ -55,33 +59,57 @@ export class MatchFormComponent implements OnInit {
     this.teamService.findAll().subscribe(teams => this.teams = teams);
     this.refereeService.findAll().subscribe(referees => this.referees = referees);
     if (this.match) {
-      this.model = {...this.match};
+      const {queue, date, homeTeamId, awayTeamId, refereeId, homeScore, awayScore} = this.match;
+      this.model = {queue, date, homeTeamId, awayTeamId, refereeId, homeScore, awayScore};
       if (this.match.gradeId) {
-        this.gradeService.findById(this.match.gradeId).subscribe(grade => this.grade = grade);
+        this.gradeService.findById(this.match.gradeId).subscribe(grade => {
+          this.existingGrade = grade;
+          this.grade = {value: grade.value, secondValue: grade.secondValue};
+        });
       }
     }
   }
 
   onSubmit(form: NgForm): void {
     if (!form.valid) return;
-    if (this.editMode)
-      this.matchService.update(this.model).subscribe(match => {
-        if (this.isGradeUpdated())
-          this.gradeService.update(this.grade).subscribe(() => this.saved.emit(match));
-        else if (this.isNewGradeAdded())
-          this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
-        else if (this.isGradeRemoved())
-          this.gradeService.delete(this.grade).subscribe(() => this.saved.emit(match));
-        else
-          this.saved.emit(match);
-      });
+    const payload = this.toPayload();
+    if (!payload) return;
+    const match = this.match;
+    const request = match
+      ? this.matchService.update({...match, ...payload})
+      : this.matchService.save(payload);
+    request.subscribe(saved => this.persistGrade(saved));
+  }
+
+  /**
+   * Narrows the draft into a create payload. Queue and both teams are `required` in the
+   * template (and unconditionally `@NotNull` on MatchDto), so a valid form always filled
+   * them — this re-proves that to the compiler instead of casting an incomplete draft to
+   * a full `Match`.
+   */
+  private toPayload(): NewMatch | null {
+    const {queue, homeTeamId, awayTeamId} = this.model;
+    if (queue == null || homeTeamId == null || awayTeamId == null) return null;
+    return {...this.model, queue, homeTeamId, awayTeamId};
+  }
+
+  /**
+   * Grade side of the submit, run once the match round-trip returned: create, update or
+   * delete the grade depending on what the form holds, and only then emit `saved`. In add
+   * mode `existingGrade` is always null, so only the create branch can be taken there.
+   */
+  private persistGrade(match: Match): void {
+    const {value, secondValue} = this.grade;
+    const existing = this.existingGrade;
+    const emit = (): void => this.saved.emit(match);
+    if (existing && value)
+      this.gradeService.update({...existing, value, secondValue}).subscribe(emit);
+    else if (existing)
+      this.gradeService.delete(existing).subscribe(emit);
+    else if (value)
+      this.gradeService.save(match, {value, secondValue}).subscribe(emit);
     else
-      this.matchService.save(this.model).subscribe(match => {
-        if (this.isNewGradeAdded())
-          this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
-        else
-          this.saved.emit(match);
-      });
+      emit();
   }
 
   /** Gates the second grade input — a split grade needs its first component first. */
@@ -93,17 +121,5 @@ export class MatchFormComponent implements OnInit {
     // A split grade can't consist of the second component alone — clearing the first
     // part drops the second one too (the input is disabled in that state anyway).
     if (value == null) this.grade.secondValue = undefined;
-  }
-
-  private isGradeRemoved() {
-    return this.grade.id;
-  }
-
-  private isNewGradeAdded() {
-    return this.grade.value;
-  }
-
-  private isGradeUpdated() {
-    return this.isGradeRemoved() && this.isNewGradeAdded();
   }
 }
