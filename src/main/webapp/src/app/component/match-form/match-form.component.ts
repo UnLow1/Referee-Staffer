@@ -55,6 +55,8 @@ export class MatchFormComponent implements OnInit {
 
   readonly teams = signal<Team[]>([]);
   readonly referees = signal<Referee[]>([]);
+  // Both casts stand in for the missing create-payload type: `id` is required on the
+  // read model and absent until the POST comes back (RS-118). Not a lying field type.
   model: Match = {} as Match;
   readonly grade = signal<Grade>({} as Grade);
 
