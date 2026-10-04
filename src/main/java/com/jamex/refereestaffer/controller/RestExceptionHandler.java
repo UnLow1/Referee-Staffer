@@ -49,8 +49,12 @@ public class RestExceptionHandler {
      */
     public static final String MISSING_REQUIRED_FIELD = "A required field is missing";
     public static final String DUPLICATE_RECORD = "A record with these values already exists";
-    public static final String REFERENCED_RECORD = "The record is referenced by other data";
+    // ConstraintKind.FOREIGN_KEY covers both directions — a parent still referenced by a child
+    // (H2 23503) and a child pointing at a missing parent (23506) — so the wording has to hold
+    // either way. "Referenced by other data" would state the opposite of the truth for the second.
+    public static final String RELATED_RECORD_CONFLICT = "The change conflicts with a related record";
     public static final String DATA_INTEGRITY_CONFLICT = "The request conflicts with the stored data";
+    public static final String INVALID_FIELD_VALUES = "One or more field values are not valid";
 
     @ExceptionHandler({
             MatchNotFoundException.class,
@@ -142,9 +146,13 @@ public class RestExceptionHandler {
      * <p>A missing required value is the caller's mistake and maps to 400; everything else
      * (unique, foreign key, check) is a conflict with already-stored data and maps to 409.
      * The {@code detail} is a fixed constant — see {@link #MISSING_REQUIRED_FIELD}.
+     *
+     * <p>{@link PropertyValueException} is registered alongside the translated exception because
+     * Hibernate raises it directly when it pre-checks nullability, and nothing guarantees every
+     * such raise crosses a boundary that wraps it in a {@link DataIntegrityViolationException}.
      */
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ProblemDetail handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+    @ExceptionHandler({DataIntegrityViolationException.class, PropertyValueException.class})
+    public ProblemDetail handleDataIntegrityViolation(RuntimeException ex) {
         log.warn("Data integrity violation: {}", ex.getMessage(), ex);
         var kind = constraintKind(ex);
         if (kind == null) {
@@ -157,7 +165,7 @@ public class RestExceptionHandler {
         return switch (kind) {
             case NOT_NULL -> ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, MISSING_REQUIRED_FIELD);
             case UNIQUE -> ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, DUPLICATE_RECORD);
-            case FOREIGN_KEY -> ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, REFERENCED_RECORD);
+            case FOREIGN_KEY -> ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, RELATED_RECORD_CONFLICT);
             default -> ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, DATA_INTEGRITY_CONFLICT);
         };
     }
@@ -170,19 +178,26 @@ public class RestExceptionHandler {
      *
      * <p>Property paths are entity field names, not database identifiers, so they are safe to
      * return and give the same {@code field: message} detail as the request-body handlers.
+     *
+     * <p>Registration is by type, so this would also catch the exception Spring's method
+     * validation raises for a {@code @Validated} bean, whose paths read {@code method.arg0.field}.
+     * No bean in this project is {@code @Validated}, so that cannot happen today; if one is added,
+     * the paths want trimming before they go out, and such a failure is a 500, not a 400.
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ProblemDetail handleEntityConstraintViolation(ConstraintViolationException ex) {
         var violations = ex.getConstraintViolations();
         if (violations == null || violations.isEmpty()) {
+            // Nothing says which constraint failed, so the detail must not claim one: a @Size or
+            // @Pattern violation would make "a required field is missing" plainly wrong.
             log.warn("Entity validation failed without violations: {}", ex.getMessage(), ex);
-            return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, MISSING_REQUIRED_FIELD);
+            return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, INVALID_FIELD_VALUES);
         }
         var detail = violations.stream()
                 .map(RestExceptionHandler::describe)
                 .sorted()
                 .collect(Collectors.joining("; "));
-        log.warn("Entity validation failed: {}", detail);
+        log.warn("Entity validation failed: {} ({})", detail, ex.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
     }
 
@@ -199,7 +214,7 @@ public class RestExceptionHandler {
      * the advice is ever entered. A guard here could not be reached, let alone tested.
      */
     private static ConstraintKind constraintKind(Throwable ex) {
-        for (var cause = (Throwable) ex; cause != null; cause = cause.getCause()) {
+        for (var cause = ex; cause != null; cause = cause.getCause()) {
             if (cause instanceof org.hibernate.exception.ConstraintViolationException violation) {
                 return violation.getKind();
             }
