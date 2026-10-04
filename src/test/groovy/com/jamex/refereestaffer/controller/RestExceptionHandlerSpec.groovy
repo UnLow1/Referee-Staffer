@@ -6,8 +6,9 @@ import com.jamex.refereestaffer.model.entity.Team
 import com.jamex.refereestaffer.repository.TeamRepository
 import com.jamex.refereestaffer.service.TeamService
 import groovy.json.JsonSlurper
+import jakarta.persistence.PersistenceException
 import jakarta.validation.ConstraintViolationException
-import jakarta.validation.Validation
+import jakarta.validation.Validator
 import org.hibernate.PropertyValueException
 import org.hibernate.exception.ConstraintViolationException.ConstraintKind
 import org.spockframework.runtime.model.parallel.ExecutionMode
@@ -49,6 +50,10 @@ class RestExceptionHandlerSpec extends Specification {
     @Autowired
     MockMvc mockMvc
 
+    // The slice's own validator, rather than a second factory built (and never closed) here.
+    @Autowired
+    Validator validator
+
     @SpringBean
     TeamService teamService = Mock()
 
@@ -76,7 +81,7 @@ class RestExceptionHandlerSpec extends Specification {
 
         where:
         kind                       || status | expectedDetail
-        ConstraintKind.FOREIGN_KEY || 409    | RestExceptionHandler.REFERENCED_RECORD
+        ConstraintKind.FOREIGN_KEY || 409    | RestExceptionHandler.RELATED_RECORD_CONFLICT
         ConstraintKind.UNIQUE      || 409    | RestExceptionHandler.DUPLICATE_RECORD
         ConstraintKind.CHECK       || 409    | RestExceptionHandler.DATA_INTEGRITY_CONFLICT
         ConstraintKind.OTHER       || 409    | RestExceptionHandler.DATA_INTEGRITY_CONFLICT
@@ -130,7 +135,6 @@ class RestExceptionHandlerSpec extends Specification {
 
     def "should respond 400 listing the offending fields when entity bean validation fails on flush"() {
         given: "the violations hibernate-validator reports for an entity with both NOT NULL fields unset"
-        def validator = Validation.buildDefaultValidatorFactory().validator
         def violations = validator.validate(new Config(null, null))
 
         expect: "the entity really is invalid, so the spec is not asserting on an empty set"
@@ -154,7 +158,36 @@ class RestExceptionHandlerSpec extends Specification {
         1 * teamRepository.deleteById(65l) >> { throw new ConstraintViolationException("validation failed", [] as Set) }
         response.status == 400
         def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == RestExceptionHandler.INVALID_FIELD_VALUES
+    }
+
+    def "should respond 400 for a PropertyValueException that reaches the advice unwrapped"() {
+        when: "nothing translated it on the way out, so the advice sees the Hibernate exception itself"
+        def response = mockMvc.perform(delete("/api/teams/65")).andReturn().response
+
+        then:
+        1 * teamRepository.deleteById(65l) >> {
+            throw new PropertyValueException("not-null property references a null or transient value",
+                    "Match", "date")
+        }
+        response.status == 400
+        def json = new JsonSlurper().parseText(response.contentAsString)
         json.detail == RestExceptionHandler.MISSING_REQUIRED_FIELD
+    }
+
+    def "should find the constraint kind below an intermediate wrapper"() {
+        given: "a chain one level deeper than Spring's own translation produces"
+        def nested = new DataIntegrityViolationException(LEAKY_MESSAGE,
+                new PersistenceException(LEAKY_MESSAGE, hibernateViolation(ConstraintKind.UNIQUE)))
+
+        when:
+        def response = mockMvc.perform(delete("/api/teams/65")).andReturn().response
+
+        then: "the walk keeps going instead of giving up at depth 1"
+        1 * teamRepository.deleteById(65l) >> { throw nested }
+        response.status == 409
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == RestExceptionHandler.DUPLICATE_RECORD
     }
 
     private static org.hibernate.exception.ConstraintViolationException hibernateViolation(ConstraintKind kind) {

@@ -32,6 +32,23 @@ Main class: `com.jamex.refereestaffer.RefereeStafferApplication`.
 - **Controller specs are `@WebMvcTest` slices** (MockMvc + `@SpringBean` mocks, JSON asserted with `JsonSlurper`). Two gotchas: (1) in Spring Boot 4 the slice annotation lives in the separate `spring-boot-webmvc-test` module (package `org.springframework.boot.webmvc.test.autoconfigure`) — it is no longer part of `spring-boot-starter-test`; (2) every such spec is annotated `@Execution(ExecutionMode.SAME_THREAD)` because `@SpringBean` mocks live in the shared Spring context and Spock's parallel mode would otherwise run features of one spec concurrently against the same mock instances (symptom: stubs randomly return null). `groovy-json` is a test dependency for `JsonSlurper`.
 - JaCoCo generates coverage reports to `target/site/jacoco/`. CI uploads `jacoco.xml` to Codecov (badge in README, PR comments). The full HTML report is also archived as a CI artifact. The Codecov upload uses `CODECOV_TOKEN` (GitHub repository secret) — public repo so tokenless mode also works, but the token avoids Codecov's tokenless rate-limiting/rejection. Rotate via Codecov repo settings → Reset Repository Upload Token, then update the GH Secret.
 
+## Error handling
+
+All HTTP error mapping lives in one `@RestControllerAdvice`, `controller/RestExceptionHandler`. The body is always an RFC 7807 `ProblemDetail` — no custom error DTO — and `detail` is the only field the frontend renders: `http-error.interceptor.ts` shows it in an error toast for any status (reading it out of a `Blob` first for `responseType: 'blob'` downloads), falling back to `Request failed (HTTP <status>)` when it is missing. **A handler without a usable `detail` is therefore a silent failure in the UI.**
+
+Two layers map constraint violations, and they are not interchangeable:
+
+- **Per-field bean validation on the DTO is the first line of defence** and gives the precise message (`date: must not be null`). Mirroring every `nullable = false` column with a `@NotNull` on the DTO is a manual convention that nothing in the build enforces — that is how RS-119 happened — so it is a convention to keep following, not a guarantee to rely on.
+- **The catch-all in `RestExceptionHandler` is the net underneath it** (RS-120), for violations that only surface at the Hibernate flush: `ImporterService` builds entities directly and `StafferService.staffReferees` mutates managed ones inside a transaction, so neither passes controller validation. Without it those were a bare 500 with no `detail`.
+
+Three things about that net are load-bearing:
+
+- **Classification is structural, never textual.** `handleDataIntegrityViolation` walks the cause chain for Hibernate's `ConstraintViolationException.getKind()` (`ConstraintKind`), treating a `PropertyValueException` as `NOT_NULL`. Do not pattern-match H2 message text — it will not survive the Postgres migration (RS-29). `NOT_NULL` → 400, `UNIQUE`/`FOREIGN_KEY`/`CHECK`/unidentified → 409. Note `FOREIGN_KEY` covers *both* directions (a parent still referenced, and a child pointing at a missing parent), so its message has to read true either way.
+- **The `detail` for a database-level violation is a fixed constant and never derived from the exception.** Spring composes the `DataIntegrityViolationException` message from the failing SQL plus the constraint name, so the original leaks table, column and constraint names. The repo is public: the raw message is logged at WARN, the client gets the constant. The entity-validation handler is the one exception — its property paths are Java field names, not database identifiers.
+- **`jakarta.validation.ConstraintViolationException` needs its own handler.** hibernate-validator is on the classpath, so Hibernate runs the entity annotations on pre-insert/pre-update, and Spring does *not* translate that into a `DataAccessException`. Verified: at transaction commit it propagates untranslated as itself (not as a `TransactionSystemException`), which is why the advice covers the `@Transactional` write paths too — `ConstraintViolationIntegrationSpec` pins this.
+
+`RestExceptionHandlerSpec` is a `@WebMvcTest` slice over `TeamController` (a vehicle, not the subject — it is the thinnest controller that writes straight through a repository). `ConstraintViolationIntegrationSpec` provokes real violations against H2 so the mapping stays pinned to what Hibernate and Spring actually emit across version bumps.
+
 ## Spring profiles and database
 
 All three profiles currently use **H2** — there is no external database. The dialect is H2 in **MySQL compatibility mode** (`MODE=MySQL`).

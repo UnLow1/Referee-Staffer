@@ -19,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.transaction.support.TransactionTemplate
 import spock.lang.Execution
 import spock.lang.Isolated
 import spock.lang.Specification
@@ -51,12 +52,16 @@ class ConstraintViolationIntegrationSpec extends Specification {
     @Autowired GradeRepository gradeRepository
     @Autowired VacationRepository vacationRepository
     @Autowired ConfigurationRepository configurationRepository
+    @Autowired TransactionTemplate transactionTemplate
 
     def jsonSlurper = new JsonSlurper()
 
-    // The advice is stateless, so a plain instance is enough to classify an exception
-    // the repositories really threw.
-    def handler = new RestExceptionHandler()
+    // The advice registered in the context, so these features classify through the same bean
+    // the DispatcherServlet uses. They call it directly rather than over MockMvc because no HTTP
+    // endpoint can currently produce these two shapes: TeamDto.name is @NotBlank, and Config —
+    // the only entity carrying bean-validation mirrors — is only written through the validated
+    // PUT /api/configuration. The FK feature above is the one that does go over HTTP.
+    @Autowired RestExceptionHandler handler
 
     Long referencedTeamId
 
@@ -79,12 +84,12 @@ class ConstraintViolationIntegrationSpec extends Specification {
         then:
         response.status == 409
         def problem = jsonSlurper.parseText(response.contentAsString)
-        problem.detail == RestExceptionHandler.REFERENCED_RECORD
+        problem.detail == RestExceptionHandler.RELATED_RECORD_CONFLICT
 
-        and: "the H2 message naming the table, column and constraint stays out of the response"
+        and: "the H2 message naming the schema, constraint and referenced columns stays out of the response"
         !response.contentAsString.toUpperCase().contains("PUBLIC.")
         !response.contentAsString.toUpperCase().contains("FOREIGN KEY")
-        !response.contentAsString.toUpperCase().contains("MATCH")
+        !response.contentAsString.contains("constraint")
 
         and: "the team is still there — the 409 reports a refusal, not a partial delete"
         teamRepository.findById(referencedTeamId).present
@@ -121,6 +126,30 @@ class ConstraintViolationIntegrationSpec extends Specification {
         def problem = handler.handleEntityConstraintViolation(ex)
 
         then:
+        problem.status == 400
+        problem.detail == "name: must not be null; value: must not be null"
+    }
+
+    def "should still classify a NOT NULL violation that only surfaces at transaction commit"() {
+        when: "save() alone, so the flush happens when the transaction commits, not inside the call"
+        transactionTemplate.executeWithoutResult { teamRepository.save(new Team(null, "City4")) }
+
+        then: "the commit path translates it the same way an in-request flush does"
+        def ex = thrown(DataIntegrityViolationException)
+        handler.handleDataIntegrityViolation(ex).status == 400
+    }
+
+    def "should still classify entity bean validation that only surfaces at transaction commit"() {
+        when:
+        transactionTemplate.executeWithoutResult { configurationRepository.save(new Config(null, null)) }
+
+        then: "it arrives untranslated as itself — JpaTransactionManager has nothing to map it to,"
+        // so it reaches the advice as a plain jakarta ConstraintViolationException rather than a
+        // TransactionSystemException. That is what makes handleEntityConstraintViolation enough to
+        // cover the @Transactional write paths (GradeService, StafferService.staffReferees) and not
+        // just the ones that flush inside the request.
+        def ex = thrown(ConstraintViolationException)
+        def problem = handler.handleEntityConstraintViolation(ex)
         problem.status == 400
         problem.detail == "name: must not be null; value: must not be null"
     }
