@@ -18,6 +18,12 @@ public record MatchDto(
         @NotNull
         Long awayTeamId,
 
+        /**
+         * Bean-validation mirror of the NOT NULL {@code match.date} column — without it a
+         * body with no date passes validation and only fails on the Hibernate flush, which
+         * surfaces as a 500 constraint violation instead of a 400 with a usable detail.
+         */
+        @NotNull
         LocalDateTime date,
 
         Long refereeId,
