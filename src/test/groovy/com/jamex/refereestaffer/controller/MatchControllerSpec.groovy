@@ -197,7 +197,9 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * matchService.saveMatch({ MatchDto dto -> dto.id == 11l }) >> updatedDto
+        1 * matchService.saveMatch({ MatchDto dto ->
+            dto.id == 11l && dto.date == LocalDateTime.of(2026, 5, 10, 18, 0)
+        }) >> updatedDto
         response.status == 200
     }
 
@@ -209,7 +211,10 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * matchService.updateMatches({ List<MatchDto> dtos -> dtos*.id == [1l, 2l] })
+        1 * matchService.updateMatches({ List<MatchDto> dtos ->
+            dtos*.id == [1l, 2l] && dtos*.date == [LocalDateTime.of(2026, 5, 10, 18, 0),
+                                                   LocalDateTime.of(2026, 5, 10, 20, 30)]
+        })
         response.status == 200
     }
 
