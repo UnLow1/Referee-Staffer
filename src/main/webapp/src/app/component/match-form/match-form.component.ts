@@ -19,7 +19,8 @@ import {IconComponent} from '../common/icon/icon.component';
  *
  * The grade branch in onSubmit reflects that `Match` references the grade by `gradeId`
  * while the form edits a separate `grade.value`; the save/update/delete decision tree
- * must stay intact.
+ * must stay intact. It keys off explicit null checks rather than truthiness, so that a
+ * grade of `0` counts as an entered value instead of an empty input.
  */
 @Component({
   selector: 'app-match-form',
@@ -56,7 +57,7 @@ export class MatchFormComponent implements OnInit {
     this.refereeService.findAll().subscribe(referees => this.referees = referees);
     if (this.match) {
       this.model = {...this.match};
-      if (this.match.gradeId) {
+      if (this.match.gradeId != null) {
         this.gradeService.findById(this.match.gradeId).subscribe(grade => this.grade = grade);
       }
     }
@@ -66,18 +67,18 @@ export class MatchFormComponent implements OnInit {
     if (!form.valid) return;
     if (this.editMode)
       this.matchService.update(this.model).subscribe(match => {
-        if (this.isGradeUpdated())
+        if (this.hasStoredGrade && this.hasGradeValue)
           this.gradeService.update(this.grade).subscribe(() => this.saved.emit(match));
-        else if (this.isNewGradeAdded())
+        else if (this.hasGradeValue)
           this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
-        else if (this.isGradeRemoved())
+        else if (this.hasStoredGrade)
           this.gradeService.delete(this.grade).subscribe(() => this.saved.emit(match));
         else
           this.saved.emit(match);
       });
     else
       this.matchService.save(this.model).subscribe(match => {
-        if (this.isNewGradeAdded())
+        if (this.hasGradeValue)
           this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
         else
           this.saved.emit(match);
@@ -95,15 +96,17 @@ export class MatchFormComponent implements OnInit {
     if (value == null) this.grade.secondValue = undefined;
   }
 
-  private isGradeRemoved() {
-    return this.grade.id;
+  /** The match already has a grade row on the backend, so it can be updated or deleted. */
+  private get hasStoredGrade(): boolean {
+    return this.grade.id != null;
   }
 
-  private isNewGradeAdded() {
-    return this.grade.value;
-  }
-
-  private isGradeUpdated() {
-    return this.isGradeRemoved() && this.isNewGradeAdded();
+  /**
+   * The form carries a grade value. Explicitly a null check, not a truthiness test:
+   * `0` is a value like any other, and treating it as "nothing entered" would send an
+   * edit from 7.5 to 0 down the delete branch instead of the update one.
+   */
+  private get hasGradeValue(): boolean {
+    return this.grade.value != null;
   }
 }

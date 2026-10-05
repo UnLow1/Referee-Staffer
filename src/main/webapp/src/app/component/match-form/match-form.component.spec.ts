@@ -157,6 +157,18 @@ describe('MatchFormComponent', () => {
       expect(component.grade.secondValue).toBe(8.3);
     });
 
+    it('saves a grade of 0 — zero is an entered value, not an empty input', () => {
+      const component = createComponent(null).componentInstance;
+      const saved = makeMatch({id: 42});
+      matchService.save.mockReturnValue(of(saved));
+      gradeService.save.mockReturnValue(of({id: 6, value: 0}));
+
+      component.grade.value = 0;
+      component.onSubmit(validForm);
+
+      expect(gradeService.save).toHaveBeenCalledWith(saved, component.grade);
+    });
+
     it('saves an entered grade against the newly created match before emitting', () => {
       const component = createComponent(null).componentInstance;
       const saved = makeMatch({id: 42});
@@ -234,6 +246,19 @@ describe('MatchFormComponent', () => {
       expect(emitted).toEqual([updated]);
     });
 
+    it('updates an existing grade when its value is changed to 0 instead of deleting it', () => {
+      createInEditMode(5, {id: 5, value: 7.5});
+      gradeService.update.mockReturnValue(of({id: 5, value: 0}));
+
+      component.grade.value = 0;
+      component.onSubmit(validForm);
+
+      expect(gradeService.update).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.delete).not.toHaveBeenCalled();
+      expect(gradeService.save).not.toHaveBeenCalled();
+      expect(emitted).toEqual([updated]);
+    });
+
     it('deletes the grade when its value was cleared', () => {
       createInEditMode(5, {id: 5, value: 7.5});
       const gradeDelete = new Subject<void>();
@@ -248,6 +273,18 @@ describe('MatchFormComponent', () => {
       // Emission waits for the delete to complete.
       expect(emitted).toEqual([]);
       gradeDelete.next();
+      expect(emitted).toEqual([updated]);
+    });
+
+    it('deletes the grade when the number input hands back null rather than undefined', () => {
+      createInEditMode(5, {id: 5, value: 7.5});
+      gradeService.delete.mockReturnValue(of(undefined as unknown as void));
+
+      component.grade.value = null as unknown as number;
+      component.onSubmit(validForm);
+
+      expect(gradeService.delete).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.update).not.toHaveBeenCalled();
       expect(emitted).toEqual([updated]);
     });
 
@@ -270,6 +307,17 @@ describe('MatchFormComponent', () => {
       component.onGradeValueChange(null);
 
       expect(component.grade.secondValue).toBeUndefined();
+    });
+
+    it('treats a first component of 0 as present, so the second input stays enabled', () => {
+      const component = createComponent(null).componentInstance;
+      component.grade.value = 0;
+      component.grade.secondValue = 8.3;
+
+      component.onGradeValueChange(0);
+
+      expect(component.gradeValueMissing).toBe(false);
+      expect(component.grade.secondValue).toBe(8.3);
     });
 
     it('keeps the second component while the first one has a value', () => {
