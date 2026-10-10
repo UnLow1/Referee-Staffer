@@ -2,6 +2,8 @@ package com.jamex.refereestaffer.repository;
 
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,6 +19,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findAllByQueue(Short queue);
 
     List<Match> findAllByQueueOrderByDateAsc(Short queue);
+
+    /** Paged variant for the MCP match listing, where an unbounded result would flood a model's context. */
+    Page<Match> findAllByQueue(Short queue, Pageable pageable);
 
     List<Match> findAllByHomeScoreNotNullAndAwayScoreNotNull();
 

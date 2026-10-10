@@ -1,0 +1,25 @@
+# Read-only MCP server (RS-121). Activate with --spring.profiles.active=mcp; the endpoint
+# is Streamable HTTP on POST /mcp. Overlays the default profile, which keeps the server
+# disabled.
+spring:
+  ai:
+    mcp:
+      server:
+        enabled: true
+        # `protocol` MUST be set explicitly. Spring AI's configuration metadata advertises
+        # `streamable` as the default, but the transport autoconfigurations gate on
+        # @ConditionalOnProperty: the SSE one matches when the property is missing while
+        # the streamable one requires it to be present. Omit this line and the app starts
+        # with the tools registered, serves /sse + /mcp/message, and answers POST /mcp with
+        # a plain 404 — the one failure mode that looks like a bug in our code.
+        protocol: STREAMABLE
+        name: referee-staffer
+        version: 0.0.1
+        # Shown to the client right after initialize — it is the only place to tell a model
+        # what this server is for before it has listed anything.
+        instructions: >-
+          Read-only access to the Referee Staffer database: referees with their observer
+          grades and availability, matches with their assignments, the league table, and
+          the weights of the staffing algorithm. Nothing here changes data. Start from
+          list_referees or list_matches to get ids, and read refstaffer://algorithm before
+          explaining any score.
