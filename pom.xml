@@ -20,6 +20,7 @@
         <groovy.version>5.1.2</groovy.version>
         <spock.version>2.4-groovy-5.0</spock.version>
         <openpdf.version>3.0.5</openpdf.version>
+        <spring.ai.version>2.0.1</spring.ai.version>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
              Override with -DskipFrontend=true. -->
@@ -54,6 +55,14 @@
             <groupId>com.github.librepdf</groupId>
             <artifactId>openpdf</artifactId>
             <version>${openpdf.version}</version>
+        </dependency>
+
+        <!-- MCP server (read-only tools/resources, activated by the `mcp` profile).
+             Only the server starter: no models, no vector stores, no other Spring AI modules. -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+            <version>${spring.ai.version}</version>
         </dependency>
 
         <!-- Swagger -->
