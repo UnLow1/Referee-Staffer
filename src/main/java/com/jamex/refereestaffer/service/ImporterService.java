@@ -94,7 +94,7 @@ public class ImporterService {
             var awayTeamName = line[2];
             var awayTeam = teamRepository.findByName(awayTeamName)
                     .orElseThrow(() -> new TeamNotFoundException(awayTeamName));
-            var date = LocalDateTime.parse(line[3], FORMATTER);
+            var date = parseDate(line);
 
             Referee referee = null;
             Short homeTeamScore = null;
@@ -119,6 +119,16 @@ public class ImporterService {
         var matches = matchRepository.findAll();
         log.info(CREATED + grades.size() + " grades");
         log.info(CREATED + matches.size() + " matches");
+    }
+
+    // An empty date cell means the fixture is planned but not scheduled yet. split(";") drops
+    // trailing empty cells, so a row that ends right after the away team ("5;A;B;") has no
+    // index 3 at all — that is the same "no date" case, not a malformed row.
+    private LocalDateTime parseDate(String[] line) {
+        if (line.length <= 3 || line[3].isBlank()) {
+            return null;
+        }
+        return LocalDateTime.parse(line[3], FORMATTER);
     }
 
     // The grade column holds either a plain grade ("8.3") or a split grade ("7.9/8.3") —

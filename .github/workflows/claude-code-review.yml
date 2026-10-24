@@ -36,7 +36,18 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          # The plugin's step 1 stops whenever Claude has commented on the PR, which made any
+          # claude.yml reply, or a review of an older commit, block every later review. The
+          # override narrows that check to an automatic review of the current head commit.
+          prompt: |
+            /code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
+
+            Repository override for step 1's "Claude has already commented" condition: replies
+            posted by the claude.yml workflow (comments that start with "**Claude finished") do
+            not count. Stop only if a "## Code review" summary or an inline review comment from
+            claude[bot] was posted after the PR's head commit ${{ github.event.pull_request.head.sha }}
+            was pushed. Otherwise review the PR as it is now, and do not repeat an issue that an
+            earlier Claude review comment already raised.
           # The plugin's pipeline delegates to subagents (Agent, formerly Task) that
           # read files and run `gh pr` / `gh issue` commands. With only the inline-comment
           # tool allowed, the session skipped that pipeline and posted "No issues found"
@@ -46,8 +57,13 @@ jobs:
           # turn right after launching one ("waiting on its result"), so the run finished
           # before any reviewer reported back. Disabling background tasks makes every
           # subagent run in the foreground, so the session waits for its result.
-          settings: '{"env": {"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"}}'
+          #
+          # On the default Sonnet the session still skipped the plugin's parallel agents and
+          # posted "No issues found" after 11-42 s on 13 PRs in a row, so the orchestrator
+          # runs on Opus at high effort.
+          settings: '{"env": {"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1", "CLAUDE_CODE_EFFORT_LEVEL": "high"}}'
           claude_args: >-
+            --model claude-opus-5-5
             --allowedTools "Agent,Task,Read,Glob,Grep,TodoWrite,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
