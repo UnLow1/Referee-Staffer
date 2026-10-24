@@ -107,10 +107,28 @@ The weekly `Backend deps radar` / `Frontend deps radar` cloud routines reference
 
 ## Documentation drift
 
-`README.md` has diverged from the actual implementation and environment — review before trusting it:
+The README's `How it works` section and badge list were realigned with the code under RS-67
+(written 2026-07-25, refreshed 2026-09-20 after RS-73 / RS-72 / RS-57 / RS-7 changed the
+staffing rules), so the historical drift below is resolved. Kept as a pointer:
 
-- **Badges**: a Snyk badge and a CodeClimate badge are still in the README. Activity/validity of those integrations is unverified — badges may be stale or broken. (Travis badge removed 2026-04-24 alongside `.travis.yml`.)
-- **Algorithm formulas (LaTeX)**: the README describes the scoring algorithm with hard-coded "top 3" / "last 3" thresholds for edge matches, but the code uses the configurable `NUMBER_OF_EDGE_TEAMS` parameter. The formulas also do not fully reflect the current weights in `data.sql`. Treat the README math as **historical design notes**, not ground truth — `StafferService.countRefereePotentialLvl` and `MatchService.countHardnessLvl` are authoritative.
+- **Badges**: Codecov (uploaded from `maven.yml`), Snyk, Qlty maintainability and the four GitHub
+  Actions workflow badges (backend, frontend, E2E, CodeQL). Snyk and Qlty have **no config in the
+  repo** — both are wired through repository webhooks (Settings → Webhooks), so "no `.snyk` file"
+  does not mean the integration is dead; check the badge endpoint and the webhook deliveries
+  instead (verified live 2026-10-24). Qlty is CodeClimate Quality after the rebrand: the old
+  `codeclimate.com/github/.../badges/gpa.svg` URL 404s, the badge now comes from
+  `qlty.sh/gh/UnLow1/projects/Referee-Staffer/maintainability.svg`, and the legacy
+  `codeclimate.com/webhooks` hook still feeds it. Travis badge removed on 2026-04-24.
+- **Algorithm formulas (LaTeX)**: the README now ties each constant to its `ConfigName` key, shows
+  the `data.sql` default weights, uses the configurable `NUMBER_OF_EDGE_TEAMS` (no more hard-coded
+  "top 3 / last 3"), and notes that a split grade enters the average as the mean of its components.
+  Its `Assignment` section covers what RS-73 / RS-72 / RS-57 changed: which matches a regenerate
+  reclaims, locked pairs bypassing the rules, the three availability filters (already assigned in
+  this run, vacation, another match the same day), central "S C" assignments, and the fact that the
+  rules bind automatic staffing only — a manual assignment is never blocked. Still, the source is
+  authoritative if they ever diverge again — `StafferService.countRefereePotentialLvl` (effective
+  value / potential) and `MatchService.computeBreakdown` (difficulty; the method the old
+  `countHardnessLvl` became).
 
 ## Legacy / dead files
 
