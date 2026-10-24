@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc
 import spock.lang.Execution
 import spock.lang.Specification
 
+import java.time.LocalDateTime
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -84,6 +86,10 @@ class MatchControllerSpec extends Specification {
         json.id == matchId
         json.homeScore == 2
         json.awayScore == 1
+        // Null-inclusion contract: unset fields are serialized as an explicit null, not
+        // omitted. The frontend types them as `?: T | null` and an unscheduled match must
+        // still carry "date": null — a switch to NON_NULL would change the wire shape silently.
+        ['date', 'refereeId', 'gradeId'].every { json.containsKey(it) && json[it] == null }
     }
 
     def "should respond 404 with problem detail when match has not been found"() {
@@ -171,12 +177,13 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(post("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}'))
                 .andReturn().response
 
         then:
         1 * matchService.saveMatch({ MatchDto dto ->
-            dto.queue == 2 as Short && dto.homeTeamId == 1l && dto.awayTeamId == 2l
+            dto.queue == 2 as Short && dto.homeTeamId == 1l && dto.awayTeamId == 2l &&
+                    dto.date == LocalDateTime.of(2026, 5, 10, 18, 0)
         }) >> savedDto
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)
@@ -190,11 +197,13 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches/11")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}'))
                 .andReturn().response
 
         then:
-        1 * matchService.saveMatch({ MatchDto dto -> dto.id == 11l }) >> updatedDto
+        1 * matchService.saveMatch({ MatchDto dto ->
+            dto.id == 11l && dto.date == LocalDateTime.of(2026, 5, 10, 18, 0)
+        }) >> updatedDto
         response.status == 200
     }
 
@@ -202,11 +211,14 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"id": 2, "queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}, {"id": 2, "queue": 2, "homeTeamId": 3, "awayTeamId": 4, "date": "2026-05-10T20:30:00"}]'))
                 .andReturn().response
 
         then:
-        1 * matchService.updateMatches({ List<MatchDto> dtos -> dtos*.id == [1l, 2l] })
+        1 * matchService.updateMatches({ List<MatchDto> dtos ->
+            dtos*.id == [1l, 2l] && dtos*.date == [LocalDateTime.of(2026, 5, 10, 18, 0),
+                                                   LocalDateTime.of(2026, 5, 10, 20, 30)]
+        })
         response.status == 200
     }
 
@@ -229,7 +241,7 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches/11")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}'))
                 .andReturn().response
 
         then:
@@ -244,7 +256,7 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"id": 2}]'))
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}, {"id": 2}]'))
                 .andReturn().response
 
         then:
@@ -259,7 +271,7 @@ class MatchControllerSpec extends Specification {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}, {"queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}, {"queue": 2, "homeTeamId": 3, "awayTeamId": 4, "date": "2026-05-10T20:30:00"}]'))
                 .andReturn().response
 
         then:
@@ -268,6 +280,50 @@ class MatchControllerSpec extends Specification {
         response.status == 400
         def json = new JsonSlurper().parseText(response.contentAsString)
         json.detail == "[1].id: must not be null"
+    }
+
+    def "should create a match without a date"() {
+        given:
+        def savedDto = MatchDto.builder().id(11l).queue(2 as Short).build()
+
+        when:
+        def response = mockMvc.perform(post("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .andReturn().response
+
+        then:
+        1 * matchService.saveMatch({ MatchDto dto -> dto.queue == 2 as Short && dto.date == null }) >> savedDto
+        response.status == 200
+    }
+
+    def "should update a match to have no date"() {
+        given:
+        def updatedDto = MatchDto.builder().id(11l).build()
+
+        when:
+        def response = mockMvc.perform(put("/api/matches/11")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": null}'))
+                .andReturn().response
+
+        then:
+        1 * matchService.saveMatch({ MatchDto dto -> dto.id == 11l && dto.date == null }) >> updatedDto
+        response.status == 200
+    }
+
+    def "should accept a bulk match update where some matches have no date"() {
+        when:
+        def response = mockMvc.perform(put("/api/matches")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content('[{"id": 1, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": "2026-05-10T18:00:00"}, {"id": 2, "queue": 2, "homeTeamId": 3, "awayTeamId": 4}]'))
+                .andReturn().response
+
+        then:
+        1 * matchService.updateMatches({ List<MatchDto> dtos ->
+            dtos*.date == [LocalDateTime.of(2026, 5, 10, 18, 0), null]
+        })
+        response.status == 200
     }
 
     def "should delete all matches"() {

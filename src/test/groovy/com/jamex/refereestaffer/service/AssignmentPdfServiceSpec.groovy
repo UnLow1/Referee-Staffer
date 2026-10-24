@@ -58,6 +58,22 @@ class AssignmentPdfServiceSpec extends Specification {
         text.contains(AssignmentPdfService.UNASSIGNED)
     }
 
+    def "should print TBD for a match that has no date yet"() {
+        given:
+        def queue = 3 as short
+        def matches = [match(1l, "Odra", "Piast", null, null)]
+
+        when:
+        def pdf = assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> matches
+        def row = extractText(pdf).readLines().find { it.contains("Odra") }
+        // Both the Date and the Time column fall back to the placeholder.
+        row.count(AssignmentPdfService.NO_DATE) == 2
+        row.contains(AssignmentPdfService.UNASSIGNED)
+    }
+
     def "should throw when the queue has no matches"() {
         given:
         def queue = 44 as short

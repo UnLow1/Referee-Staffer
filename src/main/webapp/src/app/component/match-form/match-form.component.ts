@@ -65,6 +65,9 @@ export class MatchFormComponent implements OnInit {
 
   onSubmit(form: NgForm): void {
     if (!form.valid) return;
+    // A cleared datetime-local input binds "" rather than null; send an explicit null so
+    // the backend stores "not scheduled yet" instead of failing to parse an empty string.
+    if (!this.model.date) this.model.date = null;
     if (this.editMode)
       this.matchService.update(this.model).subscribe(match => {
         if (this.hasStoredGrade && this.hasGradeValue)
