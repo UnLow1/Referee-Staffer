@@ -107,10 +107,14 @@ The README's `How it works` section and badge list were realigned with the code 
 (written 2026-07-25, refreshed 2026-09-20 after RS-73 / RS-72 / RS-57 / RS-7 changed the
 staffing rules), so the historical drift below is resolved. Kept as a pointer:
 
-- **Badges**: the Snyk and CodeClimate badges were removed (no Snyk/CodeClimate integration exists
-  anywhere in the repo, and the badge endpoints could not be reached to confirm they still render;
-  Travis badge went the same way on 2026-04-24). The remaining badges are Codecov (active, uploaded
-  from `maven.yml`) and the four GitHub Actions workflow badges (backend, frontend, E2E, CodeQL).
+- **Badges**: Codecov (uploaded from `maven.yml`), Snyk, Qlty maintainability and the four GitHub
+  Actions workflow badges (backend, frontend, E2E, CodeQL). Snyk and Qlty have **no config in the
+  repo** — both are wired through repository webhooks (Settings → Webhooks), so "no `.snyk` file"
+  does not mean the integration is dead; check the badge endpoint and the webhook deliveries
+  instead (verified live 2026-10-24). Qlty is CodeClimate Quality after the rebrand: the old
+  `codeclimate.com/github/.../badges/gpa.svg` URL 404s, the badge now comes from
+  `qlty.sh/gh/UnLow1/projects/Referee-Staffer/maintainability.svg`, and the legacy
+  `codeclimate.com/webhooks` hook still feeds it. Travis badge removed on 2026-04-24.
 - **Algorithm formulas (LaTeX)**: the README now ties each constant to its `ConfigName` key, shows
   the `data.sql` default weights, uses the configurable `NUMBER_OF_EDGE_TEAMS` (no more hard-coded
   "top 3 / last 3"), and notes that a split grade enters the average as the mean of its components.

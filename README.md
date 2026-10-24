@@ -1,6 +1,8 @@
 # Referee Staffer
 
 [![codecov](https://codecov.io/gh/UnLow1/Referee-Staffer/branch/master/graph/badge.svg)](https://codecov.io/gh/UnLow1/Referee-Staffer)
+[![Snyk.io vulnerabilities](https://snyk.io/test/github/UnLow1/Referee-Staffer/badge.svg)](https://app.snyk.io/org/unlow1/projects)
+[![Maintainability](https://qlty.sh/gh/UnLow1/projects/Referee-Staffer/maintainability.svg)](https://qlty.sh/gh/UnLow1/projects/Referee-Staffer)
 
 [![Backend CI (Maven)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/maven.yml)
 [![Frontend CI (Angular)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/frontend.yml/badge.svg)](https://github.com/UnLow1/Referee-Staffer/actions/workflows/frontend.yml)
