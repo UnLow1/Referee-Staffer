@@ -19,11 +19,11 @@ public record MatchDto(
         Long awayTeamId,
 
         /**
-         * Bean-validation mirror of the NOT NULL {@code match.date} column — without it a
-         * body with no date passes validation and only fails on the Hibernate flush, which
-         * surfaces as a 500 constraint violation instead of a 400 with a usable detail.
+         * Deliberately nullable: the fixture list is planned at the start of the season
+         * (who plays whom, in which queue) and the dates are filled in a few queues ahead
+         * as the season goes. A match without a date is skipped by the auto-staffer — see
+         * {@code StafferService#staffReferees}.
          */
-        @NotNull
         LocalDateTime date,
 
         Long refereeId,

@@ -166,4 +166,29 @@ class StafferIntegrationSpec extends Specification {
         persisted.referee != null
         persisted.referee.id == referee.id
     }
+
+    def "should store a match without a date and leave it out of auto-staffing"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def team3 = teamRepository.save(new Team("Team3", "City3"))
+        def team4 = teamRepository.save(new Team("Team4", "City4"))
+        def referee = refereeRepository.save(new Referee("John", "Doe", "john@doe.com", 5))
+        short queue = 1
+        def datedMatch = matchRepository.save(
+                new Match(queue, team1, team2, LocalDateTime.now().plusDays(1), null, null, null))
+        // Proves the column itself accepts NULL — the fixture is planned, the kick-off is not.
+        def datelessMatch = matchRepository.save(new Match(queue, team3, team4, null, null, null, null))
+
+        when:
+        def result = stafferService.staffReferees(queue)
+
+        then: "only the dated match is auto-staffed, but both come back in the cast"
+        matchRepository.findById(datedMatch.id).orElseThrow().referee.id == referee.id
+        matchRepository.findById(datelessMatch.id).orElseThrow().referee == null
+        result*.id as Set == [datedMatch.id, datelessMatch.id] as Set
+
+        and: "the assignment sheet query lists the dateless match last"
+        matchRepository.findAllByQueueOrderByDateAsc(queue)*.id == [datedMatch.id, datelessMatch.id]
+    }
 }

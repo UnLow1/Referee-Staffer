@@ -115,10 +115,11 @@
               <td>
                 @let f = flags(match);
                 <div class="flag-cell">
+                  @if (match.date == null) { <app-chip variant="ghost">no date</app-chip> }
                   @if (f.sameCity) { <app-chip variant="warn">derby</app-chip> }
                   @if (f.isTop) { <app-chip variant="accent">top-{{ edgeTeams() }}</app-chip> }
                   @if (f.isBot) { <app-chip variant="danger">relegation</app-chip> }
-                  @if (hasNoFlags(match)) { <span class="muted">—</span> }
+                  @if (hasNoFlags(match) && match.date != null) { <span class="muted">—</span> }
                 </div>
               </td>
               <td class="right">
@@ -133,6 +134,8 @@
                   }
                   @if (getReferee(match.refereeId); as ref) {
                     <app-ref-avatar [referee]="ref"></app-ref-avatar>
+                  } @else if (match.date == null) {
+                    <span class="muted" title="The auto-staffer skips matches without a date — open the row to pick a referee by hand">no date · not auto-staffed</span>
                   } @else {
                     <span class="muted">unassigned</span>
                   }
@@ -195,6 +198,14 @@
       <app-team-pill [team]="getTeam(match.homeTeamId)" side="home"></app-team-pill>
       <app-team-pill [team]="getTeam(match.awayTeamId)" side="away"></app-team-pill>
     </div>
+
+    @if (match.date == null) {
+      <div class="drawer-section no-date-note">
+        <app-icon name="info" [size]="12"></app-icon>
+        <span>No date yet, so the auto-staffer skipped this match. You can still pick a referee
+          below — vacations and same-day matches are not checked without a date.</span>
+      </div>
+    }
 
     <!-- Difficulty breakdown -->
     <div class="drawer-section">

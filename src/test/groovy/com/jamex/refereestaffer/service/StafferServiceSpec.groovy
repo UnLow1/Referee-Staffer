@@ -277,8 +277,8 @@ class StafferServiceSpec extends Specification {
         def team2 = Team.builder().name("team B").build()
         def lockedReferee = Referee.builder().id(11l).firstName("Locked").lastName("Referee").build()
         def freeReferee = Referee.builder().id(22l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        // Match.date is nullable = false in the entity, and the staffer queries same-day
-        // matches per candidate, so the fixtures carry a real date.
+        // The staffer queries same-day matches per candidate and skips dateless matches,
+        // so the fixtures carry a real date.
         def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
         def lockedMatch = Match.builder().id(1l).home(team1).away(team2).date(matchDateTime).build()
         def otherMatch = Match.builder().id(2l).home(team2).away(team1).date(matchDateTime).build()
@@ -309,8 +309,8 @@ class StafferServiceSpec extends Specification {
         short queue = 3
         def staleReferee = Referee.builder().id(1l).firstName("Stale").lastName("Assignment").build()
         def newReferee = Referee.builder().id(2l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
-        // Match.date is nullable = false in the entity, and the staffer queries same-day
-        // matches per candidate, so the fixture carries a real date.
+        // The staffer queries same-day matches per candidate and skips dateless matches,
+        // so the fixture carries a real date.
         def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
         def match = Match.builder()
                 .id(5l)
@@ -331,6 +331,60 @@ class StafferServiceSpec extends Specification {
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
         1 * matchRepository.findAllByRefereeInAndDateOnDay([newReferee], matchDateTime) >> []
         1 * matchConverter.convertFromEntities([match])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should return a match without a date unassigned and auto-staff the rest"() {
+        given:
+        short queue = 3
+        def team1 = Team.builder().name("team A").build()
+        def team2 = Team.builder().name("team B").build()
+        def staleReferee = Referee.builder().id(1l).firstName("Stale").lastName("Assignment").build()
+        def freeReferee = Referee.builder().id(2l).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def datedMatch = Match.builder().id(1l).home(team1).away(team2).date(matchDateTime).build()
+        // Planned fixture whose kick-off is not scheduled yet, still carrying an earlier pick.
+        def datelessMatch = Match.builder().id(2l).home(team2).away(team1).referee(staleReferee).build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        datedMatch.referee == freeReferee
+        datelessMatch.referee == null
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [datelessMatch, datedMatch]
+        1 * matchRepository.flush()
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> [freeReferee]
+        // The date-based rules run for the dated match only — never with a null date.
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([freeReferee], matchDateTime) >> []
+        // The dateless match stays in the cast so the Staffer screen still lists it.
+        1 * matchConverter.convertFromEntities([datelessMatch, datedMatch])
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+    }
+
+    def "should keep a locked referee on a match without a date"() {
+        given:
+        short queue = 3
+        def pickedReferee = Referee.builder().id(11l).firstName("Picked").lastName("ByHand").build()
+        def datelessMatch = Match.builder()
+                .id(1l)
+                .home(Team.builder().name("home").build())
+                .away(Team.builder().name("away").build())
+                .build()
+
+        when:
+        stafferService.staffReferees(queue, [new StaffingLockRequest(1l, 11l)])
+
+        then:
+        datelessMatch.referee == pickedReferee
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [datelessMatch]
+        1 * matchRepository.findAllByQueue(queue) >> [datelessMatch]
+        1 * refereeRepository.findById(11l) >> Optional.of(pickedReferee)
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> []
+        0 * vacationRepository._
+        0 * matchRepository.findAllByRefereeInAndDateOnDay(_, _)
+        1 * matchConverter.convertFromEntities([datelessMatch])
         1 * configurationRepository.findAllAsMap() >> allOnesConfig()
     }
 

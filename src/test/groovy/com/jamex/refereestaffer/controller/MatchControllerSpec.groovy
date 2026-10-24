@@ -230,7 +230,7 @@ class MatchControllerSpec extends Specification {
         0 * matchRepository._
         response.status == 400
         def json = new JsonSlurper().parseText(response.contentAsString)
-        json.detail == "awayTeamId: must not be null; date: must not be null; homeTeamId: must not be null"
+        json.detail == "awayTeamId: must not be null; homeTeamId: must not be null"
     }
 
     def "should reject match update without id"() {
@@ -260,7 +260,7 @@ class MatchControllerSpec extends Specification {
         0 * matchRepository._
         response.status == 400
         def json = new JsonSlurper().parseText(response.contentAsString)
-        json.detail == "[1].awayTeamId: must not be null; [1].date: must not be null; [1].homeTeamId: must not be null; [1].queue: must not be null"
+        json.detail == "[1].awayTeamId: must not be null; [1].homeTeamId: must not be null; [1].queue: must not be null"
     }
 
     def "should reject bulk match update when an element has no id"() {
@@ -278,7 +278,10 @@ class MatchControllerSpec extends Specification {
         json.detail == "[1].id: must not be null"
     }
 
-    def "should reject match creation without a date"() {
+    def "should create a match without a date"() {
+        given:
+        def savedDto = MatchDto.builder().id(11l).queue(2 as Short).build()
+
         when:
         def response = mockMvc.perform(post("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -286,31 +289,26 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        0 * matchService._
-        0 * matchConverter._
-        0 * matchRepository._
-        response.status == 400
-        def json = new JsonSlurper().parseText(response.contentAsString)
-        json.detail == "date: must not be null"
+        1 * matchService.saveMatch({ MatchDto dto -> dto.queue == 2 as Short && dto.date == null }) >> savedDto
+        response.status == 200
     }
 
-    def "should reject match update without a date"() {
+    def "should update a match to have no date"() {
+        given:
+        def updatedDto = MatchDto.builder().id(11l).build()
+
         when:
         def response = mockMvc.perform(put("/api/matches/11")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2}'))
+                .content('{"id": 11, "queue": 2, "homeTeamId": 1, "awayTeamId": 2, "date": null}'))
                 .andReturn().response
 
         then:
-        0 * matchService._
-        0 * matchConverter._
-        0 * matchRepository._
-        response.status == 400
-        def json = new JsonSlurper().parseText(response.contentAsString)
-        json.detail == "date: must not be null"
+        1 * matchService.saveMatch({ MatchDto dto -> dto.id == 11l && dto.date == null }) >> updatedDto
+        response.status == 200
     }
 
-    def "should reject bulk match update when an element has no date"() {
+    def "should accept a bulk match update where some matches have no date"() {
         when:
         def response = mockMvc.perform(put("/api/matches")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -318,12 +316,10 @@ class MatchControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        0 * matchService._
-        0 * matchConverter._
-        0 * matchRepository._
-        response.status == 400
-        def json = new JsonSlurper().parseText(response.contentAsString)
-        json.detail == "[1].date: must not be null"
+        1 * matchService.updateMatches({ List<MatchDto> dtos ->
+            dtos*.date == [LocalDateTime.of(2026, 5, 10, 18, 0), null]
+        })
+        response.status == 200
     }
 
     def "should delete all matches"() {
