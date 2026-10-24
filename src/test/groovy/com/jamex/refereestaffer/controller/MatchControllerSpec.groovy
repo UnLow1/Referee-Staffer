@@ -86,6 +86,10 @@ class MatchControllerSpec extends Specification {
         json.id == matchId
         json.homeScore == 2
         json.awayScore == 1
+        // Null-inclusion contract: unset fields are serialized as an explicit null, not
+        // omitted. The frontend types them as `?: T | null` and an unscheduled match must
+        // still carry "date": null — a switch to NON_NULL would change the wire shape silently.
+        ['date', 'refereeId', 'gradeId'].every { json.containsKey(it) && json[it] == null }
     }
 
     def "should respond 404 with problem detail when match has not been found"() {
