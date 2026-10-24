@@ -3,7 +3,8 @@ export interface Match {
   queue: number;
   homeTeamId: number;
   awayTeamId: number;
-  date: Date;
+  // Null while the fixture is planned but not scheduled yet — the auto-staffer skips it.
+  date: Date | null;
   refereeId: number;
   gradeId: number;
   homeScore: number;

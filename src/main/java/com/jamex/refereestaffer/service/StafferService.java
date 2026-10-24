@@ -75,7 +75,8 @@ public class StafferService {
      * the match keeps that exact referee and the referee is unavailable for the rest of the
      * cast. Every other assignable match (see {@link MatchService#getMatchesToAssignInQueue})
      * is staffed from scratch, so a regenerate reshuffles previous auto-assignments instead
-     * of silently keeping them.
+     * of silently keeping them. Matches without a date are returned unassigned (unless
+     * locked): the auto-staffer leaves them to a manual pick.
      *
      * <p>Locks deliberately bypass the vacation filter — a pinned pair is an explicit user
      * decision, and rejecting it here would make the UI's lock state impossible to restore.
@@ -94,8 +95,12 @@ public class StafferService {
         // countRefereePotentialLvl. With ~15 referees × ~8 matches that's 600 → 1 query.
         var config = configurationRepository.findAllAsMap();
 
+        // A match without a date stays in the returned cast (the Staffer screen lists it and a
+        // referee can still be picked by hand, which arrives here as a lock) but is never
+        // auto-staffed: the vacation and same-day rules cannot be checked without a date.
         var matchesToAutoStaff = sortedMatchesToStaff.stream()
                 .filter(match -> match.getReferee() == null)
+                .filter(match -> match.getDate() != null)
                 .toList();
         assignRefereesToMatches(referees, matchesToAutoStaff, config);
 

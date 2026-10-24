@@ -121,20 +121,43 @@ class ImporterServiceSpec extends Specification {
 
     def "should throw ImportException when CSV row has missing columns"() {
         given:
-        // Header + row with only 3 columns (queue + two team names) — date column missing.
-        // createTeams reads line[1] and line[2] OK, but createMatchesAndGrades blows up on
-        // line[3] (date) with ArrayIndexOutOfBoundsException.
-        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n1;Team1;Team2"
+        // Header + row cut off after the home team — no away team. createTeams reads line[2]
+        // and blows up with ArrayIndexOutOfBoundsException before anything is saved.
+        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n1;Team1"
         MultipartFile multipartFile = new MockMultipartFile("file", "broken.csv", "text/csv", csv.getBytes())
 
         when:
         importerService.importData(multipartFile, 30 as short)
 
         then:
-        1 * teamRepository.saveAll(_)
-        1 * refereeRepository.saveAll(_)
-        2 * teamRepository.findByName(_) >> Optional.of(new Team())
+        0 * teamRepository.saveAll(_)
+        0 * matchRepository.save(_)
         thrown(ImportException)
+    }
+
+    def "should import a planned match without a date"() {
+        given:
+        // A fixture planned for the season but not scheduled yet: the date cell is empty,
+        // blank, or the row simply ends after the away team.
+        def csv = "queue;home;away;date;referee;homeScore;awayScore;grade\n$row"
+        MultipartFile multipartFile = new MockMultipartFile("file", "no-date.csv", "text/csv", csv.getBytes())
+
+        when:
+        importerService.importData(multipartFile, 30 as short)
+
+        then:
+        1 * teamRepository.saveAll(_)
+        1 * refereeRepository.saveAll([])
+        2 * teamRepository.findByName(_) >> Optional.of(new Team())
+        1 * matchRepository.save({ it.date == null && it.queue == 5 as Short && it.referee == null })
+        0 * gradeRepository.save(_)
+        2 * matchRepository.findAll() >> []
+        1 * refereeRepository.findAll() >> []
+        2 * gradeRepository.findAll() >> []
+        1 * teamRepository.findAll() >> []
+
+        where:
+        row << ["5;Team1;Team2", "5;Team1;Team2;", "5;Team1;Team2; "]
     }
 
     def "should throw ImportException when CSV row has malformed date"() {

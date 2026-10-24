@@ -512,6 +512,51 @@ describe('StafferComponent', () => {
       expect(el.querySelectorAll('tr.cast-row').length).toBe(3);
     });
 
+    describe('match without a date', () => {
+      const dateless = makeMatch(14, {homeTeamId: 4, awayTeamId: 5, date: null, hardnessLvl: 40});
+
+      beforeEach(() => {
+        stafferService.staffReferees.mockReturnValue(of([...matches, dateless]));
+        component.generate();
+        fixture.detectChanges();
+      });
+
+      function rowOf(el: HTMLElement, matchId: number): HTMLElement {
+        const index = component.sortedMatches().findIndex(m => m.id === matchId);
+        return el.querySelectorAll<HTMLElement>('tr.cast-row')[index];
+      }
+
+      it('is listed with a no-date chip and says why it was not auto-staffed', () => {
+        const row = rowOf(fixture.nativeElement, 14);
+        expect(row.querySelector('.flag-cell')!.textContent).toContain('no date');
+        expect(row.querySelector('.referee-cell')!.textContent).toContain('not auto-staffed');
+      });
+
+      it('keeps the plain "unassigned" label for a dated match without a referee', () => {
+        const row = rowOf(fixture.nativeElement, 12);
+        expect(row.querySelector('.referee-cell')!.textContent).toContain('unassigned');
+        expect(row.querySelector('.referee-cell')!.textContent).not.toContain('not auto-staffed');
+      });
+
+      it('explains in the drawer that a referee can still be picked by hand', () => {
+        component.openDrawer(dateless);
+        fixture.detectChanges();
+        expect(document.querySelector('.no-date-note')?.textContent).toContain('pick a referee');
+      });
+
+      it('does not show the drawer note for a dated match', () => {
+        component.openDrawer(matches[1]);
+        fixture.detectChanges();
+        expect(document.querySelector('.no-date-note')).toBeNull();
+      });
+
+      it('can be staffed by hand through the drawer', () => {
+        component.swap(dateless, 103);
+        expect(component.matches()!.find(m => m.id === 14)!.refereeId).toBe(103);
+        expect(component.isLocked(dateless)).toBe(true);
+      });
+    });
+
     it('gates the algorithm explainer on the UI setting', () => {
       const el: HTMLElement = fixture.nativeElement;
       expect(el.querySelector('.explainer')).toBeNull();
