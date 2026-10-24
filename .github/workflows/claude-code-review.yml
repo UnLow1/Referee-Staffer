@@ -49,9 +49,6 @@ jobs:
           settings: '{"env": {"CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"}}'
           claude_args: >-
             --allowedTools "Agent,Task,Read,Glob,Grep,TodoWrite,mcp__github_inline_comment__create_inline_comment,Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh pr list:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*)"
-          # TEMPORARY: prints the whole session (tool calls and results) into the public
-          # run log so the first post-merge review can be checked. Remove right after.
-          show_full_output: true
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
