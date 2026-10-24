@@ -199,6 +199,20 @@ describe('MatchFormComponent', () => {
       expect(component.grade.secondValue).toBe(8.3);
     });
 
+    it('creates no grade from a second component alone', () => {
+      const component = createComponent(null).componentInstance;
+      const saved = makeMatch({id: 42});
+      matchService.save.mockReturnValue(of(saved));
+      const emitted: Match[] = [];
+      component.saved.subscribe(m => emitted.push(m));
+
+      component.grade.secondValue = 8.3;
+      component.onSubmit(validForm);
+
+      expect(gradeService.save).not.toHaveBeenCalled();
+      expect(emitted).toEqual([saved]);
+    });
+
     it('saves a grade of 0 — zero is an entered value, not an empty input', () => {
       const component = createComponent(null).componentInstance;
       const saved = makeMatch({id: 42});
@@ -341,6 +355,19 @@ describe('MatchFormComponent', () => {
       component.onSubmit(validForm);
 
       expect(gradeService.delete).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.save).not.toHaveBeenCalled();
+      expect(emitted).toEqual([updated]);
+    });
+
+    it('deletes a stored grade left with only a second component — it never reaches the backend alone', () => {
+      createInEditMode(5, {id: 5, value: 7.5, secondValue: 8.3});
+      gradeService.delete.mockReturnValue(of(undefined as unknown as void));
+
+      component.grade.value = undefined as unknown as number;
+      component.onSubmit(validForm);
+
+      expect(gradeService.delete).toHaveBeenCalledWith(component.grade);
+      expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.save).not.toHaveBeenCalled();
       expect(emitted).toEqual([updated]);
     });
