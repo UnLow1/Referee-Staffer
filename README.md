@@ -122,6 +122,16 @@ the person doing the staffing.
 top-down by the federation. Such matches are left untouched and their referees stay out of the
 pool. The check lives in `Referee.isCentralSentinel()`.
 
+## Running locally
+
+- `mvn package` builds the backend and the Angular frontend into one jar; the frontend build
+  downloads its own Node and npm, so nothing needs to be installed globally.
+- `mvn spring-boot:run` starts the app on <http://localhost:8080> with an in-memory H2 database.
+- `-Dspring-boot.run.profiles=dev` switches to the `dev` profile, which keeps its data in a
+  file-based H2 database under `./data/db`, so it survives restarts.
+- `cd src/main/webapp && npm start` runs the Angular dev server alone and proxies `/api` calls to
+  the backend.
+
 ## Sample screenshots
 
 ### Overview dashboard
