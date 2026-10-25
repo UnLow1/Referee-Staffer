@@ -329,8 +329,7 @@ describe('MatchListComponent', () => {
       expect(host.querySelector('.queue-count')?.textContent).toContain('2 matches');
     });
 
-    it('centers an off-screen queue, ignoring the bar\'s own position on the page', async () => {
-      await create();
+    it('centers an off-screen queue, ignoring the bar\'s own position on the page', () => {
       // Queue 25 sits at offset 2500 in a 3100px bar shown through a 300px viewport:
       // centering it means 2500 + 50 - 150, and the 277px page offset must not leak in.
       const {bar, writes} = makeBar(30, 100, 300);
@@ -340,8 +339,7 @@ describe('MatchListComponent', () => {
       expect(writes).toEqual([2400]);
     });
 
-    it('clamps the scroll to the bar ends so the first and last queue stay flush', async () => {
-      await create();
+    it('clamps the scroll to the bar ends so the first and last queue stay flush', () => {
       const {bar, writes, scrollTo} = makeBar(30, 100, 300);
 
       // Last button ends at the bar's right edge → 3100 - 300.
@@ -353,8 +351,7 @@ describe('MatchListComponent', () => {
       expect(writes).toEqual([2800, 0]);
     });
 
-    it('leaves a queue that is already fully visible alone', async () => {
-      await create();
+    it('leaves a queue that is already fully visible alone', () => {
       const {bar, writes} = makeBar(30, 100, 300);
 
       // Clicking a visible button must not yank it out from under the cursor.
@@ -367,8 +364,7 @@ describe('MatchListComponent', () => {
       expect(writes).toEqual([200]);
     });
 
-    it('does nothing when the queue has no button', async () => {
-      await create();
+    it('does nothing when the queue has no button', () => {
       const {bar, writes} = makeBar(3, 100, 300);
 
       scrollQueueIntoView(bar, 99);
@@ -376,8 +372,7 @@ describe('MatchListComponent', () => {
       expect(writes).toEqual([]);
     });
 
-    it('leaves a bar that already fits unscrolled', async () => {
-      await create();
+    it('leaves a bar that already fits unscrolled', () => {
       const {bar, writes} = makeBar(2, 100, 800);
 
       scrollQueueIntoView(bar, 2);
@@ -403,6 +398,29 @@ describe('MatchListComponent', () => {
 
       // Queue 5 is the 26th queue button → index 26 → offset 2600, centered at 2500.
       expect(writes).toEqual([2500]);
+    });
+
+    it('brings a mid-season selection back into view when a drawer save reloads the list', async () => {
+      matchService.findAll.mockReturnValue(of(Array.from({length: 30}, (_, i) =>
+        makeMatch(2000 + i, {queue: i + 1, refereeId: 100, gradeId: 500}))));
+      const fixture = await create();
+      const bar = fixture.nativeElement.querySelector('.seg-scroll') as HTMLElement;
+      const {writes, scrollTo} = stubLayout(bar, 100, 300);
+      fixture.componentInstance.selectQueue(5);
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(writes).toEqual([2500]);
+
+      // The bar was scrolled back to its start meanwhile, leaving queue 5 off-screen.
+      // Saving in the drawer reloads through load(), which must re-center the selection —
+      // selectQueue() is not involved on this path, so only load()'s own call covers it.
+      scrollTo(0);
+      fixture.componentInstance.onSaved();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(fixture.componentInstance.selectedQueue()).toBe(5);
+      expect(writes).toEqual([2500, 2500]);
     });
   });
 
