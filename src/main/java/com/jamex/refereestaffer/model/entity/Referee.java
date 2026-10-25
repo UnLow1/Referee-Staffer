@@ -38,8 +38,19 @@ public class Referee {
     @Transient
     private Short numberOfMatchesInRound;
 
+    /**
+     * How many matches of each team this referee has already officiated, keyed by
+     * <strong>team id</strong> — see {@link com.jamex.refereestaffer.service.RefereeService#calculateStats}.
+     * Keying on the entity would fall back to identity comparison (Team deliberately does not
+     * override equals/hashCode, same reasoning as Referee — a generated id misbehaves for new,
+     * unsaved entities), and the teams of the matches being staffed come from a different query
+     * than the ones counted here. That only resolves to the same instances while both queries
+     * share one persistence context, so a reloaded entity, a copy or a DTO in the flow would
+     * silently zero both fairness penalties in
+     * {@link com.jamex.refereestaffer.service.StafferService} (RS-127).
+     */
     @Transient
-    private Map<Team, Short> teamsRefereed;
+    private Map<Long, Short> teamsRefereed;
 
     /**
      * Highest queue this referee has been assigned to. Set by
@@ -70,7 +81,7 @@ public class Referee {
     }
 
     public Referee(Long id, String firstName, String lastName, String email, List<Match> matches, int experience,
-                   Double averageGrade, Short numberOfMatchesInRound, Map<Team, Short> teamsRefereed) {
+                   Double averageGrade, Short numberOfMatchesInRound, Map<Long, Short> teamsRefereed) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -144,11 +155,11 @@ public class Referee {
         this.numberOfMatchesInRound = numberOfMatchesInRound;
     }
 
-    public Map<Team, Short> getTeamsRefereed() {
+    public Map<Long, Short> getTeamsRefereed() {
         return teamsRefereed;
     }
 
-    public void setTeamsRefereed(Map<Team, Short> teamsRefereed) {
+    public void setTeamsRefereed(Map<Long, Short> teamsRefereed) {
         this.teamsRefereed = teamsRefereed;
     }
 
@@ -204,7 +215,7 @@ public class Referee {
         private int experience;
         private Double averageGrade;
         private Short numberOfMatchesInRound;
-        private Map<Team, Short> teamsRefereed;
+        private Map<Long, Short> teamsRefereed;
 
         public Builder id(Long id) {
             this.id = id;
@@ -246,7 +257,7 @@ public class Referee {
             return this;
         }
 
-        public Builder teamsRefereed(Map<Team, Short> teamsRefereed) {
+        public Builder teamsRefereed(Map<Long, Short> teamsRefereed) {
             this.teamsRefereed = teamsRefereed;
             return this;
         }

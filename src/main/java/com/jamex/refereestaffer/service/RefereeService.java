@@ -4,7 +4,6 @@ import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Grade;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
-import com.jamex.refereestaffer.model.entity.Team;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
@@ -128,12 +127,20 @@ public class RefereeService {
         return refereeGrades / matchesWithGrade.size();
     }
 
-    private Map<Team, Short> createTeamsRefereedMap(List<Match> matchesForReferee) {
-        var result = new HashMap<Team, Short>();
+    /**
+     * Counts the matches already officiated per team, keyed by team id. Keying on the Team
+     * entity would compare by identity — the same trap the grouping above avoids for referees
+     * — and the consumer ({@link StafferService#staffReferees}) looks these counts up with the
+     * teams of a different query's matches, so the two sides only line up while they share one
+     * persistence context (RS-127). Both ids come from persisted rows: home and away are
+     * mandatory in the API and resolved from the database before a match is stored.
+     */
+    private Map<Long, Short> createTeamsRefereedMap(List<Match> matchesForReferee) {
+        var result = new HashMap<Long, Short>();
 
         for (var match : matchesForReferee) {
-            result.merge(match.getHome(), (short) 1, (a, b) -> (short) (a + b));
-            result.merge(match.getAway(), (short) 1, (a, b) -> (short) (a + b));
+            result.merge(match.getHome().getId(), (short) 1, (a, b) -> (short) (a + b));
+            result.merge(match.getAway().getId(), (short) 1, (a, b) -> (short) (a + b));
         }
 
         return result;

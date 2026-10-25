@@ -37,19 +37,22 @@ class StafferServiceSpec extends Specification {
         given:
         short queue = 2
         def team1 = Team.builder()
+                .id(101L)
                 .name("test team")
                 .build()
         def team2 = Team.builder()
+                .id(102L)
                 .name("test team 123213")
                 .build()
         // After RefereeService.calculateStats, averageGrade is always non-null — the
         // no-grades fallback (DEFAULT_GRADE = 8.3) is applied there. Setting it
         // explicitly here mirrors the real invariant. Ids are needed because the
-        // staffer deduplicates already-assigned referees by id.
+        // staffer deduplicates already-assigned referees by id, and teamsRefereed is
+        // keyed by team id (RS-127).
         def ref1 = Referee.builder()
                 .id(1L)
                 .averageGrade(8.1d)
-                .teamsRefereed(Map.of(team1, (short) 1, team2, (short) 1))
+                .teamsRefereed(Map.of(team1.id, (short) 1, team2.id, (short) 1))
                 .numberOfMatchesInRound((short) 7)
                 .build()
         def ref2 = Referee.builder()
@@ -114,8 +117,12 @@ class StafferServiceSpec extends Specification {
         def referees = [ref1, ref2, ref3, ref4, ref5, ref6]
         def matchDateTime = LocalDateTime.of(2022, 10, 12, 16, 0)
         def matchDate = matchDateTime.toLocalDate()
-        def match1 = [date: matchDateTime] as Match
-        def match2 = [date: matchDateTime] as Match
+        // Home and away carry ids because the fairness penalties look teamsRefereed up by
+        // team id (RS-127); every real match has both teams (@NotNull in MatchDto).
+        def team1 = Team.builder().id(101L).name("home").build()
+        def team2 = Team.builder().id(102L).name("away").build()
+        def match1 = Match.builder().home(team1).away(team2).date(matchDateTime).build()
+        def match2 = Match.builder().home(team2).away(team1).date(matchDateTime).build()
         def matches = [match1, match2]
         def futureDate = matchDate.plusDays(1)
         def pastDate = matchDate.minusDays(1)
@@ -334,6 +341,50 @@ class StafferServiceSpec extends Specification {
         1 * configurationRepository.findAllAsMap() >> gradeOnlyConfig()
         1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
         1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> [conflictingMatch]
+        1 * matchConverter.convertFromEntities([match])
+    }
+
+    def "should penalize a referee for teams already refereed when the match holds detached team copies"() {
+        given:
+        short queue = 3
+        def matchDateTime = LocalDateTime.of(2026, 5, 4, 15, 0)
+        // refWithHistory wins on grade alone, so only the two team penalties can keep it out
+        // of the cast: 9.0 - 3 - 3 = 3.0 against the free referee's 7.0.
+        def refWithHistory = Referee.builder()
+                .id(1L)
+                .averageGrade(9.0d)
+                .teamsRefereed([(101L): (short) 3, (102L): (short) 3])
+                .numberOfMatchesInRound((short) 0)
+                .build()
+        def freeReferee = Referee.builder()
+                .id(2L)
+                .averageGrade(7.0d)
+                .teamsRefereed([:])
+                .numberOfMatchesInRound((short) 0)
+                .build()
+        def referees = [refWithHistory, freeReferee]
+        // Same teams, different instances — teamsRefereed is built from the matches of
+        // another query (RefereeService.calculateStats) than the ones being staffed, so this is
+        // what a reloaded entity, a defensive copy or a converted DTO would hand the staffer.
+        // Team has no equals/hashCode, so entity keys would compare references here, miss both
+        // counts and silently drop the penalties to zero (RS-127).
+        def match = Match.builder()
+                .home(Team.builder().id(101L).name("home").build())
+                .away(Team.builder().id(102L).name("away").build())
+                .date(matchDateTime)
+                .build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        match.referee == freeReferee
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
+        1 * refereeService.calculateStats(referees)
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match]
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> []
         1 * matchConverter.convertFromEntities([match])
     }
 
