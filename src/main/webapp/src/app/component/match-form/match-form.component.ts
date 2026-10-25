@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output, inject, ChangeDetectionStrategy} from '@angular/core';
+import {Component, EventEmitter, Input, OnInit, Output, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
 import {Match} from '../../model/match';
 import {Team} from '../../model/team';
@@ -21,6 +21,12 @@ import {IconComponent} from '../common/icon/icon.component';
  * while the form edits a separate `grade.value`; the save/update/delete decision tree
  * must stay intact. It keys off explicit null checks rather than truthiness, so that a
  * grade of `0` counts as an entered value instead of an empty input.
+ *
+ * The stored grade is fetched asynchronously, so the grade section is gated on that
+ * request: whether the match already has a grade is decided from `match.gradeId` (known
+ * up front) rather than from the half-loaded `grade.id`, and the inputs stay disabled
+ * until the grade is on screen. Without the gate a save that beats the response created
+ * a second grade for the same match instead of updating the stored one.
  */
 @Component({
   selector: 'app-match-form',
@@ -44,6 +50,15 @@ export class MatchFormComponent implements OnInit {
   model: Match = {} as Match;
   grade: Grade = {} as Grade;
 
+  /** The stored grade is still in flight — the grade inputs and submit are disabled. */
+  readonly gradeLoading = signal(false);
+  /**
+   * Fetching the stored grade failed (the interceptor already showed the toast). The
+   * grade section stays disabled and onSubmit skips the grade branch entirely, so the
+   * rest of the form can still be saved without touching a grade we never read.
+   */
+  readonly gradeLoadFailed = signal(false);
+
   get editMode(): boolean {
     return this.match != null;
   }
@@ -58,19 +73,31 @@ export class MatchFormComponent implements OnInit {
     if (this.match) {
       this.model = {...this.match};
       if (this.match.gradeId != null) {
-        this.gradeService.findById(this.match.gradeId).subscribe(grade => this.grade = grade);
+        this.gradeLoading.set(true);
+        this.gradeService.findById(this.match.gradeId).subscribe({
+          next: grade => {
+            this.grade = grade;
+            this.gradeLoading.set(false);
+          },
+          error: () => {
+            this.gradeLoading.set(false);
+            this.gradeLoadFailed.set(true);
+          }
+        });
       }
     }
   }
 
   onSubmit(form: NgForm): void {
-    if (!form.valid) return;
+    if (!form.valid || !this.canSubmit) return;
     // A cleared datetime-local input binds "" rather than null; send an explicit null so
     // the backend stores "not scheduled yet" instead of failing to parse an empty string.
     if (!this.model.date) this.model.date = null;
     if (this.editMode)
       this.matchService.update(this.model).subscribe(match => {
-        if (this.hasStoredGrade && this.hasGradeValue)
+        if (!this.gradeEditable)
+          this.saved.emit(match);
+        else if (this.hasStoredGrade && this.hasGradeValue)
           this.gradeService.update(this.grade).subscribe(() => this.saved.emit(match));
         else if (this.hasGradeValue)
           this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
@@ -88,6 +115,20 @@ export class MatchFormComponent implements OnInit {
       });
   }
 
+  /** The grade on screen is the stored one, so the grade inputs may be edited and saved. */
+  get gradeEditable(): boolean {
+    return !this.gradeLoading() && !this.gradeLoadFailed();
+  }
+
+  /**
+   * Saving is held back only while the grade is loading — a save landing in that window
+   * would either create a duplicate grade or read the empty input as "grade cleared" and
+   * delete the stored one. A failed load does not block the save: the grade is skipped.
+   */
+  get canSubmit(): boolean {
+    return !this.gradeLoading();
+  }
+
   /** Gates the second grade input — a split grade needs its first component first. */
   get gradeValueMissing(): boolean {
     return this.grade.value == null;
@@ -99,9 +140,13 @@ export class MatchFormComponent implements OnInit {
     if (value == null) this.grade.secondValue = undefined;
   }
 
-  /** The match already has a grade row on the backend, so it can be updated or deleted. */
+  /**
+   * The match already has a grade row on the backend, so it can be updated or deleted.
+   * Read from the match rather than from `grade.id`: the match carries the reference from
+   * the moment the form opens, while `grade` is empty until findById answers.
+   */
   private get hasStoredGrade(): boolean {
-    return this.grade.id != null;
+    return this.match?.gradeId != null;
   }
 
   /**
