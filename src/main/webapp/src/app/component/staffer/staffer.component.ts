@@ -1,5 +1,5 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
-import {forkJoin} from 'rxjs';
+import {forkJoin, Subscription} from 'rxjs';
 import {saveAs} from 'file-saver';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -34,7 +34,9 @@ interface Candidate {
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
  * swap individual rows, then save. Locked pairs are sent with the staffing request,
- * so a regenerate preserves them server-side and reshuffles only the rest.
+ * so a regenerate preserves them server-side and reshuffles only the rest. Nothing on
+ * screen survives a queue change — the cast, the locks and the saved marker are all
+ * scoped to the queue they were generated for.
  */
 @Component({
   selector: 'app-staffer',
@@ -58,7 +60,13 @@ export class StafferComponent {
   /** Edge-zone size (NUMBER_OF_EDGE_TEAMS) from the backend configuration. */
   readonly edgeTeams = this.configurationService.edgeTeams;
 
-  readonly queue = signal(1);
+  private readonly selectedQueue = signal(1);
+  /**
+   * Read-only on purpose: every queue change has to run through setQueue(), which resets
+   * the cast on screen. Keeping the writable signal private is what makes that reset
+   * unforgettable — a new way of changing the queue cannot skip it.
+   */
+  readonly queue = this.selectedQueue.asReadonly();
   readonly matches = signal<Match[] | null>(null);
   readonly referees = signal<Referee[]>([]);
   /** Map<teamId, Team> — populated from /api/teams/standings rows. */
@@ -71,7 +79,7 @@ export class StafferComponent {
    * Map<matchId, refereeId> of locked assignments. Sent with the staffing request:
    * the backend pins each pair and re-staffs only the remaining matches, so locks
    * survive a regenerate. Cleared on queue change — they reference matches of the
-   * previously generated queue.
+   * previously generated queue (see setQueue).
    */
   readonly locks = signal<Map<number, number>>(new Map());
   readonly drawerMatchId = signal<number | null>(null);
@@ -80,6 +88,9 @@ export class StafferComponent {
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
   readonly exporting = signal(false);
+
+  /** The staffing request currently in flight, kept so a queue change can cancel it. */
+  private staffing: Subscription | null = null;
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
@@ -116,13 +127,11 @@ export class StafferComponent {
   // ——— Public actions ———
 
   incQueue(): void {
-    this.queue.update(q => q + 1);
-    this.clearLocks();
+    this.setQueue(this.queue() + 1);
   }
 
   decQueue(): void {
-    this.queue.update(q => Math.max(1, q - 1));
-    this.clearLocks();
+    this.setQueue(this.queue() - 1);
   }
 
   clearLocks(): void {
@@ -130,15 +139,23 @@ export class StafferComponent {
   }
 
   generate(): void {
+    const requestedQueue = this.queue();
+    // Only one cast can be on screen, so only one request may be outstanding: a second
+    // Generate supersedes the first, and a queue change cancels it outright (setQueue).
+    // Cancelling rather than filtering the response on arrival is what keeps an older
+    // request from landing last and repopulating a screen that was already reset.
+    this.cancelStaffing();
     this.loading.set(true);
     this.savedAt.set(null);
     const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
-    forkJoin({
-      matches: this.stafferService.staffReferees(this.queue(), locks),
+    this.staffing = forkJoin({
+      matches: this.stafferService.staffReferees(requestedQueue, locks),
       standings: this.teamService.getStandings(),
-      referees: this.refereeService.findRefereesAvailableForQueue(this.queue())
+      referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue)
     }).subscribe({
       next: ({matches, standings, referees}) => {
+        this.staffing = null;
+        this.loading.set(false);
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
         // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
@@ -152,9 +169,11 @@ export class StafferComponent {
         this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
         this.matches.set([...matches]);
-        this.loading.set(false);
       },
-      error: () => this.loading.set(false)
+      error: () => {
+        this.staffing = null;
+        this.loading.set(false);
+      }
     });
   }
 
@@ -167,10 +186,13 @@ export class StafferComponent {
     if (!this.canExport()) {
       return;
     }
+    // Read the queue once: stepping away while the download is in flight would otherwise
+    // stamp the sheet of the queue it was requested for with the new queue's number.
+    const requestedQueue = this.queue();
     this.exporting.set(true);
-    this.matchService.downloadAssignmentsPdf(this.queue()).subscribe({
+    this.matchService.downloadAssignmentsPdf(requestedQueue).subscribe({
       next: blob => {
-        saveAs(blob, `referee-assignments-queue-${this.queue()}.pdf`);
+        saveAs(blob, `referee-assignments-queue-${requestedQueue}.pdf`);
         this.exporting.set(false);
       },
       error: () => this.exporting.set(false)
@@ -224,6 +246,50 @@ export class StafferComponent {
     const ms = this.matches();
     if (!ms) return;
     this.matchService.updateList(ms).subscribe(() => this.savedAt.set(new Date()));
+  }
+
+  // ——— Queue selection ———
+
+  /**
+   * The single way the queue changes. Clamps to the first queue and, whenever the value
+   * really moves, drops everything on screen that belongs to the queue left behind.
+   * Deliberately synchronous rather than an effect() on the queue signal: an effect is
+   * scheduled, so a generate() issued in the same tick would have its fresh cast wiped
+   * by a reset arriving afterwards.
+   */
+  private setQueue(next: number): void {
+    const target = Math.max(1, next);
+    if (target === this.selectedQueue()) {
+      return;
+    }
+    this.selectedQueue.set(target);
+    this.resetCast();
+  }
+
+  /**
+   * Clears the generated cast. Every piece of it is queue-scoped: the rows and the
+   * referee pool were fetched for the old queue, the locks key on its match ids, and
+   * savedAt refers to assignments stored for it — left in place it would keep Export
+   * PDF enabled for a queue that was never staffed.
+   */
+  private resetCast(): void {
+    this.cancelStaffing();
+    this.clearLocks();
+    this.matches.set(null);
+    this.referees.set([]);
+    this.savedAt.set(null);
+    this.closeDrawer();
+  }
+
+  /**
+   * Drops the staffing request in flight, if any, and re-enables the Generate button.
+   * Without it a queue change left the user waiting on a request whose response is no
+   * longer wanted, with nothing to show for it once it landed.
+   */
+  private cancelStaffing(): void {
+    this.staffing?.unsubscribe();
+    this.staffing = null;
+    this.loading.set(false);
   }
 
   // ——— Read helpers used by the template ———

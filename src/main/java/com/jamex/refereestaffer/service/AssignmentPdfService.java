@@ -37,6 +37,8 @@ public class AssignmentPdfService {
     private static final Logger log = LoggerFactory.getLogger(AssignmentPdfService.class);
 
     static final String UNASSIGNED = "unassigned";
+    /** Printed in the date and time columns of a match that has no kick-off yet. */
+    static final String NO_DATE = "TBD";
 
     /** Matches the date format of the CSV importer, so sheets read like the source data. */
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
@@ -97,8 +99,8 @@ public class AssignmentPdfService {
             for (var match : matches) {
                 table.addCell(bodyCell(teamName(match.getHome()), cell));
                 table.addCell(bodyCell(teamName(match.getAway()), cell));
-                table.addCell(bodyCell(match.getDate().format(DATE_FORMAT), cell));
-                table.addCell(bodyCell(match.getDate().format(TIME_FORMAT), cell));
+                table.addCell(kickOffCell(match.getDate(), DATE_FORMAT, cell, mutedCell));
+                table.addCell(kickOffCell(match.getDate(), TIME_FORMAT, cell, mutedCell));
                 var referee = match.getReferee();
                 table.addCell(referee == null
                         ? bodyCell(UNASSIGNED, mutedCell)
@@ -120,6 +122,11 @@ public class AssignmentPdfService {
         pdfCell.setPadding(6);
         pdfCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         return pdfCell;
+    }
+
+    /** One half of the kick-off (date or time), or the muted placeholder while it is not scheduled. */
+    private PdfPCell kickOffCell(LocalDateTime kickOff, DateTimeFormatter format, Font font, Font mutedFont) {
+        return kickOff == null ? bodyCell(NO_DATE, mutedFont) : bodyCell(kickOff.format(format), font);
     }
 
     private String teamName(Team team) {

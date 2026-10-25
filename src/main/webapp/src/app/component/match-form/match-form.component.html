@@ -17,13 +17,11 @@
           <span class="err"><app-icon name="info" [size]="12"></app-icon>Queue is required</span>
         }
       </div>
-      <div class="field-block" [class.invalid]="date.invalid && (date.touched || date.dirty)">
-        <label class="lbl" for="date">Date &amp; time<span class="req">*</span></label>
+      <div class="field-block">
+        <label class="lbl" for="date">Date &amp; time<span class="opt">optional</span></label>
         <input class="input" type="datetime-local" id="date" name="date"
-               [(ngModel)]="model.date" required #date="ngModel">
-        @if (date.invalid && (date.touched || date.dirty)) {
-          <span class="err"><app-icon name="info" [size]="12"></app-icon>Date is required</span>
-        }
+               [(ngModel)]="model.date">
+        <span class="hint">Leave empty until the kick-off is scheduled — the auto-staffer skips matches without a date.</span>
       </div>
     </div>
 

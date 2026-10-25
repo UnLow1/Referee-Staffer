@@ -18,6 +18,12 @@ public record MatchDto(
         @NotNull
         Long awayTeamId,
 
+        /**
+         * Deliberately nullable: the fixture list is planned at the start of the season
+         * (who plays whom, in which queue) and the dates are filled in a few queues ahead
+         * as the season goes. A match without a date is skipped by the auto-staffer — see
+         * {@code StafferService#staffReferees}.
+         */
         LocalDateTime date,
 
         Long refereeId,
