@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
@@ -164,25 +165,23 @@ public class StafferService {
 
     private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config) {
         var assignedRefereeIds = new HashSet<Long>();
+        // Both availability queries only ever look at the calendar day of the match (the two
+        // repository defaults truncate the LocalDateTime), and the matches of one queue share a
+        // handful of dates — a round of 8 matches on one day used to run 16 queries instead of 2.
+        // Same idea as hoisting config out of the loop above. The same-day set additionally
+        // depends on `referees`, which does not change during a run; if a future change ever
+        // feeds freshly made assignments back into that query, this cache must be invalidated.
+        // Dateless matches are filtered out before this loop (RS-119), so the key is never null.
+        var refereeIdsOnVacationByDay = new HashMap<LocalDate, Set<Long>>();
+        var refereeIdsWithMatchByDay = new HashMap<LocalDate, Set<Long>>();
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
-            var vacations = vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(match.getDate());
+            var matchDay = match.getDate().toLocalDate();
 
-            // The three candidate filters below all key on the referee id. Matching on the entity
-            // itself would fall back to identity comparison (Referee deliberately does not
-            // override equals/hashCode — see RS-110), which only happens to work while all
-            // instances come from the same persistence context; a copied list, a reloaded entity
-            // or a DTO in the flow would silently let a referee on vacation or with a same-day
-            // match through. Ids come from persisted rows, so they are never null here; a null
-            // would end up in the set and over-exclude every id-less candidate, which fails
-            // loudly (StafferException) instead of quietly breaking the rule.
-            var refereeIdsOnVacation = vacations.stream()
-                    .map(Vacation::getReferee)
-                    .filter(Objects::nonNull)
-                    .map(Referee::getId)
-                    .collect(Collectors.toSet());
-
-            var refereeIdsWithMatchOnSameDay = findRefereeIdsWithMatchOnDay(referees, match.getDate());
+            var refereeIdsOnVacation = refereeIdsOnVacationByDay.computeIfAbsent(
+                    matchDay, day -> findRefereeIdsOnVacation(match.getDate()));
+            var refereeIdsWithMatchOnSameDay = refereeIdsWithMatchByDay.computeIfAbsent(
+                    matchDay, day -> findRefereeIdsWithMatchOnDay(referees, match.getDate()));
 
             var availableReferees = referees.stream()
                     .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
@@ -207,6 +206,26 @@ public class StafferService {
 
             match.setReferee(chosenReferee);
         }
+    }
+
+    /**
+     * Ids of referees whose vacation covers the match day.
+     *
+     * <p>This and the two filters around it all key on the referee id. Matching on the entity
+     * itself would fall back to identity comparison (Referee deliberately does not override
+     * equals/hashCode — see RS-110), which only happens to work while all instances come from
+     * the same persistence context; a copied list, a reloaded entity or a DTO in the flow would
+     * silently let a referee on vacation or with a same-day match through. Ids come from
+     * persisted rows, so they are never null here; a null would end up in the set and
+     * over-exclude every id-less candidate, which fails loudly (StafferException) instead of
+     * quietly breaking the rule.
+     */
+    private Set<Long> findRefereeIdsOnVacation(LocalDateTime date) {
+        return vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(date).stream()
+                .map(Vacation::getReferee)
+                .filter(Objects::nonNull)
+                .map(Referee::getId)
+                .collect(Collectors.toSet());
     }
 
     /**

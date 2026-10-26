@@ -80,8 +80,9 @@ class StafferServiceSpec extends Specification {
         result == matchesDtos
         match1.referee == ref2
         match2.referee == ref1
-        2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
-        2 * matchRepository.findAllByRefereeInAndDateOnDay([ref1, ref2], matchDateTime) >> []
+        // Both matches fall on the same day, so each availability query runs once for the run.
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(_) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay([ref1, ref2], matchDateTime) >> []
         1 * refereeService.getAvailableRefereesForQueue(queue) >> [ref1, ref2]
         1 * matchService.getMatchesToAssignInQueue(queue) >> matches
         1 * matchConverter.convertFromEntities(matches) >> matchesDtos
@@ -131,8 +132,8 @@ class StafferServiceSpec extends Specification {
         then:
         match1.referee == ref2 || match1.referee == ref3
         match2.referee == ref2 || match2.referee == ref3
-        2 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> vacations
-        2 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> []
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(matchDateTime) >> vacations
+        1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, matchDateTime) >> []
         1 * refereeService.getAvailableRefereesForQueue(_) >> referees
         1 * refereeService.calculateStats(referees)
         1 * matchService.getMatchesToAssignInQueue(_) >> matches
@@ -535,6 +536,78 @@ class StafferServiceSpec extends Specification {
         1 * refereeRepository.findById(77l) >> Optional.empty()
         0 * refereeService.getAvailableRefereesForQueue(_)
         thrown(RefereeNotFoundException)
+    }
+
+    def "should query vacations and same-day matches once per calendar day"() {
+        given:
+        short queue = 3
+        def team1 = Team.builder().name("team A").build()
+        def team2 = Team.builder().name("team B").build()
+        def referees = (1..3).collect {
+            Referee.builder().id(it as Long).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        }
+        // Three matches, two of them on the same calendar day at different kick-off times:
+        // both availability queries only look at the day, so the 16:00 match reuses the
+        // 11:00 match's results and only the second day triggers another pair of queries.
+        def morning = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def afternoon = LocalDateTime.of(2026, 5, 4, 16, 0)
+        def nextDay = LocalDateTime.of(2026, 5, 5, 11, 0)
+        def matches = [morning, afternoon, nextDay].withIndex().collect { date, index ->
+            Match.builder().id((index + 1) as Long).home(team1).away(team2).date(date).build()
+        }
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        matches.every { it.referee != null }
+        1 * matchService.getMatchesToAssignInQueue(queue) >> matches
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
+        1 * configurationRepository.findAllAsMap() >> allOnesConfig()
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(morning) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, morning) >> []
+        0 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(afternoon)
+        0 * matchRepository.findAllByRefereeInAndDateOnDay(_, afternoon)
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(nextDay) >> []
+        1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, nextDay) >> []
+        1 * matchConverter.convertFromEntities(matches)
+    }
+
+    def "should apply the cached availability sets to every match of the same day"() {
+        given:
+        short queue = 3
+        def team1 = Team.builder().name("team A").build()
+        def team2 = Team.builder().name("team B").build()
+        // Both excluded referees outrank the free ones, so the second match can only be
+        // staffed correctly if the cached sets are applied to it too, not just to the first.
+        def refOnVacation = Referee.builder().id(1L).averageGrade(9.9d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def refWithConflict = Referee.builder().id(2L).averageGrade(9.5d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def free1 = Referee.builder().id(3L).averageGrade(8.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def free2 = Referee.builder().id(4L).averageGrade(7.0d).teamsRefereed([:]).numberOfMatchesInRound((short) 0).build()
+        def referees = [refOnVacation, refWithConflict, free1, free2]
+        def morning = LocalDateTime.of(2026, 5, 4, 11, 0)
+        def afternoon = LocalDateTime.of(2026, 5, 4, 16, 0)
+        def match1 = Match.builder().id(1L).home(team1).away(team2).date(morning).build()
+        def match2 = Match.builder().id(2L).home(team2).away(team1).date(afternoon).build()
+        def vacation = Vacation.builder()
+                .referee(refOnVacation)
+                .startDate(morning.toLocalDate())
+                .endDate(morning.toLocalDate())
+                .build()
+        def conflictingMatch = Match.builder().queue((short) 2).referee(refWithConflict).date(morning).build()
+
+        when:
+        stafferService.staffReferees(queue)
+
+        then:
+        match1.referee == free1
+        match2.referee == free2
+        1 * matchService.getMatchesToAssignInQueue(queue) >> [match1, match2]
+        1 * refereeService.getAvailableRefereesForQueue(queue) >> referees
+        1 * configurationRepository.findAllAsMap() >> gradeOnlyConfig()
+        1 * vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(morning) >> [vacation]
+        1 * matchRepository.findAllByRefereeInAndDateOnDay(referees, morning) >> [conflictingMatch]
+        1 * matchConverter.convertFromEntities([match1, match2])
     }
 
     /** Potential is then driven by the average grade alone, which keeps the fixtures readable. */
