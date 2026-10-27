@@ -382,6 +382,113 @@ describe('MatchFormComponent', () => {
     });
   });
 
+  describe('grade still loading', () => {
+    // RS-126: the stored grade is fetched asynchronously. A save that beat the response
+    // used to read the empty `grade.id` as "no grade stored" and POST a second grade for
+    // the same match; the match has only one grade row, so the duplicate is never valid.
+    let findById: Subject<Grade>;
+    let component: MatchFormComponent;
+    let fixture: ComponentFixture<MatchFormComponent>;
+    let emitted: Match[];
+
+    beforeEach(() => {
+      findById = new Subject<Grade>();
+      gradeService.findById.mockReturnValue(findById);
+      matchService.update.mockReturnValue(of(makeMatch({queue: 4})));
+      fixture = createComponent(makeMatch({gradeId: 5}));
+      component = fixture.componentInstance;
+      emitted = [];
+      component.saved.subscribe(m => emitted.push(m));
+    });
+
+    function gradeInputs(): HTMLInputElement[] {
+      const host = fixture.nativeElement as HTMLElement;
+      return [
+        host.querySelector<HTMLInputElement>('input#grade')!,
+        host.querySelector<HTMLInputElement>('input#secondGrade')!
+      ];
+    }
+
+    it('reports the grade as loading until the response arrives', () => {
+      expect(component.gradeLoading()).toBe(true);
+      expect(component.gradeEditable).toBe(false);
+      expect(component.canSubmit).toBe(false);
+
+      findById.next({id: 5, value: 7.5});
+
+      expect(component.gradeLoading()).toBe(false);
+      expect(component.gradeEditable).toBe(true);
+      expect(component.canSubmit).toBe(true);
+    });
+
+    it('disables both grade inputs while loading, so no value can be typed and then lost', async () => {
+      await fixture.whenStable();
+      expect(gradeInputs().map(i => i.disabled)).toEqual([true, true]);
+
+      findById.next({id: 5, value: 7.5});
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      // The first input is editable again; the second one stays gated on the first value.
+      expect(gradeInputs()[0].disabled).toBe(false);
+      expect(component.grade).toEqual({id: 5, value: 7.5});
+    });
+
+    it('does not save anything while the grade is loading', () => {
+      // The pre-fix failure mode: a grade value present with `grade.id` still undefined.
+      component.grade.value = 8.2;
+      component.onSubmit(validForm);
+
+      // The duplicate POST is the bug; the match update is held back with it.
+      expect(gradeService.save).not.toHaveBeenCalled();
+      expect(gradeService.update).not.toHaveBeenCalled();
+      expect(gradeService.delete).not.toHaveBeenCalled();
+      expect(matchService.update).not.toHaveBeenCalled();
+      expect(emitted).toEqual([]);
+    });
+
+    it('updates the stored grade once it has loaded instead of creating a second one', () => {
+      findById.next({id: 5, value: 7.5});
+      gradeService.update.mockReturnValue(of({id: 5, value: 8.2}));
+
+      component.grade.value = 8.2;
+      component.onSubmit(validForm);
+
+      expect(gradeService.update).toHaveBeenCalledWith(expect.objectContaining({id: 5, value: 8.2}));
+      expect(gradeService.save).not.toHaveBeenCalled();
+      expect(emitted).toEqual([makeMatch({queue: 4})]);
+    });
+  });
+
+  describe('grade load failure', () => {
+    it('saves the match but leaves the unread grade untouched', () => {
+      const findById = new Subject<Grade>();
+      gradeService.findById.mockReturnValue(findById);
+      const updated = makeMatch({queue: 4});
+      matchService.update.mockReturnValue(of(updated));
+      const component = createComponent(makeMatch({gradeId: 5})).componentInstance;
+      const emitted: Match[] = [];
+      component.saved.subscribe(m => emitted.push(m));
+
+      findById.error(new Error('boom'));
+
+      expect(component.gradeLoading()).toBe(false);
+      expect(component.gradeLoadFailed()).toBe(true);
+      // Submit is allowed again — only the grade section is off limits.
+      expect(component.canSubmit).toBe(true);
+      expect(component.gradeEditable).toBe(false);
+
+      component.onSubmit(validForm);
+
+      expect(matchService.update).toHaveBeenCalledWith(component.model);
+      expect(gradeService.save).not.toHaveBeenCalled();
+      expect(gradeService.update).not.toHaveBeenCalled();
+      // Above all: the empty input must not be read as "grade cleared" and delete it.
+      expect(gradeService.delete).not.toHaveBeenCalled();
+      expect(emitted).toEqual([updated]);
+    });
+  });
+
   describe('split grade input', () => {
     it('drops the second component when the first one is cleared', () => {
       const component = createComponent(null).componentInstance;
