@@ -1,6 +1,6 @@
 import {Component, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {saveAs} from 'file-saver';
+import {SAVE_FILE} from '../../service/save-file.token';
 import {ImporterService} from '../../service/importer.service';
 import {ImportResponse} from '../../request/importResponse';
 import {IconComponent} from '../common/icon/icon.component';
@@ -22,6 +22,7 @@ import {IconComponent} from '../common/icon/icon.component';
 })
 export class ImporterComponent {
   private readonly importerService = inject(ImporterService);
+  private readonly saveFile = inject(SAVE_FILE);
 
   readonly fileToUpload = signal<File | null>(null);
   readonly numberOfQueuesToImport = signal<number | null>(null);
@@ -62,7 +63,7 @@ export class ImporterComponent {
 
   downloadExample(): void {
     this.importerService.downloadExampleFile().subscribe(blob => {
-      saveAs(blob, 'example import file.csv');
+      this.saveFile(blob, 'example import file.csv');
     });
   }
 }
