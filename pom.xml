@@ -17,8 +17,8 @@
         <java.version>27</java.version>
         <gmaven.plus.version>5.1.0</gmaven.plus.version>
         <openapi.version>3.2.0</openapi.version>
-        <groovy.version>5.1.2</groovy.version>
-        <spock.version>2.4-groovy-5.0</spock.version>
+        <groovy.version>6.0.0</groovy.version>
+        <spock.version>2.5-groovy-6.0</spock.version>
         <openpdf.version>3.0.5</openpdf.version>
         <jacoco.version>0.8.15</jacoco.version>
         <!-- Toggle to skip the frontend build. Useful for backend-only CI jobs.
@@ -119,10 +119,10 @@
                 <artifactId>gmavenplus-plugin</artifactId>
                 <version>${gmaven.plus.version}</version>
                 <configuration>
-                    <!-- Groovy 5 rejects the plugin's 1.8 default -->
+                    <!-- Groovy 5+ rejects the plugin's 1.8 default -->
                     <targetBytecode>${java.version}</targetBytecode>
                     <!-- gmavenplus 5.1.0 validates targetBytecode against its own list, which
-                         stops at 25 and rejects 27. Groovy 5.1.2 maps "27" to Opcodes.V27
+                         stops at 25 and rejects 27. Groovy (6.0.0; 5.1.x before it) maps "27" to Opcodes.V27
                          (CompilerConfiguration.JDK27), so the plugin's check is stale, not the
                          compiler. That JDK27 constant is what made the java.version 26 -> 27 bump
                          possible — Groovy 5.0.x stopped at JDK26, so the bump had to wait for the
