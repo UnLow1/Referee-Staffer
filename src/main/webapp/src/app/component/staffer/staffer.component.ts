@@ -1,6 +1,6 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {forkJoin, Subscription} from 'rxjs';
-import {saveAs} from 'file-saver';
+import {SAVE_FILE} from '../../service/save-file.token';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
 import {RefereeService} from '../../service/referee.service';
@@ -54,6 +54,7 @@ export class StafferComponent {
   private readonly refereeService = inject(RefereeService);
   private readonly matchService = inject(MatchService);
   private readonly configurationService = inject(ConfigurationService);
+  private readonly saveFile = inject(SAVE_FILE);
   /** Gates the "How the staffer scores assignments" panel (toggled in the sidebar's Admin section). */
   readonly settings = inject(UiSettingsService);
 
@@ -192,7 +193,7 @@ export class StafferComponent {
     this.exporting.set(true);
     this.matchService.downloadAssignmentsPdf(requestedQueue).subscribe({
       next: blob => {
-        saveAs(blob, `referee-assignments-queue-${requestedQueue}.pdf`);
+        this.saveFile(blob, `referee-assignments-queue-${requestedQueue}.pdf`);
         this.exporting.set(false);
       },
       error: () => this.exporting.set(false)

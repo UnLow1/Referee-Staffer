@@ -14,10 +14,7 @@ import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 import {createMock} from '../../testing/mock';
-import {saveAs} from 'file-saver';
-
-// file-saver drives the real DOM download machinery, which jsdom does not implement.
-vi.mock('file-saver', () => ({saveAs: vi.fn()}));
+import {SAVE_FILE} from '../../service/save-file.token';
 
 describe('StafferComponent', () => {
   let fixture: ComponentFixture<StafferComponent>;
@@ -28,6 +25,9 @@ describe('StafferComponent', () => {
   let matchService: MockedObject<MatchService>;
   let explainerVisible: WritableSignal<boolean>;
   let edgeTeams: WritableSignal<number>;
+  // The download is injected (SAVE_FILE) because jsdom has no download machinery; a fresh
+  // spy per test replaces the module mock the Angular unit-test builder cannot honour.
+  let saveFile: ReturnType<typeof vi.fn>;
 
   // Backend rows carry `place`. 8 teams, edge size 3 (stubbed ConfigurationService),
   // so top = both places <= 3, bottom = both places > 5. Teams 1 and 2 share a city.
@@ -106,6 +106,7 @@ describe('StafferComponent', () => {
     matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
     explainerVisible = signal(false);
     edgeTeams = signal(3);
+    saveFile = vi.fn();
 
     stafferService.staffReferees.mockReturnValue(of(matches));
     teamService.getStandings.mockReturnValue(of(standings));
@@ -121,7 +122,8 @@ describe('StafferComponent', () => {
         {provide: RefereeService, useValue: refereeService},
         {provide: MatchService, useValue: matchService},
         {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: vi.fn().mockName('ensureEdgeTeamsLoaded')}},
-        {provide: UiSettingsService, useValue: {explainerVisible: explainerVisible.asReadonly()}}
+        {provide: UiSettingsService, useValue: {explainerVisible: explainerVisible.asReadonly()}},
+        {provide: SAVE_FILE, useValue: saveFile}
       ]
     }).compileComponents();
 
@@ -537,7 +539,6 @@ describe('StafferComponent', () => {
     }
 
     beforeEach(() => {
-      vi.mocked(saveAs).mockClear();
       matchService.downloadAssignmentsPdf.mockReturnValue(of(new Blob(['%PDF-'], {type: 'application/pdf'})));
     });
 
@@ -563,7 +564,7 @@ describe('StafferComponent', () => {
       component.exportPdf();
 
       expect(matchService.downloadAssignmentsPdf).not.toHaveBeenCalled();
-      expect(saveAs).not.toHaveBeenCalled();
+      expect(saveFile).not.toHaveBeenCalled();
       expect(component.exporting()).toBe(false);
     });
 
@@ -574,7 +575,7 @@ describe('StafferComponent', () => {
       component.exportPdf();
 
       expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(2);
-      expect(saveAs).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-2.pdf');
+      expect(saveFile).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-2.pdf');
       expect(component.exporting()).toBe(false);
     });
 
@@ -588,7 +589,7 @@ describe('StafferComponent', () => {
       pdfSubject.next(new Blob(['%PDF-'], {type: 'application/pdf'}));
 
       expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(1);
-      expect(saveAs).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-1.pdf');
+      expect(saveFile).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-1.pdf');
     });
 
     it('keeps exporting true until the download completes', () => {
@@ -609,7 +610,7 @@ describe('StafferComponent', () => {
 
       component.exportPdf();
 
-      expect(saveAs).not.toHaveBeenCalled();
+      expect(saveFile).not.toHaveBeenCalled();
       expect(component.exporting()).toBe(false);
     });
   });
