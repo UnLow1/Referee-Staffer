@@ -71,6 +71,9 @@ public class TeamController {
                 .orElseThrow(() -> new TeamNotFoundException(teamDto.id()));
         team.setName(teamDto.name());
         team.setCity(teamDto.city());
+        // `shortOverride` is the writable half of the pair, so it is applied verbatim: a
+        // blank or absent value clears the override and hands the code back to the fallback.
+        team.setShortCode(teamDto.shortOverride());
         teamRepository.save(team);
     }
 
