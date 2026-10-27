@@ -1,19 +1,18 @@
 package com.jamex.refereestaffer.model.converter;
 
 import com.jamex.refereestaffer.model.dto.VacationDto;
+import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Vacation;
-import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
-import com.jamex.refereestaffer.repository.RefereeRepository;
 import org.springframework.stereotype.Component;
 
+/**
+ * Pure mapping between {@link Vacation} and {@link VacationDto} — no repository access.
+ * Resolving {@code refereeId} to a {@link Referee} is the service layer's job
+ * ({@link com.jamex.refereestaffer.service.VacationService}), so the dto → entity direction
+ * takes the already-resolved referee and only the entity → dto half is implemented.
+ */
 @Component
-public class VacationConverter implements BaseConverter<Vacation, VacationDto> {
-
-    private final RefereeRepository refereeRepository;
-
-    public VacationConverter(RefereeRepository refereeRepository) {
-        this.refereeRepository = refereeRepository;
-    }
+public class VacationConverter implements EntityToDtoConverter<Vacation, VacationDto> {
 
     @Override
     public VacationDto convertFromEntity(Vacation entity) {
@@ -24,11 +23,7 @@ public class VacationConverter implements BaseConverter<Vacation, VacationDto> {
                 entity.getEndDate());
     }
 
-    @Override
-    public Vacation convertFromDto(VacationDto dto) {
-        var referee = refereeRepository.findById(dto.refereeId())
-                .orElseThrow(() -> new RefereeNotFoundException(dto.refereeId()));
-
+    public Vacation convertFromDto(VacationDto dto, Referee referee) {
         return new Vacation(dto.id(), referee, dto.startDate(), dto.endDate());
     }
 }

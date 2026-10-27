@@ -5,6 +5,7 @@ import com.jamex.refereestaffer.model.dto.VacationDto
 import com.jamex.refereestaffer.model.entity.Vacation
 import com.jamex.refereestaffer.model.exception.VacationNotFoundException
 import com.jamex.refereestaffer.repository.VacationRepository
+import com.jamex.refereestaffer.service.VacationService
 import groovy.json.JsonSlurper
 import org.spockframework.runtime.model.parallel.ExecutionMode
 import org.spockframework.spring.SpringBean
@@ -36,6 +37,9 @@ class VacationControllerSpec extends Specification {
 
     @SpringBean
     VacationConverter vacationConverter = Mock()
+
+    @SpringBean
+    VacationService vacationService = Mock()
 
     def "should return vacations"() {
         given:
@@ -94,8 +98,6 @@ class VacationControllerSpec extends Specification {
 
     def "should create vacation and return it as JSON"() {
         given:
-        def vacation = [] as Vacation
-        def savedVacation = [] as Vacation
         def savedDto = VacationDto.builder().id(10l).refereeId(3l).build()
 
         when:
@@ -105,11 +107,12 @@ class VacationControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * vacationConverter.convertFromDto({ VacationDto dto ->
+        1 * vacationService.saveVacation({ VacationDto dto ->
             dto.refereeId == 3l && dto.startDate == LocalDate.of(2026, 7, 1) && dto.endDate == LocalDate.of(2026, 7, 14)
-        }) >> vacation
-        1 * vacationRepository.save(vacation) >> savedVacation
-        1 * vacationConverter.convertFromEntity(savedVacation) >> savedDto
+        }) >> savedDto
+        // the write path goes through the service only — no converter or repository hop left here
+        0 * vacationConverter._
+        0 * vacationRepository._
         response.status == 200
         def json = new JsonSlurper().parseText(response.contentAsString)
         json.id == 10
@@ -117,9 +120,7 @@ class VacationControllerSpec extends Specification {
 
     def "should update vacation"() {
         given:
-        def vacation = [] as Vacation
-        def updatedVacation = [] as Vacation
-        def updatedDto = VacationDto.builder().id(9l).build()
+        def updatedDto = VacationDto.builder().id(9l).refereeId(3l).build()
 
         when:
         def response = mockMvc.perform(put("/api/vacations")
@@ -128,10 +129,14 @@ class VacationControllerSpec extends Specification {
                 .andReturn().response
 
         then:
-        1 * vacationConverter.convertFromDto({ VacationDto dto -> dto.id == 9l }) >> vacation
-        1 * vacationRepository.save(vacation) >> updatedVacation
-        1 * vacationConverter.convertFromEntity(updatedVacation) >> updatedDto
+        1 * vacationService.saveVacation({ VacationDto dto ->
+            dto.id == 9l && dto.refereeId == 3l && dto.startDate == LocalDate.of(2026, 7, 2)
+        }) >> updatedDto
+        0 * vacationConverter._
+        0 * vacationRepository._
         response.status == 200
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.id == 9
     }
 
     def "should reject vacation creation when dates are missing"() {
@@ -142,6 +147,7 @@ class VacationControllerSpec extends Specification {
                 .andReturn().response
 
         then:
+        0 * vacationService._
         0 * vacationConverter._
         0 * vacationRepository._
         response.status == 400
@@ -157,6 +163,7 @@ class VacationControllerSpec extends Specification {
                 .andReturn().response
 
         then:
+        0 * vacationService._
         0 * vacationConverter._
         0 * vacationRepository._
         response.status == 400

@@ -75,10 +75,6 @@ public class Grade {
         return match;
     }
 
-    public void setMatch(Match match) {
-        this.match = match;
-    }
-
     @Override
     public String toString() {
         return "Grade(id=" + id + ", value=" + value + ", secondValue=" + secondValue + ")";

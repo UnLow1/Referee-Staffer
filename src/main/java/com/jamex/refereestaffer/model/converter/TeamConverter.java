@@ -5,7 +5,7 @@ import com.jamex.refereestaffer.model.entity.Team;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TeamConverter implements BaseConverter<Team, TeamDto> {
+public class TeamConverter implements EntityToDtoConverter<Team, TeamDto>, DtoToEntityConverter<Team, TeamDto> {
 
     @Override
     public TeamDto convertFromEntity(Team entity) {
