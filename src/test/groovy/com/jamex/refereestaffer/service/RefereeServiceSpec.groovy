@@ -62,8 +62,8 @@ class RefereeServiceSpec extends Specification {
                 .firstName("John")
                 .lastName("Smith")
                 .build()
-        def team1 = Team.builder().name("team1").build()
-        def team2 = Team.builder().name("team2").build()
+        def team1 = Team.builder().id(101L).name("team1").build()
+        def team2 = Team.builder().id(102L).name("team2").build()
         def matchesWithoutGrades = [
                 Match.builder().home(team1).away(team2).grade(null).referee(referee).build(),
                 Match.builder().home(team2).away(team1).grade(null).referee(referee).build()
@@ -83,13 +83,17 @@ class RefereeServiceSpec extends Specification {
         def referees = createReferees()
         def grade1 = 8.3
         def grade2 = 8.1
+        // Ids matter: createTeamsRefereedMap keys the counts by team id (RS-127).
         def team1 = Team.builder()
+                .id(101L)
                 .name("team1")
                 .build()
         def team2 = Team.builder()
+                .id(102L)
                 .name("team2")
                 .build()
         def team3 = Team.builder()
+                .id(103L)
                 .name("team3")
                 .build()
         def referee = referees.get(0)
@@ -104,9 +108,9 @@ class RefereeServiceSpec extends Specification {
         referee.numberOfMatchesInRound == (short) refereesMatches.size()
         def teamRefereedMap = referee.teamsRefereed
         teamRefereedMap.size() == 3
-        teamRefereedMap.get(team1) == 2
-        teamRefereedMap.get(team2) == 1
-        teamRefereedMap.get(team3) == 1
+        teamRefereedMap.get(team1.id) == 2
+        teamRefereedMap.get(team2.id) == 1
+        teamRefereedMap.get(team3.id) == 1
 
         and: "referees without matches in the result get the defaults"
         referees.get(1).averageGrade == RefereeService.DEFAULT_GRADE
@@ -120,8 +124,8 @@ class RefereeServiceSpec extends Specification {
                 .firstName("John")
                 .lastName("Smith")
                 .build()
-        def team1 = Team.builder().name("team1").build()
-        def team2 = Team.builder().name("team2").build()
+        def team1 = Team.builder().id(101L).name("team1").build()
+        def team2 = Team.builder().id(102L).name("team2").build()
         def splitGradeMatch = Match.builder()
                 .home(team1)
                 .away(team2)
@@ -155,8 +159,8 @@ class RefereeServiceSpec extends Specification {
                 .firstName("John")
                 .lastName("Smith")
                 .build()
-        def team1 = Team.builder().name("team1").build()
-        def team2 = Team.builder().name("team2").build()
+        def team1 = Team.builder().id(101L).name("team1").build()
+        def team2 = Team.builder().id(102L).name("team2").build()
         def matches = [
                 // two home wins, one away win
                 Match.builder().home(team1).away(team2).homeScore((short) 2).awayScore((short) 0).referee(referee).build(),
@@ -205,8 +209,8 @@ class RefereeServiceSpec extends Specification {
                 .lastName("Smith")
                 .experience(10)
                 .build()
-        def team1 = Team.builder().name("team1").build()
-        def team2 = Team.builder().name("team2").build()
+        def team1 = Team.builder().id(101L).name("team1").build()
+        def team2 = Team.builder().id(102L).name("team2").build()
         def grade1 = 8.0
         def grade2 = 9.0
         def matches = createMatches(referee, team1, team2, team2, grade1, grade2)

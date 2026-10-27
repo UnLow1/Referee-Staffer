@@ -227,8 +227,14 @@ public class StafferService {
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {
-        var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
-        var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
+        // Keyed by team id, like the candidate filters above are keyed by referee id (RS-110):
+        // teamsRefereed is built from another query's matches (RefereeService.calculateStats),
+        // so an entity key would only match while both queries share one persistence context.
+        // Missing the key is indistinguishable from "never refereed this team", so getting it
+        // wrong would zero both penalties and skew the ranking without any error (RS-127).
+        // Home and away are mandatory in the API, so neither the team nor its id is null here.
+        var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam.getId(), (short) 0);
+        var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam.getId(), (short) 0);
 
         // After RefereeService.calculateStats this is always non-null — the no-grades fallback
         // (DEFAULT_GRADE) is applied there.
