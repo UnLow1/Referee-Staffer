@@ -27,6 +27,14 @@ import {IconComponent} from '../common/icon/icon.component';
  * up front) rather than from the half-loaded `grade.id`, and the inputs stay disabled
  * until the grade is on screen. Without the gate a save that beats the response created
  * a second grade for the same match instead of updating the stored one.
+ *
+ * Every field filled from HTTP after the drawer is already on screen lives in a signal,
+ * so the write itself marks the view dirty (RS-116). That covers `teams`, `referees`,
+ * `grade` and the two grade-load flags. `grade` is a signal used as a box: `set()` is what
+ * the async load needs, while the two-way `[(ngModel)]` bindings keep mutating the object
+ * in place — those edits come from DOM events, which schedule change detection on their
+ * own. `model` stays a plain object: it is written synchronously from the @Input before
+ * the first render, so it never races the view.
  */
 @Component({
   selector: 'app-match-form',
@@ -45,10 +53,10 @@ export class MatchFormComponent implements OnInit {
   @Output() saved = new EventEmitter<Match>();
   @Output() closed = new EventEmitter<void>();
 
-  teams: Team[] = [];
-  referees: Referee[] = [];
+  readonly teams = signal<Team[]>([]);
+  readonly referees = signal<Referee[]>([]);
   model: Match = {} as Match;
-  grade: Grade = {} as Grade;
+  readonly grade = signal<Grade>({} as Grade);
 
   /** The stored grade is still in flight — the grade inputs and submit are disabled. */
   readonly gradeLoading = signal(false);
@@ -68,15 +76,15 @@ export class MatchFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.teamService.findAll().subscribe(teams => this.teams = teams);
-    this.refereeService.findAll().subscribe(referees => this.referees = referees);
+    this.teamService.findAll().subscribe(teams => this.teams.set(teams));
+    this.refereeService.findAll().subscribe(referees => this.referees.set(referees));
     if (this.match) {
       this.model = {...this.match};
       if (this.match.gradeId != null) {
         this.gradeLoading.set(true);
         this.gradeService.findById(this.match.gradeId).subscribe({
           next: grade => {
-            this.grade = grade;
+            this.grade.set(grade);
             this.gradeLoading.set(false);
           },
           error: () => {
@@ -98,18 +106,18 @@ export class MatchFormComponent implements OnInit {
         if (!this.gradeEditable)
           this.saved.emit(match);
         else if (this.hasStoredGrade && this.hasGradeValue)
-          this.gradeService.update(this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.update(this.grade()).subscribe(() => this.saved.emit(match));
         else if (this.hasGradeValue)
-          this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.save(match, this.grade()).subscribe(() => this.saved.emit(match));
         else if (this.hasStoredGrade)
-          this.gradeService.delete(this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.delete(this.grade()).subscribe(() => this.saved.emit(match));
         else
           this.saved.emit(match);
       });
     else
       this.matchService.save(this.model).subscribe(match => {
         if (this.hasGradeValue)
-          this.gradeService.save(match, this.grade).subscribe(() => this.saved.emit(match));
+          this.gradeService.save(match, this.grade()).subscribe(() => this.saved.emit(match));
         else
           this.saved.emit(match);
       });
@@ -131,13 +139,13 @@ export class MatchFormComponent implements OnInit {
 
   /** Gates the second grade input — a split grade needs its first component first. */
   get gradeValueMissing(): boolean {
-    return this.grade.value == null;
+    return this.grade().value == null;
   }
 
   onGradeValueChange(value: number | null): void {
     // A split grade can't consist of the second component alone — clearing the first
     // part drops the second one too (the input is disabled in that state anyway).
-    if (value == null) this.grade.secondValue = undefined;
+    if (value == null) this.grade().secondValue = undefined;
   }
 
   /**
@@ -155,6 +163,6 @@ export class MatchFormComponent implements OnInit {
    * edit from 7.5 to 0 down the delete branch instead of the update one.
    */
   private get hasGradeValue(): boolean {
-    return this.grade.value != null;
+    return this.grade().value != null;
   }
 }
