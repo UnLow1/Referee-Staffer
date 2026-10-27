@@ -77,6 +77,19 @@ class AssignmentPdfServiceSpec extends Specification {
         row.contains(AssignmentPdfService.UNASSIGNED)
     }
 
+    def "should throw when the queue has no matches"() {
+        given:
+        def queue = 44 as short
+
+        when:
+        assignmentPdfService.generateAssignmentsPdf(queue)
+
+        then:
+        1 * matchRepository.findAllByQueueOrderByDateAsc(queue) >> []
+        def ex = thrown(MatchNotFoundException)
+        ex.message == String.format(MatchNotFoundException.QUEUE_EMPTY, queue)
+    }
+
     def "should print the home team venue as name plus address"() {
         given:
         def queue = 3 as short
