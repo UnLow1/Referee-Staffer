@@ -97,6 +97,44 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     expect(bytes.length).toBeGreaterThan(500);
   });
 
+  await test.step('regenerating a staffed queue asks before overwriting it', async () => {
+    // RS-109: staffing clears and persists over every unlocked assignment in the queue, so
+    // a second Generate must go through the confirm modal. Runs after the export so both
+    // branches can be exercised: cancelling must leave the saved cast alone (Export PDF
+    // stays enabled), confirming must really regenerate (the saved marker resets, which
+    // disables Export again).
+    await page.getByRole('button', { name: 'Generate cast' }).click();
+
+    const modal = page.getByRole('alertdialog', { name: 'Overwrite the current cast?' });
+    await expect(modal).toBeVisible();
+    // The count is the queue's assignable, already-assigned matches. No fixture row in this
+    // queue is an "S C" (central) match, which would keep its referee and not be counted.
+    await expect(modal).toContainText(
+      `replaces ${MATCHES_IN_STAFFED_QUEUE} existing assignments in queue ${STAFFED_QUEUE}`);
+
+    await modal.getByRole('button', { name: 'Cancel' }).click();
+    await expect(modal).toBeHidden();
+    await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeEnabled();
+
+    await page.getByRole('button', { name: 'Generate cast' }).click();
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Generate anyway' }).click();
+
+    await expect(modal).toBeHidden();
+    await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    // Export going back to disabled is the proof that the run really happened: it is gated
+    // on the saved marker, which only a completed staffing request resets.
+    //
+    // Deliberately no assertion on the referee avatars here, unlike the first generate.
+    // The screen resolves names from /api/referees/available/{queue}, which excludes every
+    // referee holding a match in that queue — after a regenerate over a persisted cast that
+    // is all of them, so the rows render "unassigned" even though the backend assigned them.
+    // A pre-existing defect of the candidate-pool contract, not of this guard; it needs the
+    // stored cast the screen cannot load yet (RS-105 point 3).
+    await expect(page.getByRole('button', { name: 'Export PDF' })).toBeDisabled();
+  });
+
   await test.step('standings reflect the imported results', async () => {
     // Standings lives in the Admin nav group, hidden behind a toggle by default.
     await page.getByRole('button', { name: 'Show admin section' }).click();
