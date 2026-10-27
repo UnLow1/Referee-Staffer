@@ -1,4 +1,7 @@
-import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
+import {
+  Component, ElementRef, Injector, OnInit, afterNextRender, computed, inject, signal, viewChild,
+  ChangeDetectionStrategy
+} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {Match} from '../../model/match';
@@ -46,6 +49,10 @@ export class MatchListComponent implements OnInit {
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
   private readonly gradeService = inject(GradeService);
+  private readonly injector = inject(Injector);
+
+  /** The horizontally scrollable queue bar — see scrollQueueIntoView. */
+  private readonly queueBar = viewChild<ElementRef<HTMLElement>>('queueBar');
 
   readonly matches = signal<Match[]>([]);
   readonly teamsById = signal<Map<number, Team>>(new Map());
@@ -178,6 +185,7 @@ export class MatchListComponent implements OnInit {
         if (queues.length > 0 && this.selectedQueue() === undefined) {
           this.selectedQueue.set(queues[0]);
         }
+        this.scrollSelectedQueueIntoView();
       });
     });
   }
@@ -185,6 +193,26 @@ export class MatchListComponent implements OnInit {
   selectQueue(q: number | null): void {
     this.selectedQueue.set(q);
     this.page.set(1);
+    this.scrollSelectedQueueIntoView();
+  }
+
+  /**
+   * Keeps the selected queue's button reachable inside the scrollable bar (RS-113).
+   * The first load lands on the newest queue, whose button sits at the head of the bar
+   * and is visible anyway; this earns its keep when the selection is mid-season and the
+   * list re-renders around it — a save reloads through `load()`, and `selectQueue` can
+   * be reached from a partly-scrolled bar.
+   *
+   * Deferred to the next render because on first load the buttons do not exist yet:
+   * the queue list is derived from matches that have only just arrived.
+   */
+  private scrollSelectedQueueIntoView(): void {
+    afterNextRender(() => {
+      const bar = this.queueBar()?.nativeElement;
+      if (bar) {
+        scrollQueueIntoView(bar, this.selectedQueue() ?? null);
+      }
+    }, {injector: this.injector});
   }
 
   setSearch(value: string): void {
@@ -302,6 +330,46 @@ function matchesReferee(match: Match, filter: RefereeFilter): boolean {
   if (filter === 'all') return true;
   const assigned = match.refereeId != null;
   return filter === 'assigned' ? assigned : !assigned;
+}
+
+/**
+ * Centers `queue`'s button inside the scrollable queue bar — but only when it is not
+ * already fully visible. Re-centering on every click would yank the button the user
+ * just clicked out from under the cursor, and with 31 queues that is a jump of several
+ * hundred pixels, so a second click on the same spot would hit a different queue.
+ *
+ * Positions come from `getBoundingClientRect`, deliberately not from `offsetLeft`:
+ * `offsetLeft` is measured from the nearest positioned ancestor, and nothing in this
+ * tree is positioned, so it would report the button's position on the page and feed
+ * the bar's own X (sidebar + panel padding) into the math as a constant error.
+ */
+export function scrollQueueIntoView(bar: HTMLElement, queue: number | null): void {
+  const wanted = queue == null ? 'all' : String(queue);
+  const button = [...bar.querySelectorAll<HTMLElement>('[data-queue]')]
+    .find(b => b.getAttribute('data-queue') === wanted);
+  if (!button) return;
+
+  const barRect = bar.getBoundingClientRect();
+  const buttonRect = button.getBoundingClientRect();
+  // Rects are viewport-relative and move with the scroll, so add it back to get the
+  // button's offset within the bar's content.
+  const left = buttonRect.left - barRect.left + bar.scrollLeft;
+  const right = left + buttonRect.width;
+  if (left >= bar.scrollLeft && right <= bar.scrollLeft + bar.clientWidth) return;
+
+  bar.scrollLeft = centerScrollLeft(left, buttonRect.width, bar.clientWidth, bar.scrollWidth);
+}
+
+/**
+ * Scroll offset that centers an item of `itemWidth` at `itemOffset` inside a viewport
+ * of `viewportWidth`, clamped to the scrollable range. A bar narrower than its viewport
+ * (`scrollWidth <= viewportWidth`) has nothing to scroll and yields 0.
+ */
+export function centerScrollLeft(
+  itemOffset: number, itemWidth: number, viewportWidth: number, scrollWidth: number
+): number {
+  const centered = itemOffset + itemWidth / 2 - viewportWidth / 2;
+  return Math.max(0, Math.min(centered, scrollWidth - viewportWidth));
 }
 
 function unique<T>(arr: T[]): T[] {
