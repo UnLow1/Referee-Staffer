@@ -41,23 +41,28 @@
 }
 
 <div class="panel">
-  <div class="panel__head">
-    <div class="seg">
-      @if (availableQueues().length > 0) {
-        <button type="button" [class.active]="selectedQueue() === null" (click)="selectQueue(null)">
-          All queues
-        </button>
-      }
-      @for (q of availableQueues(); track q) {
-        <button type="button" [class.active]="q === selectedQueue()" (click)="selectQueue(q)">
-          Queue {{ q }}
-        </button>
-      }
-      @if (availableQueues().length === 0) {
-        <span class="muted">No matches yet</span>
-      }
+  <div class="panel__head queue-head">
+    <!-- A full season renders one button per queue, so the bar has to scroll (RS-113). -->
+    <div class="seg-scroll" #queueBar>
+      <div class="seg">
+        @if (availableQueues().length > 0) {
+          <button type="button" data-queue="all"
+                  [class.active]="selectedQueue() === null" (click)="selectQueue(null)">
+            All queues
+          </button>
+        }
+        @for (q of availableQueues(); track q) {
+          <button type="button" [attr.data-queue]="q"
+                  [class.active]="q === selectedQueue()" (click)="selectQueue(q)">
+            Queue {{ q }}
+          </button>
+        }
+        @if (availableQueues().length === 0) {
+          <span class="muted">No matches yet</span>
+        }
+      </div>
     </div>
-    <div class="muted">{{ visibleMatches().length }} matches</div>
+    <div class="muted queue-count">{{ visibleMatches().length }} matches</div>
   </div>
   <div class="tbl-scroll">
     <table class="tbl">

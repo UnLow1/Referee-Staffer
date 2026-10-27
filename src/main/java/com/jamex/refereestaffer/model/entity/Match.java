@@ -27,7 +27,9 @@ public class Match {
     @ManyToOne(targetEntity = Team.class)
     private Team away;
 
-    @Column(nullable = false)
+    // Nullable on purpose: fixtures are planned for the whole season up front and the dates
+    // arrive a few queues ahead. ddl-auto "update" never relaxes an existing NOT NULL, so a
+    // file-based database created before this change needs the constraint dropped by hand.
     private LocalDateTime date;
 
     @ManyToOne(targetEntity = Referee.class)

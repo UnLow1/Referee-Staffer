@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
@@ -75,7 +76,8 @@ public class StafferService {
      * the match keeps that exact referee and the referee is unavailable for the rest of the
      * cast. Every other assignable match (see {@link MatchService#getMatchesToAssignInQueue})
      * is staffed from scratch, so a regenerate reshuffles previous auto-assignments instead
-     * of silently keeping them.
+     * of silently keeping them. Matches without a date are returned unassigned (unless
+     * locked): the auto-staffer leaves them to a manual pick.
      *
      * <p>Locks deliberately bypass the vacation filter — a pinned pair is an explicit user
      * decision, and rejecting it here would make the UI's lock state impossible to restore.
@@ -94,8 +96,12 @@ public class StafferService {
         // countRefereePotentialLvl. With ~15 referees × ~8 matches that's 600 → 1 query.
         var config = configurationRepository.findAllAsMap();
 
+        // A match without a date stays in the returned cast (the Staffer screen lists it and a
+        // referee can still be picked by hand, which arrives here as a lock) but is never
+        // auto-staffed: the vacation and same-day rules cannot be checked without a date.
         var matchesToAutoStaff = sortedMatchesToStaff.stream()
                 .filter(match -> match.getReferee() == null)
+                .filter(match -> match.getDate() != null)
                 .toList();
         assignRefereesToMatches(referees, matchesToAutoStaff, config);
 
@@ -159,20 +165,28 @@ public class StafferService {
 
     private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config) {
         var assignedRefereeIds = new HashSet<Long>();
+        // Both availability queries only ever look at the calendar day of the match (the two
+        // repository defaults truncate the LocalDateTime), and the matches of one queue share a
+        // handful of dates — a round of 8 matches on one day used to run 16 queries instead of 2.
+        // Same idea as hoisting config out of the loop above. The same-day set additionally
+        // depends on `referees`, which does not change during a run; if a future change ever
+        // feeds freshly made assignments back into that query, this cache must be invalidated.
+        // Dateless matches are filtered out before this loop (RS-119), so the key is never null.
+        var refereeIdsOnVacationByDay = new HashMap<LocalDate, Set<Long>>();
+        var refereeIdsWithMatchByDay = new HashMap<LocalDate, Set<Long>>();
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
-            var vacations = vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(match.getDate());
+            var matchDay = match.getDate().toLocalDate();
 
-            var refereesWithVacations = vacations.stream()
-                    .map(Vacation::getReferee)
-                    .toList();
-
-            var refereesWithMatchOnSameDay = findRefereesWithMatchOnDay(referees, match.getDate());
+            var refereeIdsOnVacation = refereeIdsOnVacationByDay.computeIfAbsent(
+                    matchDay, day -> findRefereeIdsOnVacation(match.getDate()));
+            var refereeIdsWithMatchOnSameDay = refereeIdsWithMatchByDay.computeIfAbsent(
+                    matchDay, day -> findRefereeIdsWithMatchOnDay(referees, match.getDate()));
 
             var availableReferees = referees.stream()
                     .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
-                    .filter(ref -> !refereesWithVacations.contains(ref))
-                    .filter(ref -> !refereesWithMatchOnSameDay.contains(ref))
+                    .filter(ref -> !refereeIdsOnVacation.contains(ref.getId()))
+                    .filter(ref -> !refereeIdsWithMatchOnSameDay.contains(ref.getId()))
                     .toList();
 
             for (var referee : availableReferees) {
@@ -195,23 +209,51 @@ public class StafferService {
     }
 
     /**
-     * Referees that already officiate another match on the same calendar day. The queue-level
-     * uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a match from a
-     * different queue can be rescheduled onto this day, and one referee must never have two
-     * matches on one day (RS-57).
+     * Ids of referees whose vacation covers the match day.
+     *
+     * <p>This and the two filters around it all key on the referee id. Matching on the entity
+     * itself would fall back to identity comparison (Referee deliberately does not override
+     * equals/hashCode — see RS-110), which only happens to work while all instances come from
+     * the same persistence context; a copied list, a reloaded entity or a DTO in the flow would
+     * silently let a referee on vacation or with a same-day match through. Ids come from
+     * persisted rows, so they are never null here; a null would end up in the set and
+     * over-exclude every id-less candidate, which fails loudly (StafferException) instead of
+     * quietly breaking the rule.
      */
-    private Set<Referee> findRefereesWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
+    private Set<Long> findRefereeIdsOnVacation(LocalDateTime date) {
+        return vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(date).stream()
+                .map(Vacation::getReferee)
+                .filter(Objects::nonNull)
+                .map(Referee::getId)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Ids of referees that already officiate another match on the same calendar day. The
+     * queue-level uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a
+     * match from a different queue can be rescheduled onto this day, and one referee must never
+     * have two matches on one day (RS-57).
+     */
+    private Set<Long> findRefereeIdsWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
         if (referees.isEmpty()) {
             return Set.of();
         }
         return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
                 .map(Match::getReferee)
+                .filter(Objects::nonNull)
+                .map(Referee::getId)
                 .collect(Collectors.toSet());
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {
-        var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam, (short) 0);
-        var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam, (short) 0);
+        // Keyed by team id, like the candidate filters above are keyed by referee id (RS-110):
+        // teamsRefereed is built from another query's matches (RefereeService.calculateStats),
+        // so an entity key would only match while both queries share one persistence context.
+        // Missing the key is indistinguishable from "never refereed this team", so getting it
+        // wrong would zero both penalties and skew the ranking without any error (RS-127).
+        // Home and away are mandatory in the API, so neither the team nor its id is null here.
+        var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam.getId(), (short) 0);
+        var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam.getId(), (short) 0);
 
         // After RefereeService.calculateStats this is always non-null — the no-grades fallback
         // (DEFAULT_GRADE) is applied there.

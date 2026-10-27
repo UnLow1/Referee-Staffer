@@ -14,10 +14,7 @@ import {Standings} from '../../model/standing';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
 import {createMock} from '../../testing/mock';
-import {saveAs} from 'file-saver';
-
-// file-saver drives the real DOM download machinery, which jsdom does not implement.
-vi.mock('file-saver', () => ({saveAs: vi.fn()}));
+import {SAVE_FILE} from '../../service/save-file.token';
 
 describe('StafferComponent', () => {
   let fixture: ComponentFixture<StafferComponent>;
@@ -28,6 +25,9 @@ describe('StafferComponent', () => {
   let matchService: MockedObject<MatchService>;
   let explainerVisible: WritableSignal<boolean>;
   let edgeTeams: WritableSignal<number>;
+  // The download is injected (SAVE_FILE) because jsdom has no download machinery; a fresh
+  // spy per test replaces the module mock the Angular unit-test builder cannot honour.
+  let saveFile: ReturnType<typeof vi.fn>;
 
   // Backend rows carry `place`. 8 teams, edge size 3 (stubbed ConfigurationService),
   // so top = both places <= 3, bottom = both places > 5. Teams 1 and 2 share a city.
@@ -106,6 +106,7 @@ describe('StafferComponent', () => {
     matchService = createMock<MatchService>(['getDifficultyBreakdown', 'updateList', 'downloadAssignmentsPdf']);
     explainerVisible = signal(false);
     edgeTeams = signal(3);
+    saveFile = vi.fn();
 
     stafferService.staffReferees.mockReturnValue(of(matches));
     teamService.getStandings.mockReturnValue(of(standings));
@@ -121,7 +122,8 @@ describe('StafferComponent', () => {
         {provide: RefereeService, useValue: refereeService},
         {provide: MatchService, useValue: matchService},
         {provide: ConfigurationService, useValue: {edgeTeams: edgeTeams.asReadonly(), ensureEdgeTeamsLoaded: vi.fn().mockName('ensureEdgeTeamsLoaded')}},
-        {provide: UiSettingsService, useValue: {explainerVisible: explainerVisible.asReadonly()}}
+        {provide: UiSettingsService, useValue: {explainerVisible: explainerVisible.asReadonly()}},
+        {provide: SAVE_FILE, useValue: saveFile}
       ]
     }).compileComponents();
 
@@ -143,6 +145,66 @@ describe('StafferComponent', () => {
       component.decQueue();
       component.decQueue();
       expect(component.queue()).toBe(1);
+    });
+  });
+
+  describe('queue change resets the cast', () => {
+    beforeEach(() => {
+      component.generate();
+      component.save();
+      component.openDrawer(component.matches()![0]);
+    });
+
+    it('drops every piece of state that belongs to the queue left behind', () => {
+      component.toggleLock(component.matches()![2]);
+
+      component.incQueue();
+
+      expect(component.matches()).toBeNull();
+      expect(component.referees()).toEqual([]);
+      expect(component.lockCount()).toBe(0);
+      expect(component.savedAt()).toBeNull();
+      expect(component.drawerMatchId()).toBeNull();
+      expect(component.drawerMatch()).toBeNull();
+      expect(component.drawerBreakdown()).toBeNull();
+    });
+
+    it('blocks the PDF export until the new queue has been staffed and saved', () => {
+      expect(component.canExport()).toBe(true);
+
+      component.incQueue();
+      expect(component.canExport()).toBe(false);
+
+      component.generate();
+      expect(component.canExport()).toBe(false);
+
+      component.save();
+      expect(component.canExport()).toBe(true);
+    });
+
+    it('keeps the cast when a step is a no-op — queue 1 cannot go lower', () => {
+      component.toggleLock(component.matches()![0]);
+
+      component.decQueue();
+
+      expect(component.queue()).toBe(1);
+      expect(component.matches()).toEqual(matches);
+      expect(component.referees()).toEqual(referees);
+      expect(component.lockCount()).toBe(1);
+      expect(component.savedAt()).not.toBeNull();
+    });
+
+    it('falls back to the empty state so no stale row shows under the new queue heading', () => {
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      expect(el.querySelectorAll('tr.cast-row').length).toBe(3);
+
+      component.incQueue();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.empty-state')).not.toBeNull();
+      expect(el.querySelector('.cast-panel')).toBeNull();
+      expect(el.querySelector('.panel--kpi-strip')).toBeNull();
     });
   });
 
@@ -188,6 +250,60 @@ describe('StafferComponent', () => {
 
       component.generate();
       expect(component.savedAt()).toBeNull();
+    });
+
+    it('discards a staffing response for a queue the user has already stepped away from', () => {
+      const staffSubject = new Subject<Match[]>();
+      stafferService.staffReferees.mockReturnValue(staffSubject);
+
+      component.generate();
+      component.incQueue();
+      staffSubject.next(matches);
+      staffSubject.complete();
+
+      expect(component.matches()).toBeNull();
+      expect(component.loading()).toBe(false);
+    });
+
+    it('re-enables the Generate button when the queue changes mid-request', () => {
+      stafferService.staffReferees.mockReturnValue(new Subject<Match[]>());
+
+      component.generate();
+      expect(component.loading()).toBe(true);
+
+      component.incQueue();
+      expect(component.loading()).toBe(false);
+    });
+
+    it('does not resurrect the cast when the user steps back to the queue it was generated for', () => {
+      const staffSubject = new Subject<Match[]>();
+      stafferService.staffReferees.mockReturnValue(staffSubject);
+
+      component.generate();
+      component.incQueue();
+      component.decQueue();
+      staffSubject.next(matches);
+      staffSubject.complete();
+
+      expect(component.queue()).toBe(1);
+      expect(component.matches()).toBeNull();
+    });
+
+    it('supersedes an earlier request so it cannot land last and win', () => {
+      const first = new Subject<Match[]>();
+      const second = new Subject<Match[]>();
+      stafferService.staffReferees.mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+      component.generate();
+      component.generate();
+
+      first.next([matches[0]]);
+      first.complete();
+      expect(component.matches()).toBeNull();
+
+      second.next(matches);
+      second.complete();
+      expect(component.matches()).toEqual(matches);
     });
 
     it('sends the locked pairs so a regenerate preserves them server-side', () => {
@@ -253,6 +369,7 @@ describe('StafferComponent', () => {
       component.incQueue();
       expect(component.lockCount()).toBe(0);
 
+      component.generate();
       component.toggleLock(component.matches()![0]);
       component.decQueue();
       expect(component.lockCount()).toBe(0);
@@ -422,7 +539,6 @@ describe('StafferComponent', () => {
     }
 
     beforeEach(() => {
-      vi.mocked(saveAs).mockClear();
       matchService.downloadAssignmentsPdf.mockReturnValue(of(new Blob(['%PDF-'], {type: 'application/pdf'})));
     });
 
@@ -448,7 +564,7 @@ describe('StafferComponent', () => {
       component.exportPdf();
 
       expect(matchService.downloadAssignmentsPdf).not.toHaveBeenCalled();
-      expect(saveAs).not.toHaveBeenCalled();
+      expect(saveFile).not.toHaveBeenCalled();
       expect(component.exporting()).toBe(false);
     });
 
@@ -459,8 +575,21 @@ describe('StafferComponent', () => {
       component.exportPdf();
 
       expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(2);
-      expect(saveAs).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-2.pdf');
+      expect(saveFile).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-2.pdf');
       expect(component.exporting()).toBe(false);
+    });
+
+    it('stamps the file with the queue the sheet was requested for, not the one on screen', () => {
+      generateAndSave();
+      const pdfSubject = new Subject<Blob>();
+      matchService.downloadAssignmentsPdf.mockReturnValue(pdfSubject);
+
+      component.exportPdf();
+      component.incQueue();
+      pdfSubject.next(new Blob(['%PDF-'], {type: 'application/pdf'}));
+
+      expect(matchService.downloadAssignmentsPdf).toHaveBeenCalledWith(1);
+      expect(saveFile).toHaveBeenCalledWith(expect.any(Blob), 'referee-assignments-queue-1.pdf');
     });
 
     it('keeps exporting true until the download completes', () => {
@@ -481,7 +610,7 @@ describe('StafferComponent', () => {
 
       component.exportPdf();
 
-      expect(saveAs).not.toHaveBeenCalled();
+      expect(saveFile).not.toHaveBeenCalled();
       expect(component.exporting()).toBe(false);
     });
   });
@@ -510,6 +639,51 @@ describe('StafferComponent', () => {
       expect(el.querySelector('.empty-state')).toBeNull();
       expect(el.querySelector('.panel--kpi-strip')).not.toBeNull();
       expect(el.querySelectorAll('tr.cast-row').length).toBe(3);
+    });
+
+    describe('match without a date', () => {
+      const dateless = makeMatch(14, {homeTeamId: 4, awayTeamId: 5, date: null, hardnessLvl: 40});
+
+      beforeEach(() => {
+        stafferService.staffReferees.mockReturnValue(of([...matches, dateless]));
+        component.generate();
+        fixture.detectChanges();
+      });
+
+      function rowOf(el: HTMLElement, matchId: number): HTMLElement {
+        const index = component.sortedMatches().findIndex(m => m.id === matchId);
+        return el.querySelectorAll<HTMLElement>('tr.cast-row')[index];
+      }
+
+      it('is listed with a no-date chip and says why it was not auto-staffed', () => {
+        const row = rowOf(fixture.nativeElement, 14);
+        expect(row.querySelector('.flag-cell')!.textContent).toContain('no date');
+        expect(row.querySelector('.referee-cell')!.textContent).toContain('not auto-staffed');
+      });
+
+      it('keeps the plain "unassigned" label for a dated match without a referee', () => {
+        const row = rowOf(fixture.nativeElement, 12);
+        expect(row.querySelector('.referee-cell')!.textContent).toContain('unassigned');
+        expect(row.querySelector('.referee-cell')!.textContent).not.toContain('not auto-staffed');
+      });
+
+      it('explains in the drawer that a referee can still be picked by hand', () => {
+        component.openDrawer(dateless);
+        fixture.detectChanges();
+        expect(document.querySelector('.no-date-note')?.textContent).toContain('pick a referee');
+      });
+
+      it('does not show the drawer note for a dated match', () => {
+        component.openDrawer(matches[1]);
+        fixture.detectChanges();
+        expect(document.querySelector('.no-date-note')).toBeNull();
+      });
+
+      it('can be staffed by hand through the drawer', () => {
+        component.swap(dateless, 103);
+        expect(component.matches()!.find(m => m.id === 14)!.refereeId).toBe(103);
+        expect(component.isLocked(dateless)).toBe(true);
+      });
     });
 
     it('gates the algorithm explainer on the UI setting', () => {
