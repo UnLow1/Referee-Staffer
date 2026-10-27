@@ -9,6 +9,14 @@ spring:
     defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
+  ai:
+    mcp:
+      server:
+        # Off unless the `mcp` profile is active (see application-mcp.yml). Spring AI's
+        # HTTP transport has no authentication whatsoever, so POST /mcp must not exist in
+        # a default run — the whole dataset would be readable by anything that can reach
+        # the port. Authorizing the endpoint is RS-125.
+        enabled: false
 springdoc:
   swagger-ui:
     operationsSorter: method

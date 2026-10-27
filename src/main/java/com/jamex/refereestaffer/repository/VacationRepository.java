@@ -13,6 +13,9 @@ public interface VacationRepository extends JpaRepository<Vacation, Long> {
 
     List<Vacation> findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(LocalDate startDate, LocalDate endDate);
 
+    /** One referee's unavailability windows, earliest first. Used by the MCP referee profile. */
+    List<Vacation> findAllByRefereeIdOrderByStartDateAsc(Long refereeId);
+
     default List<Vacation> findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(LocalDateTime dateTime) {
         var date = dateTime.toLocalDate();
         return findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(date, date);

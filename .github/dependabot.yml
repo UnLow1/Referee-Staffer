@@ -17,11 +17,21 @@ updates:
       spring-boot:
         patterns:
           - "org.springframework.boot:*"
+      # Must come before spring-ecosystem: Dependabot puts a dependency in the FIRST
+      # group whose patterns match, and "org.springframework*:*" would otherwise swallow
+      # Spring AI. It releases on its own cadence (and its own major line) from Spring
+      # Boot, so it deserves its own PR.
+      spring-ai:
+        patterns:
+          - "org.springframework.ai:*"
+          - "io.modelcontextprotocol*:*"
       spring-ecosystem:
         patterns:
           - "org.springframework*:*"
           - "io.swagger*:*"
           - "org.springdoc:*"
+        exclude-patterns:
+          - "org.springframework.ai:*"
       test-stack:
         patterns:
           - "org.spockframework:*"
