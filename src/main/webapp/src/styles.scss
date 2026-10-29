@@ -517,6 +517,11 @@ textarea.input { height: auto; min-height: 64px; padding: 8px 10px; line-height:
   color: var(--ink);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
 }
+// Matches .btn:disabled — a stepper arrow at the end of its range is a dead control.
+.seg button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 
 // Scrollable variant (RS-113). A season-long queue picker renders one button per queue,
 // so the bar outgrows any panel head; `.seg` itself stays nowrap — the wrapper scrolls,

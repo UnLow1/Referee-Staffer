@@ -18,6 +18,16 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
     List<Match> findAllByQueue(Short queue);
 
+    boolean existsByQueue(Short queue);
+
+    /**
+     * The queues the season actually has, ascending. Drives the Staffer's queue stepper
+     * (RS-115) so it cannot be walked past the end of the season — counting distinct
+     * queues server-side beats shipping every match row to the browser for the same answer.
+     */
+    @Query("select distinct m.queue from Match m order by m.queue")
+    List<Short> findDistinctQueues();
+
     // Spelled out instead of derived: H2 (and MySQL) sort NULLs first in ascending order, and
     // the assignment sheet should list the matches still waiting for a date at the end.
     @Query("select m from Match m where m.queue = :queue order by m.date asc nulls last")
