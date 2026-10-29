@@ -5,7 +5,8 @@ import * as path from 'node:path';
 // End-to-end coverage of the application's critical flow, exercised through the real
 // browser UI against a live backend (see playwright.config.ts):
 //
-//   import CSV  ->  generate staffing  ->  save the cast  ->  export PDF  ->  read standings
+//   import CSV  ->  generate staffing  ->  save the cast  ->  export PDF
+//               ->  reopen the queue and export again  ->  read standings
 //
 // The fixture (e2e/fixtures/import-data.csv) has three queues for four teams. It is
 // imported with numberOfQueuesToImport = 2, so queues 1-2 are "played" (scores +
@@ -61,7 +62,8 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
 
     await page.getByRole('button', { name: 'Generate cast' }).click();
 
-    // The cast table appears with one row per match once staffing has persisted.
+    // The cast table appears with one row per match. Nothing is stored yet — since
+    // RS-105 generating only returns a draft.
     await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
     // Every match must end up with an assigned referee (an avatar, never "unassigned"),
     // since the available pool covers the queue.
@@ -95,6 +97,27 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     const bytes = fs.readFileSync(downloadPath);
     expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     expect(bytes.length).toBeGreaterThan(500);
+  });
+
+  await test.step('reopen the queue and export the saved cast without regenerating', async () => {
+    // Step away and back: the screen loads whatever the backend has stored for the queue,
+    // so the saved cast can be exported again without being generated (and destroyed)
+    // first — the trap RS-105 removed.
+    await page.getByRole('button', { name: 'Previous queue' }).click();
+    await expect(page.getByRole('button', { name: `Queue ${STAFFED_QUEUE - 1}` })).toBeVisible();
+    await page.getByRole('button', { name: 'Next queue' }).click();
+    await expect(page.getByRole('button', { name: `Queue ${STAFFED_QUEUE}` })).toBeVisible();
+
+    await expect(page.locator('tr.cast-row')).toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    await expect(page.locator('tr.cast-row .referee-cell app-ref-avatar'))
+      .toHaveCount(MATCHES_IN_STAFFED_QUEUE);
+    await expect(page.locator('.saved-at')).toContainText(`Stored cast for queue ${STAFFED_QUEUE}`);
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Export PDF' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename())
+      .toBe(`referee-assignments-queue-${STAFFED_QUEUE}.pdf`);
   });
 
   await test.step('standings reflect the imported results', async () => {
