@@ -255,9 +255,9 @@ public class StafferService {
         var numberOfHomeTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(homeTeam.getId(), (short) 0);
         var numberOfAwayTeamRefereedMatches = referee.getTeamsRefereed().getOrDefault(awayTeam.getId(), (short) 0);
 
-        // After RefereeService.calculateStats this is always non-null — the no-grades fallback
-        // (DEFAULT_GRADE) is applied there.
-        var averageGrade = referee.getAverageGrade();
+        // Nullable since RS-114 — calculateStats leaves it unset for a referee with no graded
+        // match so the UI can tell that apart from a measured 8.3. Scoring needs a number.
+        var averageGrade = RefereeService.effectiveAverageGrade(referee);
 
         return config.get(ConfigName.AVERAGE_GRADE_MULTIPLIER) * averageGrade +
                 config.get(ConfigName.EXPERIENCE_MULTIPLIER) * referee.getExperience() -

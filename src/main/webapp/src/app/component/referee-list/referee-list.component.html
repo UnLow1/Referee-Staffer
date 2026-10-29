@@ -31,7 +31,10 @@
           <tr class="referee-row" (click)="openProfile(referee)">
             <td><app-ref-avatar [referee]="referee"></app-ref-avatar></td>
             <td class="email-cell mono">{{ referee.email }}</td>
-            <td class="num right">{{ formatGrade(referee.averageGrade) }}</td>
+            <td class="num right"
+                [class.muted]="!hasAverageGrade(referee.averageGrade)"
+                [attr.title]="hasAverageGrade(referee.averageGrade) ? null : 'No grades yet'"
+                [attr.aria-label]="hasAverageGrade(referee.averageGrade) ? null : 'No grades yet'">{{ avgGradeLabel(referee.averageGrade) }}</td>
             <td class="num right">{{ referee.experience }}</td>
             <td>
               @if (hasPotential(referee)) {
