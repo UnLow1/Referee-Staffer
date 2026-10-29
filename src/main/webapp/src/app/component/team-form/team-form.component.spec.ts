@@ -61,7 +61,12 @@ describe('TeamFormComponent', () => {
     component.model = {name: 'Beta', city: 'Gdansk'};
     component.onSubmit(validForm);
 
-    expect(teamService.save).toHaveBeenCalledWith(expect.objectContaining({name: 'Beta', city: 'Gdansk'}));
+    // A copy, so a later keystroke cannot reach into the request body.
+    expect(teamService.save.mock.calls[0][0]).not.toBe(component.model);
+
+    // Exact, not objectContaining: the create payload must carry name + city and nothing
+    // else — no id, and none of the backend-owned points / short.
+    expect(teamService.save).toHaveBeenCalledWith({name: 'Beta', city: 'Gdansk'});
     expect(emitted).toEqual([saved]);
   });
 

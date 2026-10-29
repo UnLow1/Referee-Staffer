@@ -1,6 +1,6 @@
 import {Component, EventEmitter, Input, OnInit, Output, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {FormsModule, NgForm} from '@angular/forms';
-import {Match} from '../../model/match';
+import {Match, NewMatch} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {Grade} from '../../model/grade';
@@ -17,24 +17,24 @@ import {IconComponent} from '../common/icon/icon.component';
  * date, a "Fixture" section with the home/away vs-split (selects exclude each other via
  * the excludeValue pipe), and a "Result & assignment" section.
  *
- * The grade branch in onSubmit reflects that `Match` references the grade by `gradeId`
- * while the form edits a separate `grade.value`; the save/update/delete decision tree
- * must stay intact. It keys off explicit null checks rather than truthiness, so that a
- * grade of `0` counts as an entered value instead of an empty input.
+ * `persistGrade` reflects that `Match` references the grade by `gradeId` while the form
+ * edits a separate `grade.value`; the save/update/delete decision tree must stay intact.
+ * It keys off explicit null checks rather than truthiness, so that a grade of `0` counts
+ * as an entered value instead of an empty input.
  *
  * The stored grade is fetched asynchronously, so the grade section is gated on that
  * request: whether the match already has a grade is decided from `match.gradeId` (known
- * up front) rather than from the half-loaded `grade.id`, and the inputs stay disabled
+ * up front) rather than from the half-loaded `existingGrade`, and the inputs stay disabled
  * until the grade is on screen. Without the gate a save that beats the response created
  * a second grade for the same match instead of updating the stored one.
  *
  * Every field filled from HTTP after the drawer is already on screen lives in a signal,
  * so the write itself marks the view dirty (RS-116). That covers `teams`, `referees`,
- * `grade` and the two grade-load flags. `grade` is a signal used as a box: `set()` is what
- * the async load needs, while the two-way `[(ngModel)]` bindings keep mutating the object
- * in place — those edits come from DOM events, which schedule change detection on their
- * own. `model` stays a plain object: it is written synchronously from the @Input before
- * the first render, so it never races the view.
+ * `grade`, `existingGrade` and the two grade-load flags. `grade` is a signal used as a
+ * box: `set()` is what the async load needs, while the two-way `[(ngModel)]` bindings keep
+ * mutating the object in place — those edits come from DOM events, which schedule change
+ * detection on their own. `model` stays a plain object: it is written synchronously from
+ * the @Input before the first render, so it never races the view.
  */
 @Component({
   selector: 'app-match-form',
@@ -55,8 +55,13 @@ export class MatchFormComponent implements OnInit {
 
   readonly teams = signal<Team[]>([]);
   readonly referees = signal<Referee[]>([]);
-  model: Match = {} as Match;
-  readonly grade = signal<Grade>({} as Grade);
+  /** Draft of the editable fields — `id` and `gradeId` stay on the match row, not here. */
+  model: Partial<Pick<Match,
+    'queue' | 'date' | 'homeTeamId' | 'awayTeamId' | 'refereeId' | 'homeScore' | 'awayScore'>> = {};
+  /** Grade draft; an empty `value` means "no grade" and drives the delete branch. */
+  readonly grade = signal<Partial<Pick<Grade, 'value' | 'secondValue'>>>({});
+  /** The grade the edited match already had, loaded in ngOnInit. Null when it had none. */
+  readonly existingGrade = signal<Grade | null>(null);
 
   /** The stored grade is still in flight — the grade inputs and submit are disabled. */
   readonly gradeLoading = signal(false);
@@ -79,12 +84,14 @@ export class MatchFormComponent implements OnInit {
     this.teamService.findAll().subscribe(teams => this.teams.set(teams));
     this.refereeService.findAll().subscribe(referees => this.referees.set(referees));
     if (this.match) {
-      this.model = {...this.match};
+      const {queue, date, homeTeamId, awayTeamId, refereeId, homeScore, awayScore} = this.match;
+      this.model = {queue, date, homeTeamId, awayTeamId, refereeId, homeScore, awayScore};
       if (this.match.gradeId != null) {
         this.gradeLoading.set(true);
         this.gradeService.findById(this.match.gradeId).subscribe({
           next: grade => {
-            this.grade.set(grade);
+            this.existingGrade.set(grade);
+            this.grade.set({value: grade.value, secondValue: grade.secondValue});
             this.gradeLoading.set(false);
           },
           error: () => {
@@ -101,26 +108,48 @@ export class MatchFormComponent implements OnInit {
     // A cleared datetime-local input binds "" rather than null; send an explicit null so
     // the backend stores "not scheduled yet" instead of failing to parse an empty string.
     if (!this.model.date) this.model.date = null;
-    if (this.editMode)
-      this.matchService.update(this.model).subscribe(match => {
-        if (!this.gradeEditable)
-          this.saved.emit(match);
-        else if (this.hasStoredGrade && this.hasGradeValue)
-          this.gradeService.update(this.grade()).subscribe(() => this.saved.emit(match));
-        else if (this.hasGradeValue)
-          this.gradeService.save(match, this.grade()).subscribe(() => this.saved.emit(match));
-        else if (this.hasStoredGrade)
-          this.gradeService.delete(this.grade()).subscribe(() => this.saved.emit(match));
-        else
-          this.saved.emit(match);
-      });
+    const payload = this.toPayload();
+    if (!payload) return;
+    const match = this.match;
+    const request = match
+      ? this.matchService.update({...match, ...payload})
+      : this.matchService.save(payload);
+    request.subscribe(saved => this.persistGrade(saved));
+  }
+
+  /**
+   * Narrows the draft into a create payload. Queue and both teams are `required` in the
+   * template (and unconditionally `@NotNull` on MatchDto), so a valid form always filled
+   * them — this re-proves that to the compiler instead of casting an incomplete draft to
+   * a full `Match`. A `null` result therefore means the validators were bypassed, not
+   * that the user left something out — the drawer keeps submit disabled until then.
+   */
+  private toPayload(): NewMatch | null {
+    const {queue, homeTeamId, awayTeamId} = this.model;
+    if (queue == null || homeTeamId == null || awayTeamId == null) return null;
+    return {...this.model, queue, homeTeamId, awayTeamId};
+  }
+
+  /**
+   * Grade side of the submit, run once the match round-trip returned: create, update or
+   * delete the grade depending on what the form holds, and only then emit `saved`. In add
+   * mode the match has no stored grade, so only the create branch can be taken there. A
+   * grade that could not be loaded is left alone — the form never saw its stored value.
+   */
+  private persistGrade(match: Match): void {
+    const {value, secondValue} = this.grade();
+    const existing = this.existingGrade();
+    const emit = (): void => this.saved.emit(match);
+    if (!this.gradeEditable)
+      emit();
+    else if (this.hasStoredGrade && existing && value != null)
+      this.gradeService.update({...existing, value, secondValue}).subscribe(emit);
+    else if (this.hasStoredGrade && existing)
+      this.gradeService.delete(existing).subscribe(emit);
+    else if (value != null)
+      this.gradeService.save(match, {value, secondValue}).subscribe(emit);
     else
-      this.matchService.save(this.model).subscribe(match => {
-        if (this.hasGradeValue)
-          this.gradeService.save(match, this.grade()).subscribe(() => this.saved.emit(match));
-        else
-          this.saved.emit(match);
-      });
+      emit();
   }
 
   /** The grade on screen is the stored one, so the grade inputs may be edited and saved. */
@@ -150,19 +179,10 @@ export class MatchFormComponent implements OnInit {
 
   /**
    * The match already has a grade row on the backend, so it can be updated or deleted.
-   * Read from the match rather than from `grade.id`: the match carries the reference from
-   * the moment the form opens, while `grade` is empty until findById answers.
+   * Read from the match rather than from `existingGrade`: the match carries the reference
+   * from the moment the form opens, while `existingGrade` is empty until findById answers.
    */
   private get hasStoredGrade(): boolean {
     return this.match?.gradeId != null;
-  }
-
-  /**
-   * The form carries a grade value. Explicitly a null check, not a truthiness test:
-   * `0` is a value like any other, and treating it as "nothing entered" would send an
-   * edit from 7.5 to 0 down the delete branch instead of the update one.
-   */
-  private get hasGradeValue(): boolean {
-    return this.grade().value != null;
   }
 }
