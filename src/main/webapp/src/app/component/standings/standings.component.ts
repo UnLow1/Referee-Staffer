@@ -67,7 +67,7 @@ export class StandingsComponent implements OnInit {
   });
 
   readonly maxPoints = computed(() => {
-    const points = this.standings().map(s => s.points ?? 0);
+    const points = this.standings().map(s => s.points);
     return Math.max(...points, 1);
   });
 
@@ -89,6 +89,6 @@ export class StandingsComponent implements OnInit {
   }
 
   barPct(row: StandingRow): number {
-    return Math.round(((row.standing.points ?? 0) / this.maxPoints()) * 100);
+    return Math.round((row.standing.points / this.maxPoints()) * 100);
   }
 }
