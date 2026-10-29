@@ -1,7 +1,7 @@
 import type {MockedObject} from 'vitest';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {ActivatedRoute, convertToParamMap, Router} from '@angular/router';
-import {of} from 'rxjs';
+import {of, throwError} from 'rxjs';
 import {VacationListComponent} from './vacation-list.component';
 import {VacationService} from '../../service/vacation.service';
 import {RefereeService} from '../../service/referee.service';
@@ -115,6 +115,20 @@ describe('VacationListComponent', () => {
     expect(vacationService.delete).toHaveBeenCalledWith(32);
     expect(component.vacations().map(v => v.id)).not.toContain(32);
     expect(component.deleteTarget()).toBeNull();
+  });
+
+  it('keeps the vacation and closes the dialog when the delete is rejected', async () => {
+    const fixture = await create();
+    const component = fixture.componentInstance;
+    vacationService.delete.mockReturnValue(throwError(() => new Error('Conflict')));
+
+    component.askDelete(active);
+    component.confirmDelete();
+    fixture.detectChanges();
+
+    expect(component.vacations().map(v => v.id)).toContain(32);
+    expect(component.deleteTarget()).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('.modal')).toBeNull();
   });
 
   describe('deep links', () => {

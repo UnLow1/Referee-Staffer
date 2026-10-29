@@ -80,6 +80,6 @@ public class GradeController {
     @DeleteMapping("{id}")
     public void deleteGrade(@PathVariable Long id) {
         log.info("Deleting grade with id = {}", id);
-        gradeRepository.deleteById(id);
+        gradeService.deleteGrade(id);
     }
 }

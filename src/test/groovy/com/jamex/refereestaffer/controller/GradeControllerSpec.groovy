@@ -204,7 +204,19 @@ class GradeControllerSpec extends Specification {
         def response = mockMvc.perform(delete("/api/grades/77")).andReturn().response
 
         then:
-        1 * gradeRepository.deleteById(77l)
+        1 * gradeService.deleteGrade(77l)
+        0 * gradeRepository.deleteById(_)
         response.status == 200
+    }
+
+    def "should return 404 when deleting a grade that does not exist"() {
+        when:
+        def response = mockMvc.perform(delete("/api/grades/77")).andReturn().response
+
+        then:
+        1 * gradeService.deleteGrade(77l) >> { throw new GradeNotFoundException(77l) }
+        response.status == 404
+        def json = new JsonSlurper().parseText(response.contentAsString)
+        json.detail == String.format(GradeNotFoundException.NOT_FOUND, 77l)
     }
 }

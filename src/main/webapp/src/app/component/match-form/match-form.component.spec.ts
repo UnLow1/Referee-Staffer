@@ -2,7 +2,7 @@ import type {MockedObject} from 'vitest';
 import {EnvironmentProviders, Provider, ɵprovideZonelessChangeDetectionInternal as provideZonelessChangeDetectionInternal} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {NgForm} from '@angular/forms';
-import {of, Subject} from 'rxjs';
+import {of, Subject, throwError} from 'rxjs';
 import {MatchFormComponent} from './match-form.component';
 import {MatchService} from '../../service/match.service';
 import {TeamService} from '../../service/team.service';
@@ -476,6 +476,18 @@ describe('MatchFormComponent', () => {
       expect(gradeService.delete).toHaveBeenCalledWith(component.grade());
       expect(gradeService.update).not.toHaveBeenCalled();
       expect(gradeService.save).not.toHaveBeenCalled();
+      expect(emitted).toEqual([updated]);
+    });
+
+    it('still emits the saved match when the grade delete fails', () => {
+      createInEditMode(5, {id: 5, value: 7.5});
+      // The match update already succeeded, so the drawer must not be left open on it.
+      gradeService.delete.mockReturnValue(throwError(() => new Error('Not found')));
+
+      component.grade().value = undefined as unknown as number;
+      component.onSubmit(validForm);
+
+      expect(gradeService.delete).toHaveBeenCalledWith(component.grade());
       expect(emitted).toEqual([updated]);
     });
 

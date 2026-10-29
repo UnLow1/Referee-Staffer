@@ -96,6 +96,6 @@ public class TeamController {
     @DeleteMapping("/{id}")
     public void deleteTeam(@PathVariable Long id) {
         log.info("Deleting team with id = {}", id);
-        teamRepository.deleteById(id);
+        teamService.deleteTeam(id);
     }
 }
