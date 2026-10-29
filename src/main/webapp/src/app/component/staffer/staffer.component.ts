@@ -1,5 +1,5 @@
-import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
-import {forkJoin, Subscription} from 'rxjs';
+import {Component, computed, inject, signal, ChangeDetectionStrategy, OnInit} from '@angular/core';
+import {forkJoin, Observable, Subscription} from 'rxjs';
 import {SAVE_FILE} from '../../service/save-file.token';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -32,11 +32,16 @@ interface Candidate {
 }
 
 /**
- * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
- * swap individual rows, then save. Locked pairs are sent with the staffing request,
- * so a regenerate preserves them server-side and reshuffles only the rest. Nothing on
- * screen survives a queue change — the cast, the locks and the saved marker are all
- * scoped to the queue they were generated for.
+ * Staffer — the auto-assignment workspace. Pick a queue, review what is stored for it,
+ * generate a new cast, lock or swap individual rows, then save. Locked pairs are sent with
+ * the staffing request, so a regenerate preserves them server-side and reshuffles the rest.
+ * Nothing on screen survives a queue change — the cast, the locks and the saved marker are
+ * all scoped to the queue they were loaded for.
+ *
+ * <p>Since RS-105 generating is a draft: the backend computes the cast without writing it,
+ * so nothing reaches the database until Save cast. The screen therefore has two sources for
+ * the table — the stored cast (loaded on entry and on every queue change) and a generated
+ * draft — and `persisted` says which one is on screen.
  */
 @Component({
   selector: 'app-staffer',
@@ -48,7 +53,7 @@ interface Candidate {
     ChipComponent, KpiComponent, DrawerComponent
   ]
 })
-export class StafferComponent {
+export class StafferComponent implements OnInit {
   private readonly stafferService = inject(StafferService);
   private readonly teamService = inject(TeamService);
   private readonly refereeService = inject(RefereeService);
@@ -80,21 +85,38 @@ export class StafferComponent {
    * Map<matchId, refereeId> of locked assignments. Sent with the staffing request:
    * the backend pins each pair and re-staffs only the remaining matches, so locks
    * survive a regenerate. Cleared on queue change — they reference matches of the
-   * previously generated queue (see setQueue).
+   * previously loaded queue (see setQueue).
    */
   readonly locks = signal<Map<number, number>>(new Map());
   readonly drawerMatchId = signal<number | null>(null);
   /** Lazy-loaded breakdown for the currently-open drawer. Null while pending or absent. */
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
+  /**
+   * Set when this screen saved the cast, so the footer can say when. A stored cast loaded
+   * from the backend leaves it null — nothing records when it was saved.
+   */
   readonly savedAt = signal<Date | null>(null);
+  /**
+   * Whether the cast on screen is the one the backend has stored. True right after a load
+   * or a successful save, false for a generated draft, after any manual swap, and while a
+   * request is in flight. The PDF is rendered from stored assignments, so this is what gates
+   * the export.
+   */
+  readonly persisted = signal(false);
+  /** Set when a cast request failed, so the empty state can offer a retry instead of a lie. */
+  readonly loadFailed = signal(false);
   readonly loading = signal(false);
   readonly exporting = signal(false);
 
-  /** The staffing request currently in flight, kept so a queue change can cancel it. */
+  /** The cast request currently in flight, kept so a queue change can cancel it. */
   private staffing: Subscription | null = null;
 
   constructor() {
     this.configurationService.ensureEdgeTeamsLoaded();
+  }
+
+  ngOnInit(): void {
+    this.loadStoredCast();
   }
 
   // ——— Derived state ———
@@ -111,13 +133,30 @@ export class StafferComponent {
 
   readonly lockCount = computed(() => this.locks().size);
 
+  readonly matchCount = computed(() => this.matches()?.length ?? 0);
+
+  readonly hasCast = computed(() => this.matchCount() > 0);
+
   /**
-   * The sheet is rendered from what the backend has stored, so it may only be exported
-   * once the cast on screen has been accepted with Save cast. Generating alone is not
-   * enough: manual swaps live in the component until saved, and a sheet that silently
-   * disagreed with the table on screen would be worse than no sheet.
+   * The sheet is rendered from what the backend has stored, so it may only be exported while
+   * the table on screen agrees with the database: a stored cast straight after loading it, or
+   * a draft that has been accepted with Save cast. A sheet that silently disagreed with the
+   * table would be worse than no sheet.
+   *
+   * Deliberately not conditioned on the cast being non-empty: the sheet covers the whole
+   * queue, including the matches the staffer may not reassign (central assignments, played
+   * ones), so a played queue has an empty cast here and a complete sheet. A queue with no
+   * matches at all is the one case this lets through, and the backend answers it with a
+   * plain "No matches have been found for queue = N".
    */
-  readonly canExport = computed(() => this.matches() !== null && this.savedAt() !== null);
+  readonly canExport = computed(() => this.persisted());
+
+  /** Why the Export PDF button is (not) available — shown as its tooltip. */
+  readonly exportHint = computed(() =>
+    this.canExport()
+      ? 'Download the stored assignments of this queue as a PDF — the sheet covers every match in it'
+      : 'Save the cast first — the sheet is rendered from the stored assignments'
+  );
 
   readonly drawerMatch = computed<Match | null>(() => {
     const id = this.drawerMatchId();
@@ -139,24 +178,50 @@ export class StafferComponent {
     this.locks.set(new Map());
   }
 
+  /**
+   * Shows what the backend has stored for the selected queue. Called on entry and on every
+   * queue change, so the saved cast can be reviewed and exported without regenerating it —
+   * which used to be the only way to see one, and destroyed it in the process.
+   */
+  loadStoredCast(): void {
+    this.fetchCast(this.stafferService.getStoredCast(this.queue()), true);
+  }
+
+  /**
+   * Asks the backend for a fresh cast. The response is a draft — nothing is stored until
+   * Save cast — so the table stops matching the database until then.
+   */
   generate(): void {
+    const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
+    this.fetchCast(this.stafferService.staffReferees(this.queue(), locks), false);
+  }
+
+  /**
+   * Loads a cast — stored or freshly generated — together with everything the table renders
+   * around it, and records whether what lands on screen matches the database.
+   */
+  private fetchCast(cast$: Observable<Match[]>, persisted: boolean): void {
     const requestedQueue = this.queue();
-    // Only one cast can be on screen, so only one request may be outstanding: a second
-    // Generate supersedes the first, and a queue change cancels it outright (setQueue).
-    // Cancelling rather than filtering the response on arrival is what keeps an older
-    // request from landing last and repopulating a screen that was already reset.
+    // Only one cast can be on screen, so only one request may be outstanding: a Generate
+    // supersedes a pending load (or an earlier Generate), and a queue change cancels it
+    // outright (setQueue). Cancelling rather than filtering the response on arrival is what
+    // keeps an older request from landing last and repopulating a screen that was already
+    // reset.
     this.cancelStaffing();
     this.loading.set(true);
     this.savedAt.set(null);
-    const locks = Array.from(this.locks(), ([matchId, refereeId]) => ({matchId, refereeId}));
+    this.loadFailed.set(false);
+    // In flight the table belongs to no queue in particular, so it agrees with nothing —
+    // this is what keeps Export PDF from firing at the new queue while the old cast is still
+    // on screen.
+    this.persisted.set(false);
     this.staffing = forkJoin({
-      matches: this.stafferService.staffReferees(requestedQueue, locks),
+      matches: cast$,
       standings: this.teamService.getStandings(),
       referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue)
     }).subscribe({
       next: ({matches, standings, referees}) => {
         this.staffing = null;
-        this.loading.set(false);
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
         // on every cell render; `place` comes straight from the backend row.
         const teamsMap = new Map<number, Team>();
@@ -170,16 +235,19 @@ export class StafferComponent {
         this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
         this.matches.set([...matches]);
+        this.persisted.set(persisted);
+        this.loading.set(false);
       },
       error: () => {
         this.staffing = null;
+        this.loadFailed.set(true);
         this.loading.set(false);
       }
     });
   }
 
   /**
-   * Downloads the assignment sheet PDF for the selected queue. Gated on a saved cast
+   * Downloads the assignment sheet PDF for the selected queue. Gated on a stored cast
    * (see canExport) — the template disables the button, and this guard keeps the rule
    * in one place for any other caller.
    */
@@ -240,23 +308,28 @@ export class StafferComponent {
       next.set(match.id, refereeId);
       return next;
     });
+    // The swap lives in this component only — the table no longer matches the database.
     this.savedAt.set(null);
+    this.persisted.set(false);
   }
 
   save(): void {
     const ms = this.matches();
-    if (!ms) return;
-    this.matchService.updateList(ms).subscribe(() => this.savedAt.set(new Date()));
+    if (!ms || ms.length === 0) return;
+    this.matchService.updateList(ms).subscribe(() => {
+      this.savedAt.set(new Date());
+      this.persisted.set(true);
+    });
   }
 
   // ——— Queue selection ———
 
   /**
    * The single way the queue changes. Clamps to the first queue and, whenever the value
-   * really moves, drops everything on screen that belongs to the queue left behind.
-   * Deliberately synchronous rather than an effect() on the queue signal: an effect is
-   * scheduled, so a generate() issued in the same tick would have its fresh cast wiped
-   * by a reset arriving afterwards.
+   * really moves, drops everything on screen that belongs to the queue left behind and
+   * loads what is stored for the new one. Deliberately synchronous rather than an effect()
+   * on the queue signal: an effect is scheduled, so a generate() issued in the same tick
+   * would have its fresh cast wiped by a reset arriving afterwards.
    */
   private setQueue(next: number): void {
     const target = Math.max(1, next);
@@ -265,13 +338,14 @@ export class StafferComponent {
     }
     this.selectedQueue.set(target);
     this.resetCast();
+    this.loadStoredCast();
   }
 
   /**
-   * Clears the generated cast. Every piece of it is queue-scoped: the rows and the
+   * Clears the cast on screen. Every piece of it is queue-scoped: the rows and the
    * referee pool were fetched for the old queue, the locks key on its match ids, and
-   * savedAt refers to assignments stored for it — left in place it would keep Export
-   * PDF enabled for a queue that was never staffed.
+   * savedAt / persisted refer to assignments stored for it — left in place they would keep
+   * Export PDF enabled for a queue whose cast is not on screen.
    */
   private resetCast(): void {
     this.cancelStaffing();
@@ -279,11 +353,13 @@ export class StafferComponent {
     this.matches.set(null);
     this.referees.set([]);
     this.savedAt.set(null);
+    this.persisted.set(false);
+    this.loadFailed.set(false);
     this.closeDrawer();
   }
 
   /**
-   * Drops the staffing request in flight, if any, and re-enables the Generate button.
+   * Drops the cast request in flight, if any, and re-enables the Generate button.
    * Without it a queue change left the user waiting on a request whose response is no
    * longer wanted, with nothing to show for it once it landed.
    */

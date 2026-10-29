@@ -263,4 +263,24 @@ class StafferIntegrationSpec extends Specification {
         and: "the assignment sheet query lists the dateless match last"
         matchRepository.findAllByQueueOrderByDateAsc(queue)*.id == [datedMatch.id, datelessMatch.id]
     }
+
+    def "should report an empty cast for a queue that has been played"() {
+        given:
+        def team1 = teamRepository.save(new Team("Team1", "City1"))
+        def team2 = teamRepository.save(new Team("Team2", "City2"))
+        def referee = refereeRepository.save(new Referee("John", "Doe", "john@doe.com", 5))
+        short queue = 5
+        def playedMatch = matchRepository.save(new Match(queue, team1, team2, LocalDateTime.now().minusDays(7),
+                referee, (short) 1, (short) 1))
+
+        when:
+        def result = stafferService.getStoredCast(queue)
+
+        then: "a played match is nobody's to re-decide, so it is not part of the cast"
+        result.isEmpty()
+
+        and: "its assignment stays in the database — the assignment sheet renders the whole queue"
+        matchRepository.findById(playedMatch.id).orElseThrow().referee.id == referee.id
+        matchRepository.findAllByQueueOrderByDateAsc(queue)*.id == [playedMatch.id]
+    }
 }

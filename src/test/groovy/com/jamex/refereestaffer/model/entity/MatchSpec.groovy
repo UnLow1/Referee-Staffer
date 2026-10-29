@@ -4,7 +4,7 @@ import spock.lang.Specification
 
 class MatchSpec extends Specification {
 
-    def "should tell whether the staffer may re-decide the referee"() {
+    def "should tell whether the staffer may re-decide the referee: #description"() {
         given:
         def match = Match.builder()
                 .referee(referee)
