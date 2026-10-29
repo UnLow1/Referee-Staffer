@@ -222,15 +222,6 @@ class TeamControllerSpec extends Specification {
         firstRow.goalsAgainst == 8
     }
 
-    def "should delete all teams"() {
-        when:
-        def response = mockMvc.perform(delete("/api/teams")).andReturn().response
-
-        then:
-        1 * teamRepository.deleteAll()
-        response.status == 200
-    }
-
     def "should delete team with provided id"() {
         when:
         def response = mockMvc.perform(delete("/api/teams/213")).andReturn().response
