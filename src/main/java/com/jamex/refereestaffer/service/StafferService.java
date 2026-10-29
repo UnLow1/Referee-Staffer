@@ -1,26 +1,24 @@
 package com.jamex.refereestaffer.service;
 
 import com.jamex.refereestaffer.model.converter.MatchConverter;
+import com.jamex.refereestaffer.model.dto.CandidateViolationsDto;
 import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.entity.ConfigName;
 import com.jamex.refereestaffer.model.entity.Match;
 import com.jamex.refereestaffer.model.entity.Referee;
 import com.jamex.refereestaffer.model.entity.Team;
-import com.jamex.refereestaffer.model.entity.Vacation;
 import com.jamex.refereestaffer.model.exception.RefereeNotFoundException;
 import com.jamex.refereestaffer.model.exception.StafferException;
 import com.jamex.refereestaffer.model.request.StaffingLockRequest;
 import com.jamex.refereestaffer.repository.ConfigurationRepository;
 import com.jamex.refereestaffer.repository.MatchRepository;
 import com.jamex.refereestaffer.repository.RefereeRepository;
-import com.jamex.refereestaffer.repository.VacationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -44,23 +41,24 @@ public class StafferService {
     private static final Logger log = LoggerFactory.getLogger(StafferService.class);
 
     private final ConfigurationRepository configurationRepository;
-    private final VacationRepository vacationRepository;
     private final MatchRepository matchRepository;
     private final RefereeRepository refereeRepository;
     private final MatchConverter matchConverter;
     private final MatchService matchService;
     private final RefereeService refereeService;
+    private final StaffingRuleChecker staffingRuleChecker;
 
-    public StafferService(ConfigurationRepository configurationRepository, VacationRepository vacationRepository,
-                          MatchRepository matchRepository, RefereeRepository refereeRepository,
-                          MatchConverter matchConverter, MatchService matchService, RefereeService refereeService) {
+    public StafferService(ConfigurationRepository configurationRepository, MatchRepository matchRepository,
+                          RefereeRepository refereeRepository, MatchConverter matchConverter,
+                          MatchService matchService, RefereeService refereeService,
+                          StaffingRuleChecker staffingRuleChecker) {
         this.configurationRepository = configurationRepository;
-        this.vacationRepository = vacationRepository;
         this.matchRepository = matchRepository;
         this.refereeRepository = refereeRepository;
         this.matchConverter = matchConverter;
         this.matchService = matchService;
         this.refereeService = refereeService;
+        this.staffingRuleChecker = staffingRuleChecker;
     }
 
     // @Transactional must sit on this overload too: the delegation below is a self-invocation,
@@ -106,6 +104,52 @@ public class StafferService {
         assignRefereesToMatches(referees, matchesToAutoStaff, config);
 
         return matchConverter.convertFromEntities(sortedMatchesToStaff);
+    }
+
+    /**
+     * The staffing-rule matrix for a queue: for every assignable match × every staffable
+     * referee, the rules that pairing would break. Only conflicting pairs are returned — the
+     * clean ones are the vast majority, and leaving them out keeps the response proportional
+     * to the number of actual conflicts.
+     *
+     * <p>Serves the staffer's candidate list, which warns but never blocks: a human may always
+     * assign a referee by hand (RS-111). Returning the whole queue at once rather than a
+     * per-match endpoint is what keeps the drawer instant — it opens with no request of its
+     * own, and at ~8 matches × ~15 referees the matrix is negligible.
+     *
+     * <p>The referee side is deliberately {@link RefereeService#getStaffableReferees()} and not
+     * the queue's availability pool. The UI fetches this alongside the staffing POST, which
+     * rewrites exactly the assignments an availability pool is derived from, so a queue-scoped
+     * pool here would make the answer depend on which request commits first — and a warning
+     * that silently goes missing is worse than no warning at all. Covering every referee makes
+     * the response independent of that ordering (the assignable-match set is not affected: a
+     * match stays assignable whether or not it currently carries an auto-assigned referee). The
+     * cost is a few rows for referees the drawer happens not to offer, which it simply never
+     * looks up.
+     *
+     * <p>Matches without a date (RS-119) are left out of the matrix: every rule is keyed by the
+     * match day, so there is nothing to judge — the same reason the auto-staffer skips them —
+     * and {@link StaffingRuleChecker#rulesFor} rejects them outright. Their candidates simply
+     * carry no warnings.
+     */
+    @Transactional(readOnly = true)
+    public List<CandidateViolationsDto> findCandidateViolationsForQueue(short queue) {
+        var matches = matchService.getAssignableMatchesInQueue(queue).stream()
+                .filter(match -> match.getDate() != null)
+                .toList();
+        var referees = refereeService.getStaffableReferees();
+        var rules = staffingRuleChecker.rulesFor(matches, referees);
+
+        var violations = new ArrayList<CandidateViolationsDto>();
+        for (var match : matches) {
+            for (var referee : referees) {
+                var brokenRules = rules.check(match, referee);
+                if (!brokenRules.isEmpty()) {
+                    violations.add(new CandidateViolationsDto(match.getId(), referee.getId(), brokenRules));
+                }
+            }
+        }
+        return violations;
     }
 
     /**
@@ -163,30 +207,22 @@ public class StafferService {
         }
     }
 
+    /**
+     * Greedy pass: matches come in hardest-first, each takes the highest-potential referee that
+     * breaks no staffing rule. The rules themselves live in {@link StaffingRuleChecker} — the
+     * same component the candidate list and the cast table read — so the auto-staffer cannot
+     * drift from what the UI warns about. Only the in-run bookkeeping stays local: assignments
+     * made in this loop are not flushed, so the snapshot cannot see them.
+     */
     private void assignRefereesToMatches(List<Referee> referees, List<Match> matches, Map<ConfigName, Double> config) {
+        var rules = staffingRuleChecker.rulesFor(matches, referees);
         var assignedRefereeIds = new HashSet<Long>();
-        // Both availability queries only ever look at the calendar day of the match (the two
-        // repository defaults truncate the LocalDateTime), and the matches of one queue share a
-        // handful of dates — a round of 8 matches on one day used to run 16 queries instead of 2.
-        // Same idea as hoisting config out of the loop above. The same-day set additionally
-        // depends on `referees`, which does not change during a run; if a future change ever
-        // feeds freshly made assignments back into that query, this cache must be invalidated.
-        // Dateless matches are filtered out before this loop (RS-119), so the key is never null.
-        var refereeIdsOnVacationByDay = new HashMap<LocalDate, Set<Long>>();
-        var refereeIdsWithMatchByDay = new HashMap<LocalDate, Set<Long>>();
         for (var match : matches) {
             var refereesPotentialLvlMap = new HashMap<Referee, Double>();
-            var matchDay = match.getDate().toLocalDate();
-
-            var refereeIdsOnVacation = refereeIdsOnVacationByDay.computeIfAbsent(
-                    matchDay, day -> findRefereeIdsOnVacation(match.getDate()));
-            var refereeIdsWithMatchOnSameDay = refereeIdsWithMatchByDay.computeIfAbsent(
-                    matchDay, day -> findRefereeIdsWithMatchOnDay(referees, match.getDate()));
 
             var availableReferees = referees.stream()
                     .filter(ref -> !assignedRefereeIds.contains(ref.getId()))
-                    .filter(ref -> !refereeIdsOnVacation.contains(ref.getId()))
-                    .filter(ref -> !refereeIdsWithMatchOnSameDay.contains(ref.getId()))
+                    .filter(ref -> rules.isClear(match, ref))
                     .toList();
 
             for (var referee : availableReferees) {
@@ -206,43 +242,6 @@ public class StafferService {
 
             match.setReferee(chosenReferee);
         }
-    }
-
-    /**
-     * Ids of referees whose vacation covers the match day.
-     *
-     * <p>This and the two filters around it all key on the referee id. Matching on the entity
-     * itself would fall back to identity comparison (Referee deliberately does not override
-     * equals/hashCode — see RS-110), which only happens to work while all instances come from
-     * the same persistence context; a copied list, a reloaded entity or a DTO in the flow would
-     * silently let a referee on vacation or with a same-day match through. Ids come from
-     * persisted rows, so they are never null here; a null would end up in the set and
-     * over-exclude every id-less candidate, which fails loudly (StafferException) instead of
-     * quietly breaking the rule.
-     */
-    private Set<Long> findRefereeIdsOnVacation(LocalDateTime date) {
-        return vacationRepository.findAllByStartDateIsLessThanEqualAndEndDateIsGreaterThanEqual(date).stream()
-                .map(Vacation::getReferee)
-                .filter(Objects::nonNull)
-                .map(Referee::getId)
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * Ids of referees that already officiate another match on the same calendar day. The
-     * queue-level uniqueness check (getAvailableRefereesForQueue + busy) does not cover this: a
-     * match from a different queue can be rescheduled onto this day, and one referee must never
-     * have two matches on one day (RS-57).
-     */
-    private Set<Long> findRefereeIdsWithMatchOnDay(List<Referee> referees, LocalDateTime date) {
-        if (referees.isEmpty()) {
-            return Set.of();
-        }
-        return matchRepository.findAllByRefereeInAndDateOnDay(referees, date).stream()
-                .map(Match::getReferee)
-                .filter(Objects::nonNull)
-                .map(Referee::getId)
-                .collect(Collectors.toSet());
     }
 
     private double countRefereePotentialLvl(Referee referee, Team homeTeam, Team awayTeam, Map<ConfigName, Double> config) {

@@ -1,5 +1,6 @@
 import {Component, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
-import {forkJoin, Subscription} from 'rxjs';
+import {forkJoin, of, Subscription} from 'rxjs';
+import {catchError} from 'rxjs/operators';
 import {SAVE_FILE} from '../../service/save-file.token';
 import {StafferService} from '../../service/staffer.service';
 import {TeamService} from '../../service/team.service';
@@ -11,6 +12,7 @@ import {Match} from '../../model/match';
 import {Team} from '../../model/team';
 import {Referee} from '../../model/referee';
 import {DifficultyBreakdown} from '../../model/difficultyBreakdown';
+import {CandidateViolations, StaffingRule, StaffingViolation} from '../../model/staffingViolation';
 import {IconComponent} from '../common/icon/icon.component';
 import {TeamPillComponent} from '../common/team-pill/team-pill.component';
 import {RefAvatarComponent} from '../common/ref-avatar/ref-avatar.component';
@@ -29,7 +31,22 @@ interface Candidate {
   referee: Referee;
   isAssigned: boolean;
   isUsedElsewhere: boolean;
+  /**
+   * Staffing rules this pairing would break. Warning only — a candidate with violations stays
+   * clickable, unlike `isUsedElsewhere`, which is physically impossible (RS-111).
+   */
+  violations: StaffingViolation[];
 }
+
+/**
+ * Short chip labels for the candidate list; the full sentence goes into the tooltip. Keep in
+ * step with the backend `StaffingRule` enum — an unmapped code falls back to the code itself.
+ */
+const RULE_LABELS: Partial<Record<StaffingRule, string>> = {
+  VACATION: 'vacation',
+  SAME_DAY_MATCH: 'same day',
+  DOUBLE_MATCH_IN_QUEUE: 'same queue'
+};
 
 /**
  * Staffer — the auto-assignment workspace. Pick a queue, generate the cast, lock or
@@ -86,6 +103,11 @@ export class StafferComponent {
   readonly drawerMatchId = signal<number | null>(null);
   /** Lazy-loaded breakdown for the currently-open drawer. Null while pending or absent. */
   readonly drawerBreakdown = signal<DifficultyBreakdown | null>(null);
+  /**
+   * Rule violations for every conflicting (match, referee) pair in the generated queue,
+   * straight from the backend. Loaded once per generate, so opening the drawer costs no request.
+   */
+  readonly violations = signal<CandidateViolations[]>([]);
   readonly savedAt = signal<Date | null>(null);
   readonly loading = signal(false);
   readonly exporting = signal(false);
@@ -110,6 +132,13 @@ export class StafferComponent {
   );
 
   readonly lockCount = computed(() => this.locks().size);
+
+  /** `matchId:refereeId` -> violations, so a candidate row is a map lookup, not a scan. */
+  private readonly violationsByPair = computed(() => {
+    const map = new Map<string, StaffingViolation[]>();
+    this.violations().forEach(v => map.set(`${v.matchId}:${v.refereeId}`, v.violations));
+    return map;
+  });
 
   /**
    * The sheet is rendered from what the backend has stored, so it may only be exported
@@ -152,9 +181,13 @@ export class StafferComponent {
     this.staffing = forkJoin({
       matches: this.stafferService.staffReferees(requestedQueue, locks),
       standings: this.teamService.getStandings(),
-      referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue)
+      referees: this.refereeService.findRefereesAvailableForQueue(requestedQueue),
+      // Warnings are advisory: if the rule matrix cannot be loaded, the cast must still show.
+      // The interceptor has already toasted the failure by the time this runs.
+      violations: this.stafferService.findCandidateViolations(requestedQueue)
+        .pipe(catchError(() => of<CandidateViolations[]>([])))
     }).subscribe({
-      next: ({matches, standings, referees}) => {
+      next: ({matches, standings, referees, violations}) => {
         this.staffing = null;
         this.loading.set(false);
         // Build lookup maps so flag derivation (top/bottom) doesn't re-scan the table
@@ -169,6 +202,7 @@ export class StafferComponent {
         this.placeById.set(placeMap);
         this.totalTeams.set(standings.rows.length);
         this.referees.set(referees);
+        this.violations.set(violations);
         this.matches.set([...matches]);
       },
       error: () => {
@@ -268,16 +302,17 @@ export class StafferComponent {
   }
 
   /**
-   * Clears the generated cast. Every piece of it is queue-scoped: the rows and the
-   * referee pool were fetched for the old queue, the locks key on its match ids, and
-   * savedAt refers to assignments stored for it — left in place it would keep Export
-   * PDF enabled for a queue that was never staffed.
+   * Clears the generated cast. Every piece of it is queue-scoped: the rows, the referee
+   * pool and the rule violations were fetched for the old queue, the locks key on its
+   * match ids, and savedAt refers to assignments stored for it — left in place it would
+   * keep Export PDF enabled for a queue that was never staffed.
    */
   private resetCast(): void {
     this.cancelStaffing();
     this.clearLocks();
     this.matches.set(null);
     this.referees.set([]);
+    this.violations.set([]);
     this.savedAt.set(null);
     this.closeDrawer();
   }
@@ -356,8 +391,23 @@ export class StafferComponent {
       .map<Candidate>(r => ({
         referee: r,
         isAssigned: r.id === match.refereeId,
-        isUsedElsewhere: used.has(r.id)
+        isUsedElsewhere: used.has(r.id),
+        violations: this.violationsFor(match.id, r.id)
       }));
+  }
+
+  /** Rules the pairing breaks, as computed by the backend. Empty when the pairing is clean. */
+  violationsFor(matchId: number, refereeId: number): StaffingViolation[] {
+    return this.violationsByPair().get(`${matchId}:${refereeId}`) ?? [];
+  }
+
+  /**
+   * Falls back to the raw code: the value comes off the wire, and the backend enum is expected
+   * to grow (RS-76). A code this build does not know about must still read as *something* —
+   * an empty warn chip would be worse than an unfamiliar label.
+   */
+  ruleLabel(rule: StaffingRule): string {
+    return RULE_LABELS[rule] ?? rule;
   }
 
   formatTime(d: Date): string {
