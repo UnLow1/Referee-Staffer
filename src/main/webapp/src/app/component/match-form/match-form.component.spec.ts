@@ -269,7 +269,7 @@ describe('MatchFormComponent', () => {
       matchService.save.mockReturnValue(of(makeMatch({id: 42, date: null})));
 
       // A cleared datetime-local input binds an empty string, not null.
-      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2, date: '' as unknown as Date} as Match;
+      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2, date: ''} as Match;
       component.onSubmit(validForm);
 
       expect(matchService.save).toHaveBeenCalledWith(expect.objectContaining({date: null}));
@@ -278,7 +278,7 @@ describe('MatchFormComponent', () => {
     it('keeps a scheduled date as entered', () => {
       const component = createComponent(null).componentInstance;
       matchService.save.mockReturnValue(of(makeMatch({id: 42})));
-      const date = new Date('2026-05-10T18:00:00');
+      const date = '2026-05-10T18:00';
 
       component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2, date} as Match;
       component.onSubmit(validForm);
