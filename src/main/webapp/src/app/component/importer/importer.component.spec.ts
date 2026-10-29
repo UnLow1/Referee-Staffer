@@ -1,4 +1,5 @@
 import type {MockedObject} from 'vitest';
+import {HttpErrorResponse} from '@angular/common/http';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {of, Subject, throwError} from 'rxjs';
 import {ImporterComponent} from './importer.component';
@@ -79,6 +80,37 @@ describe('ImporterComponent', () => {
 
     expect(component.uploading()).toBe(false);
     expect(component.importResult()).toBeNull();
+    expect(component.importError()).toContain('Import failed');
+  });
+
+  it('shows the row-level detail the backend reports for a malformed CSV', () => {
+    // RS-77: the importer validates the whole CSV and rejects it with an RFC 7807 ProblemDetail
+    // naming the offending row. That detail is the deliverable, so it must reach the user as-is.
+    const detail = 'Exception occurred while importing file with name season.csv ' +
+      '(row 3: date must match dd.MM.yyyy HH:mm but was "NOTADATE")';
+    importerService.postFile.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 400,
+      error: {type: 'about:blank', title: 'Bad Request', status: 400, detail}
+    })));
+    selectFile(csv);
+    component.setNumberOfQueues(30);
+
+    component.upload();
+
+    expect(component.importError()).toBe(detail);
+    expect(component.uploading()).toBe(false);
+  });
+
+  it('falls back to the generic message when the failure carries no problem detail', () => {
+    importerService.postFile.mockReturnValue(throwError(() => new HttpErrorResponse({
+      status: 400,
+      error: {type: 'about:blank', title: 'Bad Request', status: 400, detail: '  '}
+    })));
+    selectFile(csv);
+    component.setNumberOfQueues(30);
+
+    component.upload();
+
     expect(component.importError()).toContain('Import failed');
   });
 
