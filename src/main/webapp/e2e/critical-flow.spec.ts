@@ -49,15 +49,38 @@ test('critical flow: import CSV, staff and save a queue, export the PDF, read st
     await expect(cellValue('Grades')).toHaveText(EXPECTED.grades);
   });
 
-  await test.step('generate the cast for the upcoming queue', async () => {
+  await test.step('a played queue reports why its cast is empty', async () => {
     await page.getByRole('link', { name: 'Staffer' }).click();
     await expect(page.getByRole('heading', { name: 'Staffer' })).toBeVisible();
 
-    // Step from the default queue 1 up to the upcoming queue that still needs referees.
+    // The screen opens on queue 1, the season's first — so the arrow back is already dead.
+    await expect(page.getByRole('button', { name: 'Queue 1' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Previous queue' })).toBeDisabled();
+
+    // Queues 1-2 of the fixture are imported played and refereed, so nothing in them is
+    // assignable: POST /api/staffer/1 is the deliberate 200-with-empty-cast case, and the
+    // screen has to name the reason rather than show a zeroed KPI strip (RS-115).
+    await page.getByRole('button', { name: 'Generate cast' }).click();
+
+    await expect(page.locator('.empty-state')).toContainText('Nothing to staff in queue 1');
+    await expect(page.locator('.panel--kpi-strip')).toHaveCount(0);
+  });
+
+  await test.step('generate the cast for the upcoming queue', async () => {
+    // Step from queue 1 up to the upcoming queue that still needs referees.
     for (let queue = 1; queue < STAFFED_QUEUE; queue++) {
       await page.getByRole('button', { name: 'Next queue' }).click();
     }
     await expect(page.getByRole('button', { name: `Queue ${STAFFED_QUEUE}` })).toBeVisible();
+
+    // The fixture's last queue: the stepper is bounded by the queues that exist, so there
+    // is no way to walk past the end of the season into an empty cast (RS-115).
+    await expect(page.getByRole('button', { name: 'Next queue' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Previous queue' })).toBeEnabled();
+
+    // Stepping away drops the previous queue's result, so queue 1's panel cannot linger
+    // here and claim a reason for a queue nothing was generated for.
+    await expect(page.locator('.empty-state')).toContainText('Generate cast');
 
     await page.getByRole('button', { name: 'Generate cast' }).click();
 

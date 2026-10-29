@@ -53,6 +53,17 @@ describe('MatchService', () => {
     expect(result).toEqual([match]);
   });
 
+  it('getQueues GETs the queues the season has', () => {
+    let result: number[] | undefined;
+    service.getQueues().subscribe(queues => result = queues);
+
+    const req = httpTesting.expectOne(`${matchesUrl}/queues`);
+    expect(req.request.method).toBe('GET');
+    req.flush([1, 2, 3]);
+
+    expect(result).toEqual([1, 2, 3]);
+  });
+
   it('findById GETs a single match by id', () => {
     let result: Match | undefined;
     service.findById(3).subscribe(m => result = m);
