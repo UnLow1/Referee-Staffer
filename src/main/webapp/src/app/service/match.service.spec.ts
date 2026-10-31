@@ -5,7 +5,7 @@ import {HttpTestingController, provideHttpClientTesting} from '@angular/common/h
 import {MatchService} from './match.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
-import {Match} from '../model/match';
+import {Match, NewMatch} from '../model/match';
 import {DifficultyBreakdown} from '../model/difficultyBreakdown';
 
 describe('MatchService', () => {
@@ -64,13 +64,16 @@ describe('MatchService', () => {
     expect(result).toEqual(match);
   });
 
-  it('save POSTs the new match', () => {
+  it('save POSTs the create payload without an id', () => {
+    // The backend assigns the id, so a create body must not carry one.
+    const payload: NewMatch = {queue: 5, homeTeamId: 1, awayTeamId: 2, date: match.date};
     let result: Match | undefined;
-    service.save(match).subscribe(m => result = m);
+    service.save(payload).subscribe(m => result = m);
 
     const req = httpTesting.expectOne(matchesUrl);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(match);
+    expect(req.request.body).toEqual(payload);
+    expect(req.request.body).not.toHaveProperty('id');
     req.flush(match);
 
     expect(result).toEqual(match);
