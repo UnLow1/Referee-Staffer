@@ -71,6 +71,8 @@ public class TeamController {
                 .orElseThrow(() -> new TeamNotFoundException(teamDto.id()));
         team.setName(teamDto.name());
         team.setCity(teamDto.city());
+        team.setVenueName(teamDto.venueName());
+        team.setVenueAddress(teamDto.venueAddress());
         teamRepository.save(team);
     }
 

@@ -6,11 +6,12 @@ import {FormDrawerComponent} from '../common/form-drawer/form-drawer.component';
 import {IconComponent} from '../common/icon/icon.component';
 
 /**
- * Team add/edit form — drawer opened from the team list. Only `name` and `city` are
- * user-edited; `short` stays backend-owned. A create posts the draft as-is (`NewTeam`
- * has no `id`), an edit spreads the draft over the original row so `short` rides along.
- * Season numbers are not on Team at all since RS-99 — they live on the standings rows —
- * so anything extra the spread carries from a Standing is simply ignored on the wire.
+ * Team add/edit form — drawer opened from the team list. `name`, `city` and the two
+ * venue fields are user-edited; `short` stays backend-owned. A create posts the draft
+ * as-is (`NewTeam` has no `id`), an edit spreads the draft over the original row so
+ * `short` rides along. Season numbers are not on Team at all since RS-99 — they live on
+ * the standings rows — so anything extra the spread carries from a Standing is simply
+ * ignored on the wire.
  *
  * Rendered behind an @if by the host, so ngOnInit sees the final input.
  */
@@ -28,7 +29,8 @@ export class TeamFormComponent implements OnInit {
   @Output() saved = new EventEmitter<Team>();
   @Output() closed = new EventEmitter<void>();
 
-  model: Pick<Team, 'name' | 'city'> = {name: '', city: ''};
+  model: Pick<Team, 'name' | 'city' | 'venueName' | 'venueAddress'> =
+    {name: '', city: '', venueName: '', venueAddress: ''};
 
   get editMode(): boolean {
     return this.team != null;
@@ -40,7 +42,14 @@ export class TeamFormComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.team) {
-      this.model = {name: this.team.name, city: this.team.city};
+      // ?? '' rather than the raw value: the backend stores an unset venue as null, and
+      // ngModel on a null renders the literal "null" in the input.
+      this.model = {
+        name: this.team.name,
+        city: this.team.city,
+        venueName: this.team.venueName ?? '',
+        venueAddress: this.team.venueAddress ?? ''
+      };
     }
   }
 
