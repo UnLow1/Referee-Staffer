@@ -1,6 +1,7 @@
 import {Component, OnInit, computed, inject, signal, ChangeDetectionStrategy} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Referee} from '../../model/referee';
+import {formatAverageGrade, hasAverageGrade} from '../../model/grade';
 import {ModalData} from '../../model/modalData';
 import {RefereeService} from '../../service/referee.service';
 import {IconComponent} from '../common/icon/icon.component';
@@ -141,9 +142,10 @@ export class RefereeListComponent implements OnInit {
     });
   }
 
-  formatGrade(grade: number | undefined | null): string {
-    return grade != null ? grade.toFixed(1) : '—';
-  }
+  // Exposed as aliases rather than wrapped: one name for this across every screen, and no
+  // method that shares its name with the function it would call (RS-114).
+  readonly avgGradeLabel = formatAverageGrade;
+  readonly hasAverageGrade = hasAverageGrade;
 
   hasPotential(referee: Referee): boolean {
     return referee.potential !== null && referee.potential !== undefined;
