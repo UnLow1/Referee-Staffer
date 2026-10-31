@@ -21,9 +21,9 @@ describe('MatchFormComponent', () => {
   let gradeService: MockedObject<GradeService>;
 
   const teams: Team[] = [
-    {id: 1, name: 'Alfa', city: 'Krakow', points: 40},
-    {id: 2, name: 'Beta', city: 'Gdansk', points: 30},
-    {id: 3, name: 'Gamma', city: 'Lodz', points: 20}
+    {id: 1, name: 'Alfa', city: 'Krakow'},
+    {id: 2, name: 'Beta', city: 'Gdansk'},
+    {id: 3, name: 'Gamma', city: 'Lodz'}
   ];
 
   const referees: Referee[] = [

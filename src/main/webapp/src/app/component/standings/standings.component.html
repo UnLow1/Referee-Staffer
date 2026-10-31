@@ -54,7 +54,7 @@
                 [class.gd-positive]="goalDiff(row) > 0"
                 [class.gd-negative]="goalDiff(row) < 0"
                 [class.gd-zero]="goalDiff(row) === 0">{{ formatGoalDiff(row) }}</td>
-            <td class="num right pts-cell">{{ row.standing.points ?? '—' }}</td>
+            <td class="num right pts-cell">{{ row.standing.points }}</td>
             <td>
               <div class="bar">
                 <i [style.width.%]="barPct(row)"
