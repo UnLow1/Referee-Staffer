@@ -5,7 +5,7 @@ import {HttpTestingController, provideHttpClientTesting} from '@angular/common/h
 import {GradeService} from './grade.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
-import {Grade} from '../model/grade';
+import {Grade, NewGrade} from '../model/grade';
 import {Match} from '../model/match';
 
 describe('GradeService', () => {
@@ -78,13 +78,15 @@ describe('GradeService', () => {
     expect(result).toEqual([grade]);
   });
 
-  it('save POSTs the grade to the match id URL', () => {
+  it('save POSTs the create payload to the match id URL without an id', () => {
+    const payload: NewGrade = {value: 8.3};
     let result: Grade | undefined;
-    service.save(match, grade).subscribe(g => result = g);
+    service.save(match, payload).subscribe(g => result = g);
 
     const req = httpTesting.expectOne(`${gradesUrl}/3`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(grade);
+    expect(req.request.body).toEqual(payload);
+    expect(req.request.body).not.toHaveProperty('id');
     req.flush(grade);
 
     expect(result).toEqual(grade);

@@ -5,7 +5,7 @@ import {HttpTestingController, provideHttpClientTesting} from '@angular/common/h
 import {TeamService} from './team.service';
 import {ToastService} from './toast.service';
 import {httpErrorInterceptor} from './http-error.interceptor';
-import {Team} from '../model/team';
+import {NewTeam, Team} from '../model/team';
 import {Standings} from '../model/standing';
 
 describe('TeamService', () => {
@@ -69,13 +69,16 @@ describe('TeamService', () => {
     expect(result).toEqual([team]);
   });
 
-  it('save POSTs the new team', () => {
+  it('save POSTs the create payload without an id', () => {
+    // id, points and short are backend-owned, so a create body carries name + city only.
+    const payload: NewTeam = {name: 'Legia', city: 'Warszawa'};
     let result: Team | undefined;
-    service.save(team).subscribe(t => result = t);
+    service.save(payload).subscribe(t => result = t);
 
     const req = httpTesting.expectOne(teamsUrl);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(team);
+    expect(req.request.body).toEqual(payload);
+    expect(req.request.body).not.toHaveProperty('id');
     req.flush(team);
 
     expect(result).toEqual(team);
