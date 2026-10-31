@@ -1,10 +1,12 @@
 package com.jamex.refereestaffer.controller;
 
+import com.jamex.refereestaffer.model.dto.CandidateViolationsDto;
 import com.jamex.refereestaffer.model.dto.MatchDto;
 import com.jamex.refereestaffer.model.request.StaffingLockRequest;
 import com.jamex.refereestaffer.service.StafferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,5 +39,16 @@ public class StafferController {
         var lockedPairs = locks == null ? List.<StaffingLockRequest>of() : locks;
         log.info("Generating cast for queue {} with {} locked assignments", queue, lockedPairs.size());
         return stafferService.staffReferees(queue, lockedPairs);
+    }
+
+    /**
+     * Which staffing rules each (match, referee) pairing in the queue would break, for the
+     * candidate list's warning chips. Read-only and side-effect free — unlike staffing itself,
+     * this one is a GET.
+     */
+    @GetMapping("/{queue}/violations")
+    public List<CandidateViolationsDto> getCandidateViolations(@PathVariable short queue) {
+        log.info("Getting staffing rule violations for queue {}", queue);
+        return stafferService.findCandidateViolationsForQueue(queue);
     }
 }
