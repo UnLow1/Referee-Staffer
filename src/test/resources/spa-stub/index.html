@@ -1,0 +1,20 @@
+<!doctype html>
+<!--
+  Stand-in for the Angular shell that `mvn package` bakes into src/main/resources/static.
+
+  The backend CI job builds with -DskipFrontend=true, so that file does not exist when the Spock
+  specs run and SpaFallbackIntegrationSpec would have nothing to forward to. It deliberately lives
+  outside `static/`: dropping it there would put it ahead of the real build output on the classpath
+  and silently shadow the shell for every other spec. SpaFallbackIntegrationSpec points
+  spring.web.resources.static-locations at this folder instead, so the override is scoped to that
+  one Spring context.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Referee Staffer</title>
+</head>
+<body>
+<app-root></app-root>
+</body>
+</html>
