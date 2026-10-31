@@ -135,6 +135,24 @@ class SpaFallbackErrorViewResolverSpec extends Specification {
         resolver.resolveErrorView(request, HttpStatus.NOT_FOUND, [:]) == null
     }
 
+    def "treats the bare context path as the root route"() {
+        given:
+        def request = errorRequest('/staffer-app')
+        request.contextPath = '/staffer-app'
+
+        expect:
+        resolver.resolveErrorView(request, HttpStatus.NOT_FOUND, [:]) != null
+    }
+
+    def "strips the context path only at a segment boundary"() {
+        given: 'a context path that is a mere string prefix of the first segment'
+        def request = errorRequest('/api/referees/999')
+        request.contextPath = '/ap'
+
+        expect: 'a bare startsWith would cut this to i/referees/999, miss the /api prefix and leak the shell'
+        resolver.resolveErrorView(request, HttpStatus.NOT_FOUND, [:]) == null
+    }
+
     private static MockHttpServletRequest errorRequest(String path) {
         def request = new MockHttpServletRequest('GET', '/error')
         request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, path)
