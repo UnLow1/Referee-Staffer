@@ -37,13 +37,12 @@ describe('MatchFormComponent', () => {
       queue: 3,
       homeTeamId: 1,
       awayTeamId: 2,
-      date: new Date('2026-03-01T12:00:00'),
+      date: '2026-03-01T12:00:00',
       refereeId: 100,
-      gradeId: undefined,
       homeScore: 2,
       awayScore: 1,
       ...overrides
-    } as Match;
+    };
   }
 
   const validForm = {valid: true} as NgForm;
@@ -88,7 +87,7 @@ describe('MatchFormComponent', () => {
       expect(component.teams()).toEqual(teams);
       expect(component.referees()).toEqual(referees);
       expect(component.editMode).toBe(false);
-      expect(component.model).toEqual({} as Match);
+      expect(component.model).toEqual({});
       expect(gradeService.findById).not.toHaveBeenCalled();
     });
 
@@ -255,6 +254,8 @@ describe('MatchFormComponent', () => {
       const emitted: Match[] = [];
       component.saved.subscribe(m => emitted.push(m));
 
+      // Cast only because `Match.id` is required on the read model (RS-118), not
+      // because any of the three fields set here is mistyped.
       component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2} as Match;
       component.onSubmit(validForm);
 
@@ -268,7 +269,7 @@ describe('MatchFormComponent', () => {
       matchService.save.mockReturnValue(of(makeMatch({id: 42, date: null})));
 
       // A cleared datetime-local input binds an empty string, not null.
-      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2, date: '' as unknown as Date} as Match;
+      component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2, date: ''} as Match;
       component.onSubmit(validForm);
 
       expect(matchService.save).toHaveBeenCalledWith(expect.objectContaining({date: null}));
@@ -277,7 +278,7 @@ describe('MatchFormComponent', () => {
     it('keeps a scheduled date as entered', () => {
       const component = createComponent(null).componentInstance;
       matchService.save.mockReturnValue(of(makeMatch({id: 42})));
-      const date = new Date('2026-05-10T18:00:00');
+      const date = '2026-05-10T18:00';
 
       component.model = {queue: 3, homeTeamId: 1, awayTeamId: 2, date} as Match;
       component.onSubmit(validForm);
@@ -430,6 +431,8 @@ describe('MatchFormComponent', () => {
       const gradeDelete = new Subject<void>();
       gradeService.delete.mockReturnValue(gradeDelete);
 
+      // `GradeDto.value` is @NotNull, so the cast is the empty-draft state of the form
+      // input, not a nullable wire field.
       component.grade().value = undefined as unknown as number;
       component.onSubmit(validForm);
 

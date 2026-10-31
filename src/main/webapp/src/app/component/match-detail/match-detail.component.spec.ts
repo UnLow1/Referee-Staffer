@@ -64,13 +64,10 @@ describe('MatchDetailComponent', () => {
       queue: 3,
       homeTeamId: 1,
       awayTeamId: 2,
-      date: new Date('2026-03-01T12:00:00'),
+      date: '2026-03-01T12:00:00',
       refereeId: 100,
-      gradeId: undefined,
-      homeScore: undefined,
-      awayScore: undefined,
       ...overrides
-    } as Match;
+    };
   }
 
   const breakdown: DifficultyBreakdown = {

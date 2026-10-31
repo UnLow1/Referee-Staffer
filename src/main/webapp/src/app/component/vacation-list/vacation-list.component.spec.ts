@@ -29,7 +29,7 @@ describe('VacationListComponent', () => {
   }
 
   function makeVacation(id: number, refereeId: number, startDate: string, endDate: string): Vacation {
-    return {id, refereeId, startDate, endDate} as unknown as Vacation;
+    return {id, refereeId, startDate, endDate};
   }
 
   const past = makeVacation(31, 1, isoDay(-10), isoDay(-5));
