@@ -24,9 +24,7 @@ public record TeamDto(
          * client echoes back never gets persisted as an override.
          */
         @JsonProperty("short")
-        String shortCode,
-
-        Short points
+        String shortCode
 ) {
 
     public static Builder builder() {
@@ -38,7 +36,6 @@ public record TeamDto(
         private String name;
         private String city;
         private String shortCode;
-        private Short points;
 
         public Builder id(Long id) {
             this.id = id;
@@ -60,13 +57,8 @@ public record TeamDto(
             return this;
         }
 
-        public Builder points(Short points) {
-            this.points = points;
-            return this;
-        }
-
         public TeamDto build() {
-            return new TeamDto(id, name, city, shortCode, points);
+            return new TeamDto(id, name, city, shortCode);
         }
     }
 }

@@ -16,7 +16,6 @@ class TeamConverterSpec extends Specification {
                 .id(65l)
                 .name("Korona")
                 .city("Kielce")
-                .points(54 as short)
                 .build()
 
         when:
@@ -26,7 +25,6 @@ class TeamConverterSpec extends Specification {
         result.id == team.id
         result.name == team.name
         result.city == team.city
-        result.points == team.points
         result.shortCode == "KOR"
     }
 
@@ -62,8 +60,5 @@ class TeamConverterSpec extends Specification {
         result.city == teamDto.city
         and: "the entity falls back to the name prefix, proving nothing was stored"
         result.shortCode == "KOR"
-
-        and: "the entity starts unranked until standings are computed"
-        result.place == null
     }
 }

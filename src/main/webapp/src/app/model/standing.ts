@@ -5,6 +5,11 @@ import {Team} from './team';
  * row objects drop into every Team-typed slot (team pills, lookups) directly.
  */
 export interface Standing extends Team {
+  /**
+   * Season points. They live on the row, not on Team — the backend computes the table
+   * as a read-model and `/api/teams` carries no season numbers at all (RS-99).
+   */
+  points: number;
   /** 1-based table position — teams without a finished match rank at the bottom. */
   place: number;
   played: number;
