@@ -10,7 +10,10 @@ import {createMock} from '../../testing/mock';
 describe('TeamFormComponent', () => {
   let teamService: MockedObject<TeamService>;
 
-  const existing: Team = {id: 3, name: 'Alfa', city: 'Krakow', short: 'ALF'};
+  const existing: Team = {
+    id: 3, name: 'Alfa', city: 'Krakow', short: 'ALF',
+    venueName: 'Stadion Alfa', venueAddress: 'Krakow, Reymonta 22'
+  };
   const validForm = {valid: true} as NgForm;
 
   beforeEach(async () => {
@@ -33,15 +36,27 @@ describe('TeamFormComponent', () => {
 
     expect(component.editMode).toBe(false);
     expect(component.subtitle).toBe('New club in the league');
-    expect(component.model).toEqual({name: '', city: ''});
+    expect(component.model).toEqual({name: '', city: '', venueName: '', venueAddress: ''});
   });
 
-  it('copies only name and city in edit mode', () => {
+  it('copies the editable fields in edit mode', () => {
     const component = create(existing).componentInstance;
 
     expect(component.editMode).toBe(true);
     expect(component.subtitle).toBe('Alfa');
-    expect(component.model).toEqual({name: 'Alfa', city: 'Krakow'});
+    expect(component.model).toEqual({
+      name: 'Alfa', city: 'Krakow',
+      venueName: 'Stadion Alfa', venueAddress: 'Krakow, Reymonta 22'
+    });
+  });
+
+  it('shows empty venue inputs for a team the backend sent without one', () => {
+    const noVenue: Team = {id: 4, name: 'Beta', city: 'Gdansk', venueName: null, venueAddress: null};
+
+    const component = create(noVenue).componentInstance;
+
+    expect(component.model.venueName).toBe('');
+    expect(component.model.venueAddress).toBe('');
   });
 
   it('ignores submit while the form is invalid', () => {
@@ -58,15 +73,17 @@ describe('TeamFormComponent', () => {
     const emitted: Team[] = [];
     component.saved.subscribe(t => emitted.push(t));
 
-    component.model = {name: 'Beta', city: 'Gdansk'};
+    component.model = {name: 'Beta', city: 'Gdansk', venueName: 'Stadion Beta', venueAddress: 'Gdansk, Pokoleniowa 1'};
     component.onSubmit(validForm);
 
     // A copy, so a later keystroke cannot reach into the request body.
     expect(teamService.save.mock.calls[0][0]).not.toBe(component.model);
 
-    // Exact, not objectContaining: the create payload must carry name + city and nothing
-    // else — no id, and none of the backend-owned points / short.
-    expect(teamService.save).toHaveBeenCalledWith({name: 'Beta', city: 'Gdansk'});
+    // Exact, not objectContaining: the create payload must carry name, city and the venue
+    // pair and nothing else — no id, and not the backend-owned short.
+    expect(teamService.save).toHaveBeenCalledWith({
+      name: 'Beta', city: 'Gdansk', venueName: 'Stadion Beta', venueAddress: 'Gdansk, Pokoleniowa 1'
+    });
     expect(emitted).toEqual([saved]);
   });
 
@@ -78,8 +95,22 @@ describe('TeamFormComponent', () => {
     component.onSubmit(validForm);
 
     expect(teamService.update).toHaveBeenCalledWith(expect.objectContaining({
-      id: 3, name: 'Alfa', city: 'Wieliczka', short: 'ALF'
+      id: 3, name: 'Alfa', city: 'Wieliczka', short: 'ALF',
+      venueName: 'Stadion Alfa', venueAddress: 'Krakow, Reymonta 22'
     }));
     expect(teamService.save).not.toHaveBeenCalled();
+  });
+
+  it('sends the edited venue without touching the other fields', () => {
+    const component = create(existing).componentInstance;
+    teamService.update.mockReturnValue(of(existing));
+
+    component.model.venueName = 'Stadion Miejski';
+    component.model.venueAddress = '';
+    component.onSubmit(validForm);
+
+    expect(teamService.update).toHaveBeenCalledWith(expect.objectContaining({
+      id: 3, name: 'Alfa', city: 'Krakow', venueName: 'Stadion Miejski', venueAddress: ''
+    }));
   });
 });
