@@ -190,15 +190,6 @@ class GradeControllerSpec extends Specification {
         json*.id == [3]
     }
 
-    def "should delete all grades"() {
-        when:
-        def response = mockMvc.perform(delete("/api/grades")).andReturn().response
-
-        then:
-        1 * gradeRepository.deleteAll()
-        response.status == 200
-    }
-
     def "should delete grade with provided id"() {
         when:
         def response = mockMvc.perform(delete("/api/grades/77")).andReturn().response

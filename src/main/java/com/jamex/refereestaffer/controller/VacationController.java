@@ -65,12 +65,6 @@ public class VacationController {
         return vacationService.saveVacation(vacationDto);
     }
 
-    @DeleteMapping()
-    public void deleteAll() {
-        log.info("Deleting all vacations");
-        vacationRepository.deleteAll();
-    }
-
     @DeleteMapping("/{id}")
     public void deleteVacation(@PathVariable Long id) {
         log.info("Deleting vacation with id = {}", id);
