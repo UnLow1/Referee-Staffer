@@ -214,9 +214,7 @@ public class MatchService {
     public List<Match> getMatchesToAssignInQueue(Short queue) {
         var table = LeagueTable.from(teamService.getStandings());
 
-        var matchesToAssignInQueue = matchRepository.findAllByQueue(queue).stream()
-                .filter(this::isAssignable)
-                .toList();
+        var matchesToAssignInQueue = getAssignableMatchesInQueue(queue);
 
         // Config values are constant for the whole request — load them once here instead
         // of per match.
@@ -224,6 +222,19 @@ public class MatchService {
         matchesToAssignInQueue.forEach(match -> match.setHardnessLvl(computeBreakdown(match, table, config).total()));
         return matchesToAssignInQueue.stream()
                 .sorted(Comparator.comparingDouble(Match::getHardnessLvl).reversed())
+                .toList();
+    }
+
+    /**
+     * The same set as {@link #getMatchesToAssignInQueue(Short)} but unscored and unsorted —
+     * for callers that only need to know <em>which</em> matches a staffing run would touch,
+     * not how hard they are. Sharing the {@link #isAssignable(Match)} filter is the point:
+     * the overwrite warning on the Staffer screen must never disagree with what staffing
+     * actually clears.
+     */
+    public List<Match> getAssignableMatchesInQueue(Short queue) {
+        return matchRepository.findAllByQueue(queue).stream()
+                .filter(this::isAssignable)
                 .toList();
     }
 
