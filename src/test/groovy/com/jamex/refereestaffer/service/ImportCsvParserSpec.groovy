@@ -2,10 +2,12 @@ package com.jamex.refereestaffer.service
 
 import com.jamex.refereestaffer.model.exception.ImportException
 import org.springframework.mock.web.MockMultipartFile
+import org.springframework.web.multipart.MultipartFile
 import spock.lang.Specification
 
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.util.concurrent.atomic.AtomicBoolean
 
 class ImportCsvParserSpec extends Specification {
 
@@ -264,6 +266,60 @@ class ImportCsvParserSpec extends Specification {
         // headerless file would report a successful import of nothing
         csv << ["1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3",
                 "1;Team 1;Team 2;15.08.2018 17:00;Jan Kowalski;2;1;8.3\n2;Team 2;Team 1;22.08.2018 16:00;Jan Kowalski;0;0;8.1"]
+    }
+
+    def "should accept a header whose first cell is blank"() {
+        when:
+        def rows = parse(";Gospodarze;Goście\n1;Team 1;Team 2")
+
+        then: "only a first cell that looks like data rejects the header"
+        rows*.homeTeamName == ["Team 1"]
+    }
+
+    def "should report an upload that cannot be read, keeping the cause"() {
+        given:
+        def file = Stub(MultipartFile) {
+            getOriginalFilename() >> "import.csv"
+            getInputStream() >> { throw new IOException("stream gone") }
+        }
+
+        when:
+        ImportCsvParser.parse(file)
+
+        then:
+        def e = thrown(ImportException)
+        e.message == String.format(ImportException.ERROR_MESSAGE, "import.csv")
+        e.cause.message == "stream gone"
+    }
+
+    def "should close the upload when probing for the byte order mark fails"() {
+        given: "a stream that breaks on its first read, before anything owns the reader"
+        def closed = new AtomicBoolean()
+        def stream = new InputStream() {
+            @Override
+            int read() throws IOException {
+                throw new IOException("connection reset")
+            }
+
+            @Override
+            void close() {
+                closed.set(true)
+            }
+        }
+        def file = Stub(MultipartFile) {
+            getOriginalFilename() >> "import.csv"
+            getInputStream() >> stream
+        }
+
+        when:
+        ImportCsvParser.parse(file)
+
+        then:
+        def e = thrown(ImportException)
+        e.cause.message == "connection reset"
+
+        and: "the multipart stream does not leak"
+        closed.get()
     }
 
     def "should truncate a long cell in the error message"() {
