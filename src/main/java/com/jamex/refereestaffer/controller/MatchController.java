@@ -114,12 +114,6 @@ public class MatchController {
         matchService.updateMatches(matchesDtos);
     }
 
-    @DeleteMapping
-    public void deleteAll() {
-        log.info("Deleting all matches");
-        matchRepository.deleteAll();
-    }
-
     @DeleteMapping("/{id}")
     public void deleteMatch(@PathVariable Long id) {
         log.info("Deleting match with id = {}", id);
